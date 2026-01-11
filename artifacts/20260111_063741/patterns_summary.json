@@ -1,0 +1,806 @@
+{
+  "home": {
+    "total": 3291,
+    "critical": 1288,
+    "critical_patterns": [
+      {
+        "team": "STL",
+        "type": "home_streak",
+        "pattern": "WWWWWW",
+        "length": 6,
+        "critical": true,
+        "position": 12,
+        "next_result": "L"
+      },
+      {
+        "team": "STL",
+        "type": "home_streak",
+        "pattern": "WWWWW",
+        "length": 5,
+        "critical": true,
+        "position": 54,
+        "next_result": "L"
+      },
+      {
+        "team": "STL",
+        "type": "home_streak",
+        "pattern": "WWWWWWW",
+        "length": 7,
+        "critical": true,
+        "position": 123,
+        "next_result": "L"
+      },
+      {
+        "team": "STL",
+        "type": "home_streak",
+        "pattern": "WWWWWWW",
+        "length": 7,
+        "critical": true,
+        "position": 132,
+        "next_result": "L"
+      },
+      {
+        "team": "STL",
+        "type": "home_streak",
+        "pattern": "WWWWWWWWW",
+        "length": 9,
+        "critical": true,
+        "position": 170,
+        "next_result": "L"
+      },
+      {
+        "team": "STL",
+        "type": "home_streak",
+        "pattern": "WWWWW",
+        "length": 5,
+        "critical": true,
+        "position": 184,
+        "next_result": "L"
+      },
+      {
+        "team": "STL",
+        "type": "home_streak",
+        "pattern": "LLLLLL",
+        "length": 6,
+        "critical": true,
+        "position": 189,
+        "next_result": "W"
+      },
+      {
+        "team": "STL",
+        "type": "home_streak",
+        "pattern": "LLLLLLLL",
+        "length": 8,
+        "critical": true,
+        "position": 204,
+        "next_result": "W"
+      },
+      {
+        "team": "STL",
+        "type": "home_streak",
+        "pattern": "WWWWWWW",
+        "length": 7,
+        "critical": true,
+        "position": 236,
+        "next_result": "L"
+      },
+      {
+        "team": "STL",
+        "type": "home_streak",
+        "pattern": "WWWWW",
+        "length": 5,
+        "critical": true,
+        "position": 244,
+        "next_result": "L"
+      },
+      {
+        "team": "STL",
+        "type": "home_streak",
+        "pattern": "WWWWWW",
+        "length": 6,
+        "critical": true,
+        "position": 262,
+        "next_result": "L"
+      },
+      {
+        "team": "STL",
+        "type": "home_streak",
+        "pattern": "WWWWW",
+        "length": 5,
+        "critical": true,
+        "position": 353,
+        "next_result": "L"
+      },
+      {
+        "team": "STL",
+        "type": "home_streak",
+        "pattern": "LLLLL",
+        "length": 5,
+        "critical": true,
+        "position": 391,
+        "next_result": "W"
+      },
+      {
+        "team": "STL",
+        "type": "home_streak",
+        "pattern": "WWWWWWWWWWWWWWW",
+        "length": 15,
+        "critical": true,
+        "position": 398,
+        "next_result": "L"
+      },
+      {
+        "team": "STL",
+        "type": "home_alternation",
+        "pattern": "LWLWLWL",
+        "length": 7,
+        "critical": true,
+        "position": 22,
+        "next_result": "L"
+      },
+      {
+        "team": "STL",
+        "type": "home_alternation",
+        "pattern": "WLWLWL",
+        "length": 6,
+        "critical": true,
+        "position": 23,
+        "next_result": "L"
+      },
+      {
+        "team": "STL",
+        "type": "home_alternation",
+        "pattern": "LWLWL",
+        "length": 5,
+        "critical": true,
+        "position": 24,
+        "next_result": "L"
+      },
+      {
+        "team": "STL",
+        "type": "home_alternation",
+        "pattern": "LWLWL",
+        "length": 5,
+        "critical": true,
+        "position": 31,
+        "next_result": "L"
+      },
+      {
+        "team": "STL",
+        "type": "home_alternation",
+        "pattern": "WLWLWL",
+        "length": 6,
+        "critical": true,
+        "position": 61,
+        "next_result": "L"
+      },
+      {
+        "team": "STL",
+        "type": "home_alternation",
+        "pattern": "LWLWL",
+        "length": 5,
+        "critical": true,
+        "position": 62,
+        "next_result": "L"
+      }
+    ]
+  },
+  "away": {
+    "total": 3201,
+    "critical": 1233,
+    "critical_patterns": [
+      {
+        "team": "CBJ",
+        "type": "away_streak",
+        "pattern": "WWWWWWWW",
+        "length": 8,
+        "critical": true,
+        "position": 13,
+        "next_result": "L"
+      },
+      {
+        "team": "CBJ",
+        "type": "away_streak",
+        "pattern": "LLLLL",
+        "length": 5,
+        "critical": true,
+        "position": 39,
+        "next_result": "W"
+      },
+      {
+        "team": "CBJ",
+        "type": "away_streak",
+        "pattern": "LLLLL",
+        "length": 5,
+        "critical": true,
+        "position": 66,
+        "next_result": "W"
+      },
+      {
+        "team": "CBJ",
+        "type": "away_streak",
+        "pattern": "WWWWWW",
+        "length": 6,
+        "critical": true,
+        "position": 85,
+        "next_result": "L"
+      },
+      {
+        "team": "CBJ",
+        "type": "away_streak",
+        "pattern": "LLLLL",
+        "length": 5,
+        "critical": true,
+        "position": 131,
+        "next_result": "W"
+      },
+      {
+        "team": "CBJ",
+        "type": "away_streak",
+        "pattern": "WWWWWWW",
+        "length": 7,
+        "critical": true,
+        "position": 136,
+        "next_result": "L"
+      },
+      {
+        "team": "CBJ",
+        "type": "away_streak",
+        "pattern": "LLLLL",
+        "length": 5,
+        "critical": true,
+        "position": 145,
+        "next_result": "W"
+      },
+      {
+        "team": "CBJ",
+        "type": "away_streak",
+        "pattern": "LLLLL",
+        "length": 5,
+        "critical": true,
+        "position": 156,
+        "next_result": "W"
+      },
+      {
+        "team": "CBJ",
+        "type": "away_streak",
+        "pattern": "LLLLLLL",
+        "length": 7,
+        "critical": true,
+        "position": 175,
+        "next_result": "W"
+      },
+      {
+        "team": "CBJ",
+        "type": "away_streak",
+        "pattern": "LLLLLLLLLL",
+        "length": 10,
+        "critical": true,
+        "position": 207,
+        "next_result": "W"
+      },
+      {
+        "team": "CBJ",
+        "type": "away_streak",
+        "pattern": "LLLLL",
+        "length": 5,
+        "critical": true,
+        "position": 228,
+        "next_result": "W"
+      },
+      {
+        "team": "CBJ",
+        "type": "away_streak",
+        "pattern": "WWWWW",
+        "length": 5,
+        "critical": true,
+        "position": 239,
+        "next_result": "L"
+      },
+      {
+        "team": "CBJ",
+        "type": "away_streak",
+        "pattern": "LLLLL",
+        "length": 5,
+        "critical": true,
+        "position": 250,
+        "next_result": "W"
+      },
+      {
+        "team": "CBJ",
+        "type": "away_streak",
+        "pattern": "LLLLLLLLLLL",
+        "length": 11,
+        "critical": true,
+        "position": 257,
+        "next_result": "W"
+      },
+      {
+        "team": "CBJ",
+        "type": "away_streak",
+        "pattern": "LLLLLLLLLL",
+        "length": 10,
+        "critical": true,
+        "position": 273,
+        "next_result": "W"
+      },
+      {
+        "team": "CBJ",
+        "type": "away_streak",
+        "pattern": "LLLLLLLLL",
+        "length": 9,
+        "critical": true,
+        "position": 301,
+        "next_result": "W"
+      },
+      {
+        "team": "CBJ",
+        "type": "away_streak",
+        "pattern": "LLLLLLLL",
+        "length": 8,
+        "critical": true,
+        "position": 312,
+        "next_result": "W"
+      },
+      {
+        "team": "CBJ",
+        "type": "away_streak",
+        "pattern": "LLLLLLLLLLLL",
+        "length": 12,
+        "critical": true,
+        "position": 341,
+        "next_result": "W"
+      },
+      {
+        "team": "CBJ",
+        "type": "away_streak",
+        "pattern": "LLLLLLL",
+        "length": 7,
+        "critical": true,
+        "position": 358,
+        "next_result": "W"
+      },
+      {
+        "team": "CBJ",
+        "type": "away_alternation",
+        "pattern": "LWLWL",
+        "length": 5,
+        "critical": true,
+        "position": 22,
+        "next_result": "L"
+      }
+    ]
+  },
+  "head_to_head": {
+    "total": 6106,
+    "critical": 2238,
+    "critical_patterns": [
+      {
+        "teams": [
+          "ANA",
+          "ARI"
+        ],
+        "type": "h2h_streak",
+        "pattern": "LLLLL",
+        "length": 5,
+        "critical": true,
+        "position": 30,
+        "next_result": "W"
+      },
+      {
+        "teams": [
+          "ANA",
+          "ARI"
+        ],
+        "type": "h2h_streak",
+        "pattern": "WWWWW",
+        "length": 5,
+        "critical": true,
+        "position": 37,
+        "next_result": "L"
+      },
+      {
+        "teams": [
+          "ANA",
+          "ARI"
+        ],
+        "type": "h2h_alternation",
+        "pattern": "WLWLW",
+        "length": 5,
+        "critical": true,
+        "position": 9,
+        "next_result": "W"
+      },
+      {
+        "teams": [
+          "ANA",
+          "BOS"
+        ],
+        "type": "h2h_streak",
+        "pattern": "WWWWW",
+        "length": 5,
+        "critical": true,
+        "position": 12,
+        "next_result": null
+      },
+      {
+        "teams": [
+          "ANA",
+          "CAR"
+        ],
+        "type": "h2h_streak",
+        "pattern": "WWWWW",
+        "length": 5,
+        "critical": true,
+        "position": 0,
+        "next_result": "L"
+      },
+      {
+        "teams": [
+          "ANA",
+          "CBJ"
+        ],
+        "type": "h2h_streak",
+        "pattern": "WWWWW",
+        "length": 5,
+        "critical": true,
+        "position": 8,
+        "next_result": "L"
+      },
+      {
+        "teams": [
+          "ANA",
+          "CGY"
+        ],
+        "type": "h2h_streak",
+        "pattern": "WWWWWWW",
+        "length": 7,
+        "critical": true,
+        "position": 2,
+        "next_result": "L"
+      },
+      {
+        "teams": [
+          "ANA",
+          "CGY"
+        ],
+        "type": "h2h_alternation",
+        "pattern": "WLWLW",
+        "length": 5,
+        "critical": true,
+        "position": 8,
+        "next_result": "W"
+      },
+      {
+        "teams": [
+          "ANA",
+          "CHI"
+        ],
+        "type": "h2h_streak",
+        "pattern": "LLLLLLLL",
+        "length": 8,
+        "critical": true,
+        "position": 8,
+        "next_result": "W"
+      },
+      {
+        "teams": [
+          "ANA",
+          "CHI"
+        ],
+        "type": "h2h_alternation",
+        "pattern": "LWLWL",
+        "length": 5,
+        "critical": true,
+        "position": 19,
+        "next_result": "L"
+      },
+      {
+        "teams": [
+          "ANA",
+          "COL"
+        ],
+        "type": "h2h_streak",
+        "pattern": "LLLLLLL",
+        "length": 7,
+        "critical": true,
+        "position": 16,
+        "next_result": "W"
+      },
+      {
+        "teams": [
+          "ANA",
+          "COL"
+        ],
+        "type": "h2h_streak",
+        "pattern": "LLLLL",
+        "length": 5,
+        "critical": true,
+        "position": 28,
+        "next_result": null
+      },
+      {
+        "teams": [
+          "ANA",
+          "COL"
+        ],
+        "type": "h2h_alternation",
+        "pattern": "WLWLWLWL",
+        "length": 8,
+        "critical": true,
+        "position": 9,
+        "next_result": "L"
+      },
+      {
+        "teams": [
+          "ANA",
+          "COL"
+        ],
+        "type": "h2h_alternation",
+        "pattern": "LWLWLWL",
+        "length": 7,
+        "critical": true,
+        "position": 10,
+        "next_result": "L"
+      },
+      {
+        "teams": [
+          "ANA",
+          "COL"
+        ],
+        "type": "h2h_alternation",
+        "pattern": "WLWLWL",
+        "length": 6,
+        "critical": true,
+        "position": 11,
+        "next_result": "L"
+      },
+      {
+        "teams": [
+          "ANA",
+          "COL"
+        ],
+        "type": "h2h_alternation",
+        "pattern": "LWLWL",
+        "length": 5,
+        "critical": true,
+        "position": 12,
+        "next_result": "L"
+      },
+      {
+        "teams": [
+          "ANA",
+          "DAL"
+        ],
+        "type": "h2h_streak",
+        "pattern": "LLLLLL",
+        "length": 6,
+        "critical": true,
+        "position": 9,
+        "next_result": "W"
+      },
+      {
+        "teams": [
+          "ANA",
+          "DET"
+        ],
+        "type": "h2h_alternation",
+        "pattern": "WLWLWL",
+        "length": 6,
+        "critical": true,
+        "position": 4,
+        "next_result": "L"
+      },
+      {
+        "teams": [
+          "ANA",
+          "DET"
+        ],
+        "type": "h2h_alternation",
+        "pattern": "LWLWL",
+        "length": 5,
+        "critical": true,
+        "position": 5,
+        "next_result": "L"
+      },
+      {
+        "teams": [
+          "ANA",
+          "DET"
+        ],
+        "type": "h2h_alternation",
+        "pattern": "WLWLWL",
+        "length": 6,
+        "critical": true,
+        "position": 12,
+        "next_result": null
+      }
+    ]
+  },
+  "alternation": {
+    "total": 2474,
+    "critical": 2474,
+    "critical_patterns": [
+      {
+        "team": "STL",
+        "type": "complex_alternation",
+        "pattern": "WL",
+        "length": 6,
+        "critical": true,
+        "position": 31,
+        "next_result": "L"
+      },
+      {
+        "team": "STL",
+        "type": "complex_alternation",
+        "pattern": "LW",
+        "length": 8,
+        "critical": true,
+        "position": 40,
+        "next_result": "L"
+      },
+      {
+        "team": "STL",
+        "type": "complex_alternation",
+        "pattern": "WL",
+        "length": 8,
+        "critical": true,
+        "position": 41,
+        "next_result": "L"
+      },
+      {
+        "team": "STL",
+        "type": "complex_alternation",
+        "pattern": "LW",
+        "length": 6,
+        "critical": true,
+        "position": 42,
+        "next_result": "L"
+      },
+      {
+        "team": "STL",
+        "type": "complex_alternation",
+        "pattern": "WL",
+        "length": 6,
+        "critical": true,
+        "position": 43,
+        "next_result": "L"
+      },
+      {
+        "team": "STL",
+        "type": "complex_alternation",
+        "pattern": "WW",
+        "length": 6,
+        "critical": true,
+        "position": 60,
+        "next_result": "L"
+      },
+      {
+        "team": "STL",
+        "type": "complex_alternation",
+        "pattern": "WW",
+        "length": 6,
+        "critical": true,
+        "position": 87,
+        "next_result": "L"
+      },
+      {
+        "team": "STL",
+        "type": "complex_alternation",
+        "pattern": "WL",
+        "length": 6,
+        "critical": true,
+        "position": 92,
+        "next_result": "L"
+      },
+      {
+        "team": "STL",
+        "type": "complex_alternation",
+        "pattern": "LL",
+        "length": 6,
+        "critical": true,
+        "position": 166,
+        "next_result": "L"
+      },
+      {
+        "team": "STL",
+        "type": "complex_alternation",
+        "pattern": "LL",
+        "length": 6,
+        "critical": true,
+        "position": 167,
+        "next_result": "W"
+      },
+      {
+        "team": "STL",
+        "type": "complex_alternation",
+        "pattern": "WW",
+        "length": 6,
+        "critical": true,
+        "position": 179,
+        "next_result": "L"
+      },
+      {
+        "team": "STL",
+        "type": "complex_alternation",
+        "pattern": "LW",
+        "length": 6,
+        "critical": true,
+        "position": 234,
+        "next_result": "W"
+      },
+      {
+        "team": "STL",
+        "type": "complex_alternation",
+        "pattern": "WW",
+        "length": 10,
+        "critical": true,
+        "position": 246,
+        "next_result": "W"
+      },
+      {
+        "team": "STL",
+        "type": "complex_alternation",
+        "pattern": "WW",
+        "length": 10,
+        "critical": true,
+        "position": 247,
+        "next_result": "L"
+      },
+      {
+        "team": "STL",
+        "type": "complex_alternation",
+        "pattern": "WW",
+        "length": 8,
+        "critical": true,
+        "position": 248,
+        "next_result": "W"
+      },
+      {
+        "team": "STL",
+        "type": "complex_alternation",
+        "pattern": "WW",
+        "length": 8,
+        "critical": true,
+        "position": 249,
+        "next_result": "L"
+      },
+      {
+        "team": "STL",
+        "type": "complex_alternation",
+        "pattern": "WW",
+        "length": 6,
+        "critical": true,
+        "position": 250,
+        "next_result": "W"
+      },
+      {
+        "team": "STL",
+        "type": "complex_alternation",
+        "pattern": "WW",
+        "length": 6,
+        "critical": true,
+        "position": 251,
+        "next_result": "L"
+      },
+      {
+        "team": "STL",
+        "type": "complex_alternation",
+        "pattern": "WL",
+        "length": 6,
+        "critical": true,
+        "position": 256,
+        "next_result": "L"
+      },
+      {
+        "team": "STL",
+        "type": "complex_alternation",
+        "pattern": "WW",
+        "length": 6,
+        "critical": true,
+        "position": 324,
+        "next_result": "W"
+      }
+    ]
+  }
+}

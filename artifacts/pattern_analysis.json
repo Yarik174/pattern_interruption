@@ -1,0 +1,191 @@
+{
+  "pattern_stats": {
+    "home_streak": {
+      "name": "Домашняя серия (home team)",
+      "matches": 1102,
+      "breaks": 517,
+      "break_rate": 46.9
+    },
+    "away_streak": {
+      "name": "Гостевая серия (home team)",
+      "matches": 1137,
+      "breaks": 266,
+      "break_rate": 23.4
+    },
+    "overall_streak": {
+      "name": "Общая серия (home team)",
+      "matches": 1058,
+      "breaks": 510,
+      "break_rate": 48.2
+    },
+    "h2h_streak": {
+      "name": "Личные встречи",
+      "matches": 967,
+      "breaks": 453,
+      "break_rate": 46.8
+    },
+    "home_alternation": {
+      "name": "Домашнее чередование",
+      "matches": 800,
+      "breaks": 445,
+      "break_rate": 55.6
+    },
+    "overall_alternation": {
+      "name": "Общее чередование",
+      "matches": 769,
+      "breaks": 447,
+      "break_rate": 58.1
+    },
+    "any_critical": {
+      "name": "Любой критический паттерн",
+      "matches": 4527,
+      "breaks": 2264,
+      "break_rate": 50.0
+    },
+    "critical_synergy": {
+      "name": "Синергия критических (2+)",
+      "matches": 464,
+      "breaks": 239,
+      "break_rate": 51.5
+    },
+    "streak_3+": {
+      "name": "Серия 3+",
+      "matches": 3546,
+      "breaks": 1584,
+      "break_rate": 44.7
+    },
+    "streak_4+": {
+      "name": "Серия 4+",
+      "matches": 1885,
+      "breaks": 841,
+      "break_rate": 44.6
+    },
+    "streak_5+": {
+      "name": "Серия 5+",
+      "matches": 1058,
+      "breaks": 510,
+      "break_rate": 48.2
+    },
+    "streak_6+": {
+      "name": "Серия 6+",
+      "matches": 596,
+      "breaks": 282,
+      "break_rate": 47.3
+    },
+    "streak_7+": {
+      "name": "Серия 7+",
+      "matches": 338,
+      "breaks": 161,
+      "break_rate": 47.6
+    },
+    "streak_8+": {
+      "name": "Серия 8+",
+      "matches": 192,
+      "breaks": 93,
+      "break_rate": 48.4
+    },
+    "streak_9+": {
+      "name": "Серия 9+",
+      "matches": 114,
+      "breaks": 52,
+      "break_rate": 45.6
+    },
+    "streak_10+": {
+      "name": "Серия 10+",
+      "matches": 62,
+      "breaks": 28,
+      "break_rate": 45.2
+    },
+    "synergy_1+": {
+      "name": "Синергия 1+",
+      "matches": 3441,
+      "breaks": 1678,
+      "break_rate": 48.8
+    },
+    "synergy_2+": {
+      "name": "Синергия 2+",
+      "matches": 464,
+      "breaks": 239,
+      "break_rate": 51.5
+    },
+    "synergy_3+": {
+      "name": "Синергия 3+",
+      "matches": 22,
+      "breaks": 8,
+      "break_rate": 36.4
+    }
+  },
+  "threshold_results": [
+    {
+      "threshold": 0.35,
+      "precision": 0.501,
+      "recall": 0.993,
+      "f1": 0.666,
+      "signals": 1213
+    },
+    {
+      "threshold": 0.4,
+      "precision": 0.508,
+      "recall": 0.966,
+      "f1": 0.666,
+      "signals": 1164
+    },
+    {
+      "threshold": 0.45,
+      "precision": 0.51,
+      "recall": 0.83,
+      "f1": 0.631,
+      "signals": 997
+    },
+    {
+      "threshold": 0.5,
+      "precision": 0.535,
+      "recall": 0.433,
+      "f1": 0.479,
+      "signals": 495
+    },
+    {
+      "threshold": 0.55,
+      "precision": 0.578,
+      "recall": 0.145,
+      "f1": 0.232,
+      "signals": 154
+    },
+    {
+      "threshold": 0.6,
+      "precision": 0.589,
+      "recall": 0.054,
+      "f1": 0.099,
+      "signals": 56
+    },
+    {
+      "threshold": 0.65,
+      "precision": 0.708,
+      "recall": 0.028,
+      "f1": 0.053,
+      "signals": 24
+    },
+    {
+      "threshold": 0.7,
+      "precision": 0.733,
+      "recall": 0.018,
+      "f1": 0.035,
+      "signals": 15
+    },
+    {
+      "threshold": 0.75,
+      "precision": 0.833,
+      "recall": 0.008,
+      "f1": 0.016,
+      "signals": 6
+    },
+    {
+      "threshold": 0.8,
+      "precision": 0.8,
+      "recall": 0.007,
+      "f1": 0.013,
+      "signals": 5
+    }
+  ],
+  "recommended_threshold": 0.5
+}

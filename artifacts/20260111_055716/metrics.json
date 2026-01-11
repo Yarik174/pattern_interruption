@@ -1,0 +1,25 @@
+{
+  "accuracy": 0.7800074321813453,
+  "cv_mean": 0.7754207263921179,
+  "cv_std": 0.02325237095703665,
+  "confusion_matrix": [
+    [
+      1542,
+      537
+    ],
+    [
+      55,
+      557
+    ]
+  ],
+  "model_params": {
+    "n_estimators": 100,
+    "max_depth": 10,
+    "min_samples_split": 5,
+    "min_samples_leaf": 2,
+    "max_features": "sqrt",
+    "class_weight": "balanced",
+    "random_state": 42,
+    "n_jobs": -1
+  }
+}

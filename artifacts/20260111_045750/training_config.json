@@ -1,0 +1,40 @@
+{
+  "config": {
+    "data": {
+      "n_seasons": 10,
+      "use_cache": true,
+      "cache_dir": "data/cache"
+    },
+    "patterns": {
+      "critical_length": 5,
+      "min_games_for_pattern": 3
+    },
+    "model": {
+      "n_estimators": 100,
+      "max_depth": 10,
+      "min_samples_split": 5,
+      "min_samples_leaf": 2,
+      "max_features": "sqrt",
+      "class_weight": "balanced",
+      "random_state": 42
+    },
+    "training": {
+      "test_size": 0.2,
+      "cv_folds": 5,
+      "use_grid_search": false,
+      "calibrate_probabilities": true
+    },
+    "output": {
+      "artifacts_dir": "artifacts",
+      "save_predictions": true,
+      "save_model": true,
+      "n_prediction_examples": 10
+    }
+  },
+  "n_samples": 13452,
+  "n_features": 81,
+  "class_distribution": {
+    "break": 3060,
+    "continue": 10392
+  }
+}
