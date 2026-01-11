@@ -1,0 +1,15 @@
+{
+  "sequence_length": 8,
+  "feature_columns": [
+    "goals_scored",
+    "goals_conceded",
+    "won",
+    "home_game",
+    "overtime",
+    "goal_diff",
+    "total_goals"
+  ],
+  "input_dim": 7,
+  "hidden_dim": 64,
+  "num_layers": 2
+}

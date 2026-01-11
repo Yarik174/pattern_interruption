@@ -605,6 +605,111 @@ def api_multi_league_analyze(league, home, away):
     
     return jsonify(analysis)
 
+
+sequence_model = None
+sequence_preparer = None
+
+def init_sequence_model():
+    """Инициализация Sequence модели"""
+    global sequence_model, sequence_preparer
+    
+    if sequence_model is None:
+        model_path = 'artifacts/sequence_model'
+        if os.path.exists(os.path.join(model_path, 'model.pth')):
+            try:
+                from src.sequence_model import load_sequence_model, SequenceModelTrainer
+                sequence_model, sequence_preparer = load_sequence_model(model_path)
+                print("✅ Sequence модель загружена!")
+            except Exception as e:
+                print(f"⚠️ Ошибка загрузки sequence модели: {e}")
+                return None, None
+        else:
+            print("⚠️ Sequence модель не найдена. Запустите train_sequence.py для обучения.")
+            return None, None
+    
+    return sequence_model, sequence_preparer
+
+
+@app.route('/api/sequence/status')
+def api_sequence_status():
+    """API: статус Sequence модели"""
+    model_path = 'artifacts/sequence_model'
+    config_path = os.path.join(model_path, 'config.json')
+    
+    if os.path.exists(config_path):
+        import json
+        with open(config_path, 'r') as f:
+            config = json.load(f)
+        return jsonify({
+            'status': 'ready',
+            'config': config
+        })
+    else:
+        return jsonify({
+            'status': 'not_trained',
+            'message': 'Модель не обучена. Запустите: python train_sequence.py'
+        })
+
+
+@app.route('/api/sequence/predict/<home>/<away>')
+def api_sequence_predict(home, away):
+    """API: прогноз Sequence модели для матча"""
+    init_system()
+    model, preparer = init_sequence_model()
+    
+    if model is None:
+        return jsonify({
+            'error': 'Sequence модель не загружена',
+            'hint': 'Запустите: python train_sequence.py'
+        }), 400
+    
+    import numpy as np
+    
+    if all_games is None or all_games.empty:
+        return jsonify({
+            'error': 'Данные матчей не загружены',
+            'hint': 'Подождите инициализации системы'
+        }), 400
+    
+    team_history = preparer.build_team_history(all_games)
+    
+    home_upper = home.upper()
+    away_upper = away.upper()
+    
+    if home_upper not in team_history or away_upper not in team_history:
+        return jsonify({
+            'error': f'Команда не найдена: {home_upper if home_upper not in team_history else away_upper}'
+        }), 400
+    
+    seq_len = preparer.sequence_length
+    
+    if len(team_history[home_upper]) < seq_len or len(team_history[away_upper]) < seq_len:
+        return jsonify({
+            'error': f'Недостаточно истории матчей (нужно минимум {seq_len})'
+        }), 400
+    
+    home_hist = team_history[home_upper][-seq_len:]
+    away_hist = team_history[away_upper][-seq_len:]
+    
+    home_seq = [[m[col] for col in preparer.feature_columns] for m in home_hist]
+    away_seq = [[m[col] for col in preparer.feature_columns] for m in away_hist]
+    
+    home_seq = np.array([home_seq])
+    away_seq = np.array([away_seq])
+    
+    home_norm, away_norm = preparer.normalize_sequences(home_seq, away_seq, fit=False)
+    
+    prediction = model.predict_match(home_norm[0], away_norm[0])
+    
+    return jsonify({
+        'home_team': home_upper,
+        'away_team': away_upper,
+        'prediction': prediction,
+        'model_type': 'LSTM Sequence',
+        'sequence_length': seq_len
+    })
+
+
 if __name__ == '__main__':
     import threading
     threading.Thread(target=warmup_multi_league, daemon=True).start()

@@ -24,9 +24,11 @@ src/
 ├── config.py                # Конфигурация и логирование
 ├── artifacts.py             # Сохранение результатов
 ├── model_comparison.py      # Сравнение моделей (RF, XGBoost, LightGBM)
-└── pattern_analysis.py      # Анализ статистики прерываний по типам паттернов
+├── pattern_analysis.py      # Анализ статистики прерываний по типам паттернов
+└── sequence_model.py        # LSTM Sequence модель для прогнозов
 app.py                       # Flask веб-сервер
 main.py                      # Главный скрипт запуска
+train_sequence.py            # Скрипт обучения LSTM модели
 data/cache/                  # Кэш данных API
 data/cache/leagues/          # Кэш европейских лиг
 artifacts/                   # Результаты обучения
@@ -138,6 +140,33 @@ python main.py
 - `GET /api/multi-league/upcoming` — предстоящие матчи всех лиг с анализом и EV
 - `GET /api/multi-league/analyze/<league>/<home>/<away>` — анализ матча в лиге
 
+**API (Sequence Model):**
+- `GET /api/sequence/status` — статус и конфигурация LSTM модели
+- `GET /api/sequence/predict/<home>/<away>` — прогноз победителя и тоталов по периодам
+
+## Sequence Model (LSTM)
+
+Отдельная нейросетевая модель на PyTorch для прямого предсказания:
+- **Победитель** (home/away/draw) — классификация
+- **Тоталы по периодам** (голы в 1, 2, 3 периодах) — регрессия
+
+### Архитектура
+- Два параллельных LSTM (для домашней и гостевой команды)
+- Вход: последовательность последних N матчей каждой команды
+- Признаки: goals_scored, goals_conceded, won, home_game, overtime, goal_diff, total_goals
+- Выход: вероятности исхода + прогноз голов по периодам
+
+### Обучение
+```bash
+python train_sequence.py --epochs 50 --seasons 5 --seq-length 10
+# С данными по периодам:
+python train_sequence.py --epochs 50 --load-periods --max-period-games 2000
+```
+
+### Результаты
+- Точность предсказания победителя: ~53-55% (baseline)
+- Модель сохраняется в `artifacts/sequence_model/`
+
 ## Интеграция коэффициентов (обновлено 2026-01-11)
 - **API:** The Odds API (ODDS_API_KEY в секретах)
 - **Данные:** Коэффициенты h2h от лучших букмекеров (US, EU)
@@ -152,6 +181,7 @@ python main.py
 - [x] Интеграция с букмекерскими коэффициентами
 - [x] Мульти-лиговая поддержка (KHL, SHL, Liiga, DEL)
 - [x] EV расчёт для NHL (калибровано на исторических данных)
+- [x] LSTM Sequence модель для прямого предсказания
 - [ ] Калибровка EV для европейских лиг
 - [ ] Расчёт ROI на исторических данных
 - [ ] Добавить Czech Extraliga и Swiss NL

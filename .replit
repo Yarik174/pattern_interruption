@@ -3,7 +3,7 @@ modules = ["web", "python-3.11"]
 
 [nix]
 channel = "stable-24_11"
-packages = ["static-web-server"]
+packages = ["bazel", "cairo", "curl", "double-conversion", "ffmpeg-full", "freetype", "ghostscript", "giflib", "gitFull", "glibcLocales", "gobject-introspection", "grpc", "gtk3", "jsoncpp", "libjpeg_turbo", "nsync", "ocl-icd", "opencl-headers", "openssl", "pkg-config", "qhull", "snappy", "static-web-server", "tcl", "tk", "which", "zlib"]
 
 [deployment]
 publicDir = "/"
