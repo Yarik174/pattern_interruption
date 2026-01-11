@@ -152,20 +152,28 @@ class SequenceDataPreparer:
         """Load period scoring data for games"""
         period_cache_path = os.path.join(self.cache_dir, 'period_data.json')
         
+        period_data = {}
         if os.path.exists(period_cache_path):
             with open(period_cache_path, 'r') as f:
-                cached_data = json.load(f)
-            logger.info(f"Loaded {len(cached_data)} games with period data from cache")
-            return cached_data
+                period_data = json.load(f)
+            logger.info(f"Loaded {len(period_data)} games with period data from cache")
         
-        period_data = {}
         games_to_load = game_ids[:max_games] if max_games else game_ids
+        games_to_fetch = [g for g in games_to_load if str(g) not in period_data]
         
-        logger.info(f"Loading period data for {len(games_to_load)} games...")
+        if not games_to_fetch:
+            logger.info(f"All {len(games_to_load)} games already in cache")
+            return period_data
         
-        for i, game_id in enumerate(games_to_load):
+        logger.info(f"Fetching period data for {len(games_to_fetch)} new games...")
+        
+        for i, game_id in enumerate(games_to_fetch):
             if i % 100 == 0:
-                logger.info(f"  Progress: {i}/{len(games_to_load)}")
+                logger.info(f"  Progress: {i}/{len(games_to_fetch)}")
+                if i > 0:
+                    with open(period_cache_path, 'w') as f:
+                        json.dump(period_data, f)
+                    logger.info(f"  Saved checkpoint: {len(period_data)} games")
             
             try:
                 url = f"https://api-web.nhle.com/v1/gamecenter/{game_id}/landing"
