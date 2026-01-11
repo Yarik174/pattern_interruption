@@ -163,9 +163,13 @@ python train_sequence.py --epochs 50 --seasons 5 --seq-length 10
 python train_sequence.py --epochs 50 --load-periods --max-period-games 2000
 ```
 
-### Результаты
-- Точность предсказания победителя: ~53-55% (baseline)
+### Результаты (обновлено 2026-01-11)
+- **Данные:** 13,472 матча (10 сезонов NHL: 2016-2026)
+- **Точность:** 55.42% на валидации (best epoch)
+- **Early stopping:** эпоха 17/50
+- **Параметров:** 131,177
 - Модель сохраняется в `artifacts/sequence_model/`
+- **Примечание:** Прогноз голов по периодам требует `--load-periods` при обучении
 
 ## Интеграция коэффициентов (обновлено 2026-01-11)
 - **API:** The Odds API (ODDS_API_KEY в секретах)
