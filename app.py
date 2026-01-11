@@ -3,6 +3,9 @@ NHL Pattern Prediction Web Interface
 Веб-интерфейс для тестирования прогнозов на реальных матчах
 """
 
+import warnings
+warnings.filterwarnings('ignore', category=UserWarning)
+
 from flask import Flask, render_template, jsonify
 import joblib
 import pandas as pd

@@ -4,8 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-    <title>NHL Pattern Predictor</title>
+    <title>Hockey Pattern Predictor</title>
     <style>
+        :root {
+            --bg-primary: #0f0f1a;
+            --bg-secondary: #1a1a2e;
+            --bg-card: #252542;
+            --accent: #6366f1;
+            --accent-light: #818cf8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border: rgba(255,255,255,0.08);
+        }
+        
         * {
             margin: 0;
             padding: 0;
@@ -13,98 +28,180 @@
         }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            color: #fff;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
             min-height: 100vh;
+            line-height: 1.6;
+        }
+        
+        .app {
+            max-width: 1400px;
+            margin: 0 auto;
             padding: 20px;
         }
         
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        
         header {
-            text-align: center;
-            padding: 30px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 0;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border);
         }
         
-        h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            background: linear-gradient(90deg, #00d9ff, #00ff88);
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent), var(--success));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        
+        .logo h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--text-primary), var(--accent-light));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
         
-        .subtitle {
-            color: #888;
-            font-size: 1.1rem;
-        }
-        
-        .controls {
+        .header-stats {
             display: flex;
-            gap: 15px;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
+            gap: 24px;
         }
         
-        button {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        .btn-primary {
-            background: linear-gradient(90deg, #00d9ff, #00ff88);
-            color: #1a1a2e;
-            font-weight: 600;
-        }
-        
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(0, 217, 255, 0.4);
-        }
-        
-        .btn-secondary {
-            background: rgba(255,255,255,0.1);
-            color: #fff;
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-        
-        .filter-select {
-            padding: 12px 20px;
-            border-radius: 8px;
-            background: rgba(255,255,255,0.1);
-            color: #fff;
-            border: 1px solid rgba(255,255,255,0.2);
-            font-size: 1rem;
-        }
-        
-        .filter-select option {
-            background: #1a1a2e;
-        }
-        
-        .loading {
+        .stat-item {
             text-align: center;
-            padding: 50px;
-            color: #888;
         }
         
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 3px solid rgba(255,255,255,0.1);
-            border-top-color: #00d9ff;
-            border-radius: 50%;
+        .stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--accent-light);
+        }
+        
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .tabs-container {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+        }
+        
+        .tab {
+            padding: 12px 24px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .tab:hover {
+            background: var(--bg-card);
+            color: var(--text-primary);
+        }
+        
+        .tab.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+        
+        .tab-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+        }
+        
+        .filters-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .filter-group {
+            display: flex;
+            gap: 4px;
+        }
+        
+        .filter-btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .filter-btn:hover {
+            background: var(--bg-card);
+        }
+        
+        .filter-btn.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+        
+        .refresh-btn {
+            padding: 10px 20px;
+            border-radius: 10px;
+            border: none;
+            background: linear-gradient(135deg, var(--accent), var(--accent-light));
+            color: white;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: auto;
+        }
+        
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+        }
+        
+        .refresh-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .refresh-btn.loading .refresh-icon {
             animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
         }
         
         @keyframes spin {
@@ -113,491 +210,819 @@
         
         .matches-grid {
             display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
             gap: 20px;
         }
         
         .match-card {
-            background: rgba(255,255,255,0.05);
+            background: var(--bg-card);
             border-radius: 16px;
-            padding: 25px;
-            border: 1px solid rgba(255,255,255,0.1);
-            transition: all 0.3s ease;
+            padding: 20px;
+            border: 1px solid var(--border);
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .match-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--border);
+        }
+        
+        .match-card.signal-high::before {
+            background: linear-gradient(90deg, var(--success), var(--accent));
+        }
+        
+        .match-card.signal-medium::before {
+            background: var(--warning);
         }
         
         .match-card:hover {
-            border-color: rgba(0, 217, 255, 0.5);
-            transform: translateY(-2px);
-        }
-        
-        .match-card.strong-signal {
-            border-color: #00ff88;
-            box-shadow: 0 0 30px rgba(0, 255, 136, 0.2);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.4);
         }
         
         .match-header {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
+            align-items: flex-start;
+            margin-bottom: 16px;
         }
         
-        .teams {
+        .match-time {
+            font-size: 0.8rem;
+            color: var(--text-muted);
             display: flex;
             align-items: center;
-            gap: 15px;
-            font-size: 1.4rem;
+            gap: 6px;
+        }
+        
+        .score-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.85rem;
+        }
+        
+        .score-high {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+        }
+        
+        .score-medium {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+        }
+        
+        .score-low {
+            background: rgba(255,255,255,0.1);
+            color: var(--text-muted);
+        }
+        
+        .teams-display {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 20px;
+            padding: 16px 0;
+        }
+        
+        .team-block {
+            flex: 1;
+            text-align: center;
+        }
+        
+        .team-abbr {
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+        }
+        
+        .team-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+        
+        .vs-divider {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--bg-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: var(--text-muted);
             font-weight: 600;
         }
         
-        .team {
+        .patterns-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .pattern-box {
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            padding: 12px;
+        }
+        
+        .pattern-box h4 {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        
+        .pattern-stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .pattern-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            background: rgba(255,255,255,0.05);
+            color: var(--text-secondary);
+        }
+        
+        .pattern-tag.critical {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+        }
+        
+        .pattern-tag.positive {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+        }
+        
+        .prediction-bar {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+        
+        .prediction-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .prediction-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+        
+        .prediction-value {
+            font-weight: 700;
+            font-size: 1rem;
+        }
+        
+        .prediction-value.break {
+            color: var(--danger);
+        }
+        
+        .prediction-value.continue {
+            color: var(--success);
+        }
+        
+        .progress-bar {
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+        
+        .progress-fill.break {
+            background: linear-gradient(90deg, var(--danger), var(--warning));
+        }
+        
+        .progress-fill.continue {
+            background: linear-gradient(90deg, var(--accent), var(--success));
+        }
+        
+        .odds-section {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+        }
+        
+        .odds-item {
+            text-align: center;
+            padding: 10px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+        }
+        
+        .odds-team {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+        
+        .odds-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+        
+        .ev-badge {
+            grid-column: span 3;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 600;
+        }
+        
+        .ev-badge.positive {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(99, 102, 241, 0.2));
+            color: var(--success);
+        }
+        
+        .ev-badge.negative {
+            background: rgba(255,255,255,0.05);
+            color: var(--text-muted);
+        }
+        
+        .loading-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: var(--text-muted);
+        }
+        
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: var(--text-secondary);
+        }
+        
+        .empty-state h3 {
+            font-size: 1.25rem;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+        
+        .info-card {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 24px;
+            margin-top: 32px;
+            border: 1px solid var(--border);
+        }
+        
+        .info-card h3 {
+            font-size: 1rem;
+            margin-bottom: 16px;
+            color: var(--accent-light);
             display: flex;
             align-items: center;
             gap: 8px;
         }
         
-        .vs {
-            color: #666;
-            font-size: 1rem;
-        }
-        
-        .score-badge {
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-weight: 700;
-            font-size: 1.1rem;
-        }
-        
-        .score-high {
-            background: linear-gradient(90deg, #00ff88, #00d9ff);
-            color: #1a1a2e;
-        }
-        
-        .score-medium {
-            background: #ff9f43;
-            color: #1a1a2e;
-        }
-        
-        .score-low {
-            background: rgba(255,255,255,0.2);
-            color: #888;
-        }
-        
-        .match-details {
+        .info-list {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 12px;
         }
         
-        .team-patterns {
-            background: rgba(0,0,0,0.2);
-            border-radius: 12px;
-            padding: 15px;
-        }
-        
-        .team-patterns h4 {
-            margin-bottom: 12px;
-            color: #00d9ff;
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        
-        .pattern-row {
+        .info-item {
             display: flex;
-            justify-content: space-between;
-            padding: 6px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-            font-size: 0.9rem;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px;
+            background: var(--bg-card);
+            border-radius: 10px;
         }
         
-        .pattern-row:last-child {
-            border-bottom: none;
-        }
-        
-        .pattern-label {
-            color: #888;
-        }
-        
-        .pattern-value {
-            font-weight: 600;
-        }
-        
-        .pattern-value.critical {
-            color: #ff6b6b;
-        }
-        
-        .pattern-value.positive {
-            color: #00ff88;
-        }
-        
-        .odds-box {
-            margin-top: 15px;
-            padding: 15px;
-            background: rgba(0,0,0,0.3);
-            border-radius: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-        
-        .odds-item {
-            text-align: center;
-        }
-        
-        .odds-label {
-            font-size: 0.8rem;
-            color: #888;
-            margin-bottom: 5px;
-        }
-        
-        .odds-value {
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: #fff;
-        }
-        
-        .ev-badge {
-            padding: 8px 16px;
+        .info-icon {
+            width: 32px;
+            height: 32px;
             border-radius: 8px;
-            font-weight: 700;
-            font-size: 0.9rem;
-        }
-        
-        .ev-positive {
-            background: linear-gradient(90deg, #00ff88, #00d9ff);
-            color: #1a1a2e;
-        }
-        
-        .ev-negative {
-            background: rgba(255,255,255,0.1);
-            color: #888;
-        }
-        
-        .prediction-box {
-            margin-top: 20px;
-            padding: 15px;
-            background: rgba(0,0,0,0.3);
-            border-radius: 12px;
-            text-align: center;
-        }
-        
-        .prediction-label {
-            font-size: 0.85rem;
-            color: #888;
-            margin-bottom: 8px;
-        }
-        
-        .prediction-value {
-            font-size: 1.3rem;
-            font-weight: 700;
-        }
-        
-        .prediction-value.break {
-            color: #ff6b6b;
-        }
-        
-        .prediction-value.continue {
-            color: #00ff88;
-        }
-        
-        .prob-bar {
-            height: 8px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 4px;
-            margin-top: 10px;
-            overflow: hidden;
-        }
-        
-        .prob-fill {
-            height: 100%;
-            border-radius: 4px;
-            transition: width 0.5s ease;
-        }
-        
-        .prob-fill.break {
-            background: linear-gradient(90deg, #ff6b6b, #ff9f43);
-        }
-        
-        .prob-fill.continue {
-            background: linear-gradient(90deg, #00d9ff, #00ff88);
-        }
-        
-        .game-time {
-            color: #888;
-            font-size: 0.9rem;
-        }
-        
-        .no-matches {
-            text-align: center;
-            padding: 60px 20px;
-            color: #888;
-        }
-        
-        .no-matches h3 {
-            font-size: 1.5rem;
-            margin-bottom: 10px;
-            color: #fff;
-        }
-        
-        .signal-explanation {
-            margin-top: 30px;
-            padding: 20px;
-            background: rgba(255,255,255,0.05);
-            border-radius: 12px;
-            border-left: 4px solid #00d9ff;
-        }
-        
-        .signal-explanation h3 {
-            margin-bottom: 15px;
-            color: #00d9ff;
-        }
-        
-        .signal-explanation ul {
-            list-style: none;
-            padding: 0;
-        }
-        
-        .signal-explanation li {
-            padding: 8px 0;
-            color: #aaa;
             display: flex;
             align-items: center;
-            gap: 10px;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 14px;
         }
         
-        .signal-explanation li::before {
-            content: '•';
-            color: #00ff88;
-            font-size: 1.5rem;
+        .info-icon.green { background: rgba(16, 185, 129, 0.2); }
+        .info-icon.yellow { background: rgba(245, 158, 11, 0.2); }
+        .info-icon.red { background: rgba(239, 68, 68, 0.2); }
+        .info-icon.purple { background: rgba(99, 102, 241, 0.2); }
+        
+        .info-text strong {
+            display: block;
+            font-size: 0.85rem;
+            margin-bottom: 2px;
+        }
+        
+        .info-text span {
+            font-size: 0.8rem;
+            color: var(--text-muted);
         }
         
         @media (max-width: 768px) {
-            .match-details {
+            .app {
+                padding: 12px;
+            }
+            
+            header {
+                flex-direction: column;
+                gap: 16px;
+                text-align: center;
+            }
+            
+            .header-stats {
+                justify-content: center;
+            }
+            
+            .matches-grid {
                 grid-template-columns: 1fr;
             }
             
-            .teams {
-                font-size: 1.1rem;
+            .filters-bar {
+                flex-direction: column;
+                align-items: stretch;
             }
             
-            h1 {
-                font-size: 1.8rem;
+            .filter-group {
+                justify-content: center;
+            }
+            
+            .refresh-btn {
+                margin: 0;
+                justify-content: center;
+            }
+            
+            .tabs-container {
+                justify-content: flex-start;
+            }
+            
+            .patterns-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .odds-section {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .ev-badge {
+                grid-column: span 2;
             }
         }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="app">
         <header>
-            <h1>NHL Pattern Predictor</h1>
-            <p class="subtitle">Прогнозирование на основе теории паттернов</p>
+            <div class="logo">
+                <div class="logo-icon">🏒</div>
+                <h1>Pattern Predictor</h1>
+            </div>
+            <div class="header-stats" id="headerStats">
+                <div class="stat-item">
+                    <div class="stat-value" id="matchCount">-</div>
+                    <div class="stat-label">Матчей</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="signalCount">-</div>
+                    <div class="stat-label">Сигналов</div>
+                </div>
+            </div>
         </header>
         
-        <div class="controls">
-            <button class="btn-primary" onclick="loadMatches()">
-                Загрузить матчи
+        <div class="tabs-container" id="leagueTabs">
+            <button class="tab active" data-league="nhl">
+                🇺🇸 NHL
+                <span class="tab-badge" id="nhl-count">0</span>
             </button>
-            <select class="filter-select" id="signalFilter" onchange="filterMatches()">
-                <option value="0">Все матчи</option>
-                <option value="3">Score ≥ 3</option>
-                <option value="4" selected>Score ≥ 4 (рекомендуется)</option>
-                <option value="5">Score ≥ 5 (сильные)</option>
-            </select>
+            <button class="tab" data-league="khl">
+                🇷🇺 KHL
+                <span class="tab-badge" id="khl-count">0</span>
+            </button>
+            <button class="tab" data-league="shl">
+                🇸🇪 SHL
+                <span class="tab-badge" id="shl-count">0</span>
+            </button>
+            <button class="tab" data-league="liiga">
+                🇫🇮 Liiga
+                <span class="tab-badge" id="liiga-count">0</span>
+            </button>
+            <button class="tab" data-league="del">
+                🇩🇪 DEL
+                <span class="tab-badge" id="del-count">0</span>
+            </button>
+        </div>
+        
+        <div class="filters-bar">
+            <div class="filter-group">
+                <button class="filter-btn" data-score="0">Все</button>
+                <button class="filter-btn" data-score="3">Score 3+</button>
+                <button class="filter-btn active" data-score="4">Score 4+</button>
+                <button class="filter-btn" data-score="5">Score 5+</button>
+            </div>
+            <button class="refresh-btn" id="refreshBtn" onclick="refreshData()">
+                <span class="refresh-icon">↻</span>
+                Обновить
+            </button>
         </div>
         
         <div id="matchesContainer">
-            <div class="no-matches">
-                <h3>Нажмите "Загрузить матчи"</h3>
-                <p>Система проанализирует предстоящие игры NHL</p>
+            <div class="loading-state">
+                <div class="loading-spinner"></div>
+                <p>Загрузка матчей...</p>
             </div>
         </div>
         
-        <div class="signal-explanation">
-            <h3>Как читать сигналы</h3>
-            <ul>
-                <li><strong>Score</strong> — сила сигнала прерывания (0-6). Score ≥4 = 50%+ прерываний</li>
-                <li><strong>Синергия</strong> — количество критических паттернов одновременно</li>
-                <li><strong>Чередование</strong> — паттерн WLWLWL достиг критической длины</li>
-                <li><strong>Перерост</strong> — серия превысила критическую длину (6, 7, 8+)</li>
-                <li><strong>Прерывание</strong> — паттерн скорее всего сломается в этом матче</li>
-                <li><strong>EV (Expected Value)</strong> — математическое ожидание ставки. EV > 0 = выгодно</li>
-            </ul>
+        <div class="info-card">
+            <h3>📊 Как читать сигналы</h3>
+            <div class="info-list">
+                <div class="info-item">
+                    <div class="info-icon green">📈</div>
+                    <div class="info-text">
+                        <strong>Score 4-6</strong>
+                        <span>Сильный сигнал прерывания, точность 50%+</span>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-icon yellow">🔄</div>
+                    <div class="info-text">
+                        <strong>Синергия</strong>
+                        <span>Несколько критических паттернов сразу</span>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-icon red">⚡</div>
+                    <div class="info-text">
+                        <strong>Чередование</strong>
+                        <span>Паттерн W-L-W-L достиг критической длины</span>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-icon purple">💰</div>
+                    <div class="info-text">
+                        <strong>EV > 0</strong>
+                        <span>Ставка математически выгодна</span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     
     <script>
-        let allMatches = [];
+        const state = {
+            currentLeague: 'nhl',
+            minScore: 4,
+            nhlMatches: [],
+            multiLeagueData: {},
+            loading: false
+        };
         
-        async function loadMatches() {
-            const container = document.getElementById('matchesContainer');
-            container.innerHTML = `
-                <div class="loading">
-                    <div class="spinner"></div>
-                    <p>Анализ предстоящих матчей...</p>
-                    <p style="font-size: 0.9rem; margin-top: 10px;">Первая загрузка может занять 1-2 минуты</p>
-                </div>
-            `;
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                state.currentLeague = tab.dataset.league;
+                renderMatches();
+            });
+        });
+        
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                state.minScore = parseInt(btn.dataset.score);
+                renderMatches();
+            });
+        });
+        
+        async function loadAllData() {
+            state.loading = true;
+            updateRefreshButton();
+            showLoading();
             
             try {
-                const response = await fetch('/api/analyze-all');
-                const data = await response.json();
-                allMatches = data.matches || [];
-                filterMatches();
+                const nhlResponse = await fetch('/api/analyze-all');
+                const nhlData = await nhlResponse.json();
+                state.nhlMatches = nhlData.matches || [];
+                
+                updateTabCounts();
+                updateHeaderStats();
+                renderMatches();
+                
+                fetch('/api/multi-league/upcoming')
+                    .then(r => r.json())
+                    .then(data => {
+                        state.multiLeagueData = data.leagues || {};
+                        updateTabCounts();
+                        updateHeaderStats();
+                        if (state.currentLeague !== 'nhl') {
+                            renderMatches();
+                        }
+                    })
+                    .catch(e => console.log('Multi-league error:', e));
+                    
             } catch (error) {
-                container.innerHTML = `
-                    <div class="no-matches">
-                        <h3>Ошибка загрузки</h3>
-                        <p>${error.message}</p>
-                    </div>
-                `;
+                showError(error.message);
+            } finally {
+                state.loading = false;
+                updateRefreshButton();
             }
         }
         
-        function filterMatches() {
-            const minScore = parseInt(document.getElementById('signalFilter').value);
-            const filtered = allMatches.filter(m => m.strong_signal.max >= minScore);
-            renderMatches(filtered, minScore);
+        function refreshData() {
+            loadAllData();
         }
         
-        function renderMatches(matches, minScore) {
-            const container = document.getElementById('matchesContainer');
+        function updateRefreshButton() {
+            const btn = document.getElementById('refreshBtn');
+            btn.disabled = state.loading;
+            btn.classList.toggle('loading', state.loading);
+        }
+        
+        function updateTabCounts() {
+            const nhlFiltered = state.nhlMatches.filter(m => m.strong_signal?.max >= 3).length;
+            document.getElementById('nhl-count').textContent = nhlFiltered;
             
-            if (matches.length === 0) {
-                container.innerHTML = `
-                    <div class="no-matches">
-                        <h3>Нет матчей с score ≥ ${minScore}</h3>
-                        <p>Попробуйте уменьшить порог фильтра</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            container.innerHTML = '<div class="matches-grid"></div>';
-            const grid = container.querySelector('.matches-grid');
-            
-            matches.forEach(match => {
-                const card = createMatchCard(match);
-                grid.appendChild(card);
+            ['khl', 'shl', 'liiga', 'del'].forEach(league => {
+                const data = state.multiLeagueData[league.toUpperCase()] || {};
+                const count = (data.matches || []).filter(m => (m.score || 0) >= 3).length;
+                document.getElementById(`${league}-count`).textContent = count;
             });
         }
         
-        function createMatchCard(match) {
-            const card = document.createElement('div');
-            card.className = 'match-card' + (match.strong_signal.max >= 4 ? ' strong-signal' : '');
+        function updateHeaderStats() {
+            let totalMatches = state.nhlMatches.length;
+            let signalMatches = state.nhlMatches.filter(m => m.strong_signal?.max >= 4).length;
             
-            const score = match.strong_signal.max;
-            const scoreClass = score >= 5 ? 'score-high' : (score >= 3 ? 'score-medium' : 'score-low');
+            Object.values(state.multiLeagueData).forEach(league => {
+                const matches = league.matches || [];
+                totalMatches += matches.length;
+                signalMatches += matches.filter(m => (m.score || 0) >= 4).length;
+            });
+            
+            document.getElementById('matchCount').textContent = totalMatches;
+            document.getElementById('signalCount').textContent = signalMatches;
+        }
+        
+        function showLoading() {
+            document.getElementById('matchesContainer').innerHTML = `
+                <div class="loading-state">
+                    <div class="loading-spinner"></div>
+                    <p>Анализ матчей...</p>
+                    <p style="font-size: 0.85rem; margin-top: 8px; color: var(--text-muted)">
+                        Первая загрузка может занять минуту
+                    </p>
+                </div>
+            `;
+        }
+        
+        function showError(message) {
+            document.getElementById('matchesContainer').innerHTML = `
+                <div class="empty-state">
+                    <h3>Ошибка загрузки</h3>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+        
+        function renderMatches() {
+            const container = document.getElementById('matchesContainer');
+            let matches = [];
+            
+            if (state.currentLeague === 'nhl') {
+                matches = state.nhlMatches
+                    .filter(m => (m.strong_signal?.max || 0) >= state.minScore)
+                    .map(m => formatNHLMatch(m));
+            } else {
+                const leagueData = state.multiLeagueData[state.currentLeague.toUpperCase()] || {};
+                matches = (leagueData.matches || [])
+                    .filter(m => (m.score || 0) >= state.minScore)
+                    .map(m => formatMultiLeagueMatch(m));
+            }
+            
+            if (matches.length === 0) {
+                const isMultiLeague = state.currentLeague !== 'nhl';
+                const leagueHasData = isMultiLeague && state.multiLeagueData[state.currentLeague.toUpperCase()]?.matches?.length > 0;
+                
+                let message = '';
+                if (isMultiLeague && !leagueHasData) {
+                    message = `<h3>Нет данных для ${state.currentLeague.toUpperCase()}</h3>
+                              <p>Для загрузки европейских лиг требуется API_SPORTS_KEY</p>`;
+                } else {
+                    message = `<h3>Нет матчей с score ≥ ${state.minScore}</h3>
+                              <p>Попробуйте уменьшить порог фильтра или выбрать другую лигу</p>`;
+                }
+                
+                container.innerHTML = `<div class="empty-state">${message}</div>`;
+                return;
+            }
+            
+            container.innerHTML = `<div class="matches-grid">${matches.map(renderMatchCard).join('')}</div>`;
+        }
+        
+        function formatNHLMatch(m) {
+            return {
+                home: m.home_team,
+                away: m.away_team,
+                score: m.strong_signal?.max || 0,
+                time: m.game_info?.time,
+                homePatterns: m.patterns?.home || {},
+                awayPatterns: m.patterns?.away || {},
+                prediction: m.prediction,
+                odds: m.odds
+            };
+        }
+        
+        function formatMultiLeagueMatch(m) {
+            return {
+                home: m.home,
+                away: m.away,
+                score: m.score || 0,
+                time: null,
+                homePatterns: {
+                    win_streak: m.home_streak || 0,
+                    overall_streak: m.home_streak || 0,
+                    synergy: m.home_synergy || 0,
+                    alternation_combo: m.home_alt || 0
+                },
+                awayPatterns: {
+                    win_streak: m.away_streak || 0,
+                    overall_streak: m.away_streak || 0,
+                    synergy: m.away_synergy || 0,
+                    alternation_combo: m.away_alt || 0
+                },
+                prediction: m.break_probability ? {
+                    break_probability: m.break_probability,
+                    continue_probability: 100 - m.break_probability,
+                    recommendation: m.break_probability >= 50 ? 'ПРЕРЫВАНИЕ' : 'ПРОДОЛЖЕНИЕ'
+                } : null,
+                odds: m.odds
+            };
+        }
+        
+        function renderMatchCard(match) {
+            const scoreClass = match.score >= 5 ? 'score-high' : (match.score >= 3 ? 'score-medium' : 'score-low');
+            const cardClass = match.score >= 4 ? 'signal-high' : (match.score >= 3 ? 'signal-medium' : '');
+            
+            const timeStr = match.time ? new Date(match.time).toLocaleString('ru-RU', {
+                day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+            }) : '';
             
             const pred = match.prediction;
             const isBreak = pred && pred.break_probability >= 50;
             
-            const gameDate = match.game_info ? new Date(match.game_info.time).toLocaleString('ru-RU', {
-                day: 'numeric',
-                month: 'short',
-                hour: '2-digit',
-                minute: '2-digit'
-            }) : '';
-            
-            card.innerHTML = `
-                <div class="match-header">
-                    <div class="teams">
-                        <span class="team">${match.away_team}</span>
-                        <span class="vs">@</span>
-                        <span class="team">${match.home_team}</span>
-                    </div>
-                    <div>
-                        <span class="score-badge ${scoreClass}">Score: ${score}</span>
-                        ${gameDate ? `<div class="game-time">${gameDate}</div>` : ''}
-                    </div>
-                </div>
-                
-                <div class="match-details">
-                    <div class="team-patterns">
-                        <h4>${match.home_team} (дома)</h4>
-                        ${renderPatterns(match.patterns.home)}
-                    </div>
-                    <div class="team-patterns">
-                        <h4>${match.away_team} (гости)</h4>
-                        ${renderPatterns(match.patterns.away)}
-                    </div>
-                </div>
-                
-                ${match.odds ? `
-                <div class="odds-box">
-                    <div class="odds-item">
-                        <div class="odds-label">${match.home_team} (дома)</div>
-                        <div class="odds-value">${match.odds.home.toFixed(2)}</div>
-                    </div>
-                    <div class="odds-item">
-                        <div class="odds-label">${match.away_team} (гости)</div>
-                        <div class="odds-value">${match.odds.away.toFixed(2)}</div>
-                    </div>
-                    ${match.odds.ev !== undefined ? `
-                    <div class="odds-item" style="flex: 2;">
-                        <div class="odds-label">Ставка</div>
-                        <div style="font-size: 0.85rem; color: #aaa; margin-bottom: 5px;">
-                            ${match.odds.reasoning || ''}
+            return `
+                <div class="match-card ${cardClass}">
+                    <div class="match-header">
+                        <div class="match-time">
+                            ${timeStr ? `📅 ${timeStr}` : ''}
                         </div>
-                        <div class="ev-badge ${match.odds.profitable ? 'ev-positive' : 'ev-negative'}">
-                            EV: ${match.odds.profitable ? '+' : ''}${match.odds.ev}%
-                            ${match.odds.profitable ? ' ВЫГОДНО' : ''}
+                        <div class="score-indicator ${scoreClass}">
+                            ⚡ Score: ${match.score}
+                        </div>
+                    </div>
+                    
+                    <div class="teams-display">
+                        <div class="team-block">
+                            <div class="team-abbr">${match.away}</div>
+                            <div class="team-label">Гости</div>
+                        </div>
+                        <div class="vs-divider">VS</div>
+                        <div class="team-block">
+                            <div class="team-abbr">${match.home}</div>
+                            <div class="team-label">Дома</div>
+                        </div>
+                    </div>
+                    
+                    <div class="patterns-grid">
+                        <div class="pattern-box">
+                            <h4>${match.home} (дома)</h4>
+                            <div class="pattern-stats">
+                                ${renderPatternTags(match.homePatterns)}
+                            </div>
+                        </div>
+                        <div class="pattern-box">
+                            <h4>${match.away} (гости)</h4>
+                            <div class="pattern-stats">
+                                ${renderPatternTags(match.awayPatterns)}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    ${pred ? `
+                    <div class="prediction-bar">
+                        <div class="prediction-header">
+                            <span class="prediction-label">Прогноз</span>
+                            <span class="prediction-value ${isBreak ? 'break' : 'continue'}">
+                                ${pred.recommendation} ${isBreak ? pred.break_probability : pred.continue_probability}%
+                            </span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill ${isBreak ? 'break' : 'continue'}" 
+                                 style="width: ${isBreak ? pred.break_probability : pred.continue_probability}%"></div>
                         </div>
                     </div>
                     ` : ''}
-                    <div class="odds-item">
-                        <div class="odds-label">Букмекер</div>
-                        <div style="font-size: 0.9rem; color: #aaa;">${match.odds.bookmaker || 'N/A'}</div>
-                    </div>
+                    
+                    ${match.odds ? renderOdds(match) : ''}
                 </div>
-                ` : ''}
-                
-                ${pred ? `
-                <div class="prediction-box">
-                    <div class="prediction-label">Прогноз модели</div>
-                    <div class="prediction-value ${isBreak ? 'break' : 'continue'}">
-                        ${pred.recommendation} (${isBreak ? pred.break_probability : pred.continue_probability}%)
-                    </div>
-                    <div class="prob-bar">
-                        <div class="prob-fill ${isBreak ? 'break' : 'continue'}" 
-                             style="width: ${isBreak ? pred.break_probability : pred.continue_probability}%"></div>
-                    </div>
-                </div>
-                ` : ''}
             `;
-            
-            return card;
         }
         
-        function renderPatterns(patterns) {
+        function renderPatternTags(patterns) {
+            const tags = [];
+            
+            const streak = patterns.overall_streak || patterns.win_streak || 0;
+            if (streak !== 0) {
+                const cls = Math.abs(streak) >= 5 ? 'critical' : '';
+                tags.push(`<span class="pattern-tag ${cls}">Серия: ${streak > 0 ? '+' : ''}${streak}</span>`);
+            }
+            
+            if (patterns.synergy >= 2) {
+                tags.push(`<span class="pattern-tag critical">Синергия: ${patterns.synergy}</span>`);
+            }
+            
+            if (patterns.alternation_combo >= 1) {
+                tags.push(`<span class="pattern-tag critical">Чередование</span>`);
+            }
+            
+            if (patterns.overgrowth >= 1) {
+                tags.push(`<span class="pattern-tag critical">Перерост</span>`);
+            }
+            
+            if (tags.length === 0) {
+                tags.push(`<span class="pattern-tag">Нет критических</span>`);
+            }
+            
+            return tags.join('');
+        }
+        
+        function renderOdds(match) {
+            const odds = match.odds;
             return `
-                <div class="pattern-row">
-                    <span class="pattern-label">Серия побед/поражений</span>
-                    <span class="pattern-value">${patterns.win_streak > 0 ? '+' : ''}${patterns.win_streak}</span>
-                </div>
-                <div class="pattern-row">
-                    <span class="pattern-label">Общая серия</span>
-                    <span class="pattern-value">${patterns.overall_streak > 0 ? '+' : ''}${patterns.overall_streak}</span>
-                </div>
-                <div class="pattern-row">
-                    <span class="pattern-label">Критический паттерн</span>
-                    <span class="pattern-value ${patterns.any_critical ? 'critical' : ''}">${patterns.any_critical ? 'ДА' : 'нет'}</span>
-                </div>
-                <div class="pattern-row">
-                    <span class="pattern-label">Синергия</span>
-                    <span class="pattern-value ${patterns.synergy >= 2 ? 'critical' : ''}">${patterns.synergy}</span>
-                </div>
-                <div class="pattern-row">
-                    <span class="pattern-label">Чередований</span>
-                    <span class="pattern-value ${patterns.alternation_combo >= 2 ? 'critical' : ''}">${patterns.alternation_combo}</span>
-                </div>
-                <div class="pattern-row">
-                    <span class="pattern-label">Перерост</span>
-                    <span class="pattern-value ${patterns.overgrowth >= 2 ? 'critical' : ''}">${patterns.overgrowth}</span>
+                <div class="odds-section">
+                    <div class="odds-item">
+                        <div class="odds-team">${match.home}</div>
+                        <div class="odds-value">${odds.home?.toFixed(2) || '-'}</div>
+                    </div>
+                    <div class="odds-item">
+                        <div class="odds-team">Ничья</div>
+                        <div class="odds-value">-</div>
+                    </div>
+                    <div class="odds-item">
+                        <div class="odds-team">${match.away}</div>
+                        <div class="odds-value">${odds.away?.toFixed(2) || '-'}</div>
+                    </div>
+                    ${odds.ev !== undefined ? `
+                    <div class="ev-badge ${odds.profitable ? 'positive' : 'negative'}">
+                        ${odds.reasoning || ''}<br>
+                        EV: ${odds.profitable ? '+' : ''}${odds.ev}% ${odds.profitable ? '✓ ВЫГОДНО' : ''}
+                    </div>
+                    ` : ''}
                 </div>
             `;
         }
+        
+        document.addEventListener('DOMContentLoaded', loadAllData);
     </script>
 </body>
 </html>
