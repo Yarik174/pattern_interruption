@@ -1,252 +1,46 @@
-# Hockey Pattern Prediction System v3.0
-Мультилиговая система прогнозирования хоккейных матчей на основе теории паттернов Ярослава.
+# Hockey Pattern Prediction System
 
-## Обзор
-Система анализирует исторические данные матчей из нескольких хоккейных лиг (NHL, KHL, SHL, Liiga, DEL) и находит паттерны (закономерности) в результатах. Когда паттерн достигает критической длины (5+ повторений), модель прогнозирует его прерывание.
+## Overview
+The Hockey Pattern Prediction System is a multi-league system designed to predict outcomes of hockey matches across several leagues (NHL, KHL, SHL, Liiga, DEL). It analyzes historical match data to identify recurring patterns in results. The core idea is that when a pattern reaches a critical length (e.g., 5+ repetitions), it has a high probability of breaking. The system aims to provide profitable betting recommendations based on these pattern breaks and calculated Expected Value (EV).
 
-## Теория паттернов
-- **Домашние серии** — последовательность W/L команды дома
-- **Гостевые серии** — последовательность W/L в гостях
-- **Личные встречи** — история матчей между двумя командами
-- **Чередования** — паттерны типа WLWLWL
-- **Критическая длина** — 5+ повторений = высокая вероятность прерывания
-- **Синергия** — несколько паттернов указывают на один исход
+The project's vision is to leverage data-driven pattern recognition and machine learning to achieve a consistent positive Return on Investment (ROI) in sports betting. By integrating multiple leagues and sophisticated pattern analysis, the system seeks to identify valuable betting opportunities that might be overlooked by traditional predictive models.
 
-## Структура проекта
-```
-src/
-├── data_loader.py           # Загрузка данных NHL через API + кэширование
-├── multi_league_loader.py   # Загрузка данных европейских лиг (API-Sports)
-├── multi_league_predictor.py # Анализ паттернов мульти-лиг + EV расчёт
-├── pattern_engine.py        # Движок анализа паттернов NHL
-├── feature_builder.py       # Формирование признаков для ML
-├── model.py                 # Random Forest модель с калибровкой
-├── config.py                # Конфигурация и логирование
-├── artifacts.py             # Сохранение результатов
-├── model_comparison.py      # Сравнение моделей (RF, XGBoost, LightGBM)
-├── pattern_analysis.py      # Анализ статистики прерываний по типам паттернов
-└── sequence_model.py        # LSTM Sequence модель для прогнозов
-app.py                       # Flask веб-сервер
-main.py                      # Главный скрипт запуска
-train_sequence.py            # Скрипт обучения LSTM модели
-data/cache/                  # Кэш данных API
-data/cache/leagues/          # Кэш европейских лиг
-artifacts/                   # Результаты обучения
-```
+## User Preferences
+I prefer clear and concise explanations.
+I value iterative development and regular updates on progress.
+Please ask for confirmation before implementing significant architectural changes or adding new external dependencies.
+I prefer to focus on high-level design and strategy, rather than micro-optimizations initially.
+Ensure all generated code is well-commented and follows standard Python best practices.
 
-## Поддерживаемые лиги
-| Лига | Страна | API | Коэффициенты |
-|------|--------|-----|--------------|
-| NHL | USA | NHL API | The Odds API |
-| KHL | Russia | API-Sports | Нет |
-| SHL | Sweden | API-Sports | The Odds API |
-| Liiga | Finland | API-Sports | The Odds API |
-| DEL | Germany | API-Sports | Нет |
+## System Architecture
+The system is built around a core pattern recognition engine that identifies various types of patterns, including home series, away series, head-to-head records, and alternating win/loss sequences. It utilizes both a Random Forest model for general predictions and a Critical Pattern Prediction (CPP) logic for identifying high-confidence pattern breaks.
 
-## Результаты Random Forest (обновлено 2026-01-13 v3)
-- **Данные:** ~13,472 матча (10 сезонов: 2016-2026)
-- **Паттерны:** с разными критическими порогами по типам
-- **Признаков:** 112 (серии, чередования, синергия, лиговые паттерны, глубокие H2H)
-- **Target:** Победитель матча (home_win: 1/0)
-- **Точность:** 54.44% (кросс-валидация: 53.36% ± 2.42%)
-- **Базовая частота побед хозяев:** 54.3%
+**UI/UX Decisions:**
+The web interface features a clean, modern design with a dark theme. It supports multiple leagues through distinct tabs (NHL, KHL, SHL, Liiga, DEL) and includes match cards with visual indicators for identified patterns. The design is responsive for mobile use. Filters for signal strength are provided to help users prioritize recommendations.
 
-### Новые признаки v3 (16 новых)
-| Тип | Признаки |
-|-----|----------|
-| **Лиговые паттерны** | league_home_wins_last_20, league_home_rate, league_home_streak, league_home_streak_critical |
-| **Глубокие H2H** | h2h_home_win_streak, h2h_away_win_streak, h2h_home_streak_critical, h2h_away_streak_critical |
+**Technical Implementations:**
+- **Data Loading:** `data_loader.py` handles NHL data via an API with caching. `multi_league_loader.py` fetches data for European leagues using API-Sports.
+- **Pattern Engine:** `pattern_engine.py` is central to identifying and analyzing patterns, including calculating their "weights" or reliability.
+- **Feature Engineering:** `feature_builder.py` creates features for machine learning models, incorporating series lengths, alternations, synergies, and deep H2H statistics.
+- **Prediction Models:**
+    - **Random Forest:** `model.py` implements a Random Forest classifier with probability calibration. It uses 112 features and achieves an accuracy of ~54.44%.
+    - **LSTM Sequence Model:** `sequence_model.py` uses a PyTorch-based LSTM neural network to predict match winners and period totals by analyzing sequences of past game statistics for each team.
+- **CPP Logic:** This logic determines pattern breaks based on predefined critical lengths and rules (e.g., a winning streak of 5+ implies a high chance of a loss). Synergy (multiple patterns pointing to the same outcome) is a key factor for bet recommendations.
+- **EV Calculation:** Expected Value (EV) is calculated for recommended bets using the CPP prediction's implied probability and available odds.
+- **API Endpoints:** A Flask web server (`app.py`) exposes several API endpoints for upcoming matches, match analysis (for specific teams or all upcoming games), and multi-league summaries.
+- **Configuration & Artifacts:** `config.py` manages system parameters, and `artifacts.py` handles saving training results, model metrics, feature importance, and trained models.
 
-### Критические пороги по типам паттернов
-| Тип паттерна | Критическая длина | Break Rate |
-|--------------|-------------------|------------|
-| Общая серия (overall) | ≥5 | 48.2% |
-| Домашняя серия | ≥4 | 46.9% |
-| Гостевая серия | ≥3 | 23.4% |
-| Чередование | ≥6 | 55-58% |
-| H2H (личные встречи) | ≥3 | 46.8% |
-| **H2H домашняя серия** | ≥3 | TBD |
-| **H2H гостевая серия** | ≥2 | TBD |
-| **Лиговая домашняя серия** | ≥5 | TBD |
+**Supported Patterns & Logic:**
+- **Critical Lengths:** Patterns are considered critical at specific lengths (e.g., overall series ≥5, home series ≥4, H2H series ≥3).
+- **Break Rules:** Specific rules dictate the predicted outcome upon a pattern break (e.g., a winning streak break predicts a loss).
+- **Synergy:** Multiple patterns indicating the same outcome increase prediction confidence and are required for EV calculation.
 
-### Веса паттернов (reliability)
-| Паттерн | Вес |
-|---------|-----|
-| Общее чередование | 1.3 |
-| Домашнее чередование | 1.2 |
-| Общая серия | 1.0 |
-| Домашняя серия | 0.9 |
-| H2H серия | 0.9 |
-| H2H чередование | 0.8 |
-| Гостевое чередование | 0.6 |
-| Гостевая серия | 0.5 |
-
-## CPP (Critical Pattern Prediction) Логика
-
-### Правила прерывания паттернов
-| Тип паттерна | При критической длине |
-|--------------|----------------------|
-| Серия побед (WWWWW) | Прерывание → следующий L |
-| Серия поражений (LLLLL) | Прерывание → следующий W |
-| Чередование (WLWLWL) | Прерывание → повтор последнего |
-
-### Синергия
-- **Синергия** = количество паттернов, указывающих на один исход
-- **Требование:** синергия ≥ 2 для рекомендации ставки
-- **Вероятность по синергии:** 2 паттерна → 55%, 3 → 60%, 4+ → 65%
-
-### API Response (обновлено)
-```json
-{
-  "cpp_prediction": {
-    "team": "away",
-    "synergy": 2,
-    "patterns": ["Прерывание серии побед (7)", "Прерывание H2H"],
-    "bet_recommendation": "CGY"
-  },
-  "prediction": {
-    "home_probability": 51.2,
-    "away_probability": 48.8,
-    "predicted_winner": "home",
-    "recommendation": "EDM"
-  }
-}
-```
-
-### EV расчёт
-- Использует CPP prediction (не модель)
-- Требует синергию ≥ 2
-- Формула: EV = (probability × odds) - 1
-
-## Новые возможности v3.0
-- **Мульти-лиги** — поддержка KHL, SHL, Liiga, DEL через API-Sports
-- **Кросс-лиговые коэффициенты** — интеграция с The Odds API для SHL, Liiga
-- **EV расчёт для NHL** — автоматический расчёт ценности ставок (калибровано на NHL данных)
-- **Кэширование данных** — загрузка 10 сезонов за секунды из кэша
-- **Детальный анализ** — для каждого прогноза видно какие паттерны сработали
-- **Калибровка вероятностей** — более точные проценты уверенности
-- **Сохранение артефактов** — JSON/CSV с метриками, важностью признаков
-- **Grid Search** — автоматический подбор гиперпараметров (опционально)
-- **Сравнение моделей** — RandomForest, XGBoost, LightGBM
-
-## Запуск
-```bash
-python main.py
-```
-
-## Конфигурация
-Параметры настраиваются в `config.json`:
-```json
-{
-  "data": {"n_seasons": 10, "use_cache": true},
-  "model": {"n_estimators": 100, "max_depth": 10, "class_weight": "balanced"},
-  "training": {"use_grid_search": false, "calibrate_probabilities": true}
-}
-```
-
-## Артефакты
-После каждого запуска в `artifacts/<run_id>/` сохраняются:
-- `metrics.json` — точность, confusion matrix
-- `feature_importance.csv` — важность признаков
-- `patterns_summary.json` — найденные паттерны
-- `training_config.json` — параметры обучения
-- `model.pkl` — обученная модель
-
-## Веб-интерфейс
-Запуск: `python app.py` (порт 5000)
-
-**Функции (обновлено 2026-01-11):**
-- Современный чистый дизайн с тёмной темой
-- Табы для 5 лиг: NHL, KHL, SHL, Liiga, DEL
-- Автозагрузка данных при открытии страницы
-- Фильтры по силе сигнала (Score ≥0, ≥3, ≥4, ≥5)
-- Карточки матчей с визуальными индикаторами паттернов
-- Адаптивный дизайн для мобильных устройств
-- Информационная панель с объяснением сигналов
-- Примечание: Европейские лиги требуют API_SPORTS_KEY
-
-**API (NHL):**
-- `GET /api/upcoming` — список предстоящих матчей NHL
-- `GET /api/analyze/<home>/<away>` — анализ конкретного матча
-- `GET /api/analyze-all` — анализ всех предстоящих матчей NHL
-
-**API (Мульти-лиги):**
-- `GET /api/multi-league/summary` — сводка по всем лигам с критическими паттернами
-- `GET /api/multi-league/upcoming` — предстоящие матчи всех лиг с анализом и EV
-- `GET /api/multi-league/analyze/<league>/<home>/<away>` — анализ матча в лиге
-
-**API (Sequence Model):**
-- `GET /api/sequence/status` — статус и конфигурация LSTM модели
-- `GET /api/sequence/predict/<home>/<away>` — прогноз победителя и тоталов по периодам
-
-## Sequence Model (LSTM)
-
-Отдельная нейросетевая модель на PyTorch для прямого предсказания:
-- **Победитель** (home/away/draw) — классификация
-- **Тоталы по периодам** (голы в 1, 2, 3 периодах) — регрессия
-
-### Архитектура
-- Два параллельных LSTM (для домашней и гостевой команды)
-- Вход: последовательность последних N матчей каждой команды
-- Признаки: goals_scored, goals_conceded, won, home_game, overtime, goal_diff, total_goals
-- Выход: вероятности исхода + прогноз голов по периодам
-
-### Обучение
-```bash
-python train_sequence.py --epochs 50 --seasons 5 --seq-length 10
-# С данными по периодам:
-python train_sequence.py --epochs 50 --load-periods --max-period-games 2000
-```
-
-### Результаты (обновлено 2026-01-11)
-- **Данные:** 13,472 матча (10 сезонов NHL: 2016-2026)
-- **Period data:** 2,499 матчей с детальной статистикой по периодам
-- **Точность:** 55.72% на валидации (best epoch)
-- **Early stopping:** эпоха 24/50
-- **Параметров:** 131,177
-- Модель сохраняется в `artifacts/sequence_model/`
-
-## Интеграция коэффициентов (обновлено 2026-01-13)
-- **API:** The Odds API (ODDS_API_KEY в секретах)
-- **Исторические данные:** Kaggle dataset (2021-2023, 2619 матчей)
-- **Файлы:** `data/odds/sportsbook-nhl-*.csv`
-
-## ROI Backtest (обновлено 2026-01-13)
-
-### Прибыльные КОМБИНАЦИИ паттернов (синергия)
-
-**Данные: 5320 матчей (2016-2023), 7 сезонов NHL**
-
-| Комбинация | n | WR | ROI |
-|------------|---|-----|-----|
-| **HomeWin + AwayLoss + HomeWin6+→Break** | 54 | 48.1% | **+38.1%** |
-| **H2H_Home + HomeLoss→Break** | 18 | 66.7% | **+12.1%** |
-| **H2H_Home + HomeWin6+→Break** | 16 | 75.0% | **+9.1%** |
-| **H2H_Away + HomeLoss→Break** | 39 | 59.0% | **+5.4%** |
-| H2H_Away (одиночный) | 400 | 55.5% | +3.2% |
-| HomeWin + AwayLoss | 61 | 65.6% | +3.2% |
-| H2H_Home+HomeWin+AwayLoss+HomeWin6+ | 12 | 75.0% | +1.9% |
-
-### Расшифровка паттернов
-- **H2H_Home/Away** — H2H серия ≥3 в пользу команды
-- **HomeWin** — серия домашних побед ≥4
-- **HomeLoss→Break** — серия домашних поражений ≥4 (regression)
-- **AwayLoss** — серия гостевых поражений ≥2
-- **HomeWin6+→Break** — очень длинная серия (≥6) → ставка на прерывание
-
-### Break Rates (для калибровки)
-| Серия | Break Rate | Логика |
-|-------|-----------|--------|
-| Home Win 7+ | 28.8% | Momentum — серии продолжаются |
-| Home Loss 7+ | 50.0% | Regression to mean |
-| Away Win 4+ | 42.4% | Break вероятнее |
-
-## Планы развития
-- [x] Веб-интерфейс для прогнозов
-- [x] Интеграция с букмекерскими коэффициентами
-- [x] Мульти-лиговая поддержка (KHL, SHL, Liiga, DEL)
-- [x] EV расчёт для NHL (калибровано на исторических данных)
-- [x] LSTM Sequence модель для прямого предсказания
-- [x] Расчёт ROI на исторических данных (+4.0% ROI найден!)
-- [ ] Калибровка EV для европейских лиг
-- [ ] Добавить Czech Extraliga и Swiss NL
+## External Dependencies
+- **NHL API:** For NHL match data.
+- **API-Sports:** For KHL, SHL, Liiga, and DEL match data.
+- **The Odds API:** For real-time betting odds, primarily integrated for NHL, SHL, and Liiga. Requires an API key.
+- **Kaggle Dataset:** Used for historical odds data (specifically `data/odds/sportsbook-nhl-*.csv`).
+- **Flask:** Python web framework for the API and UI.
+- **PyTorch:** Deep learning framework used for the LSTM Sequence Model.
+- **Scikit-learn:** For Random Forest model, feature processing, and model evaluation.
+- **XGBoost, LightGBM:** Other machine learning libraries used for model comparison (though Random Forest is the primary model).
