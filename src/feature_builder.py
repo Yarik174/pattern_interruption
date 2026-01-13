@@ -121,7 +121,7 @@ class FeatureBuilder:
             
             features_list.append(combined_features)
             
-            target = self._calculate_target(home_features, row['home_win'])
+            target = self._calculate_target_combined(home_features, away_features, row['home_win'])
             targets.append(target)
             
             game_info.append({
@@ -231,55 +231,118 @@ class FeatureBuilder:
         
         return 0.5
     
-    def _calculate_target(self, features, actual_result):
-        total_critical = features.get('total_critical_patterns', 0)
+    def _calculate_target_combined(self, home_features, away_features, actual_result):
+        """
+        Рассчитывает target с учётом паттернов ОБЕИХ команд.
+        actual_result: 1 = домашняя победа, 0 = гостевая победа
         
-        if total_critical == 0:
-            streak = features['overall_win_streak']
-            if streak >= 3:
-                pattern_broken = 1 if actual_result == 0 else 0
-            elif streak <= -3:
-                pattern_broken = 1 if actual_result == 1 else 0
-            else:
-                pattern_broken = 0
-            return pattern_broken
-        
+        Прерывание = 1 если любой критический паттерн прервался:
+        - Домашняя команда: серия побед прервалась (actual=0) или серия поражений прервалась (actual=1)
+        - Гостевая команда: серия побед прервалась (actual=1) или серия поражений прервалась (actual=0)
+        """
         pattern_broken = 0
         
-        if features['home_streak_critical'] == 1:
-            if features['home_win_streak'] > 0 and actual_result == 0:
+        home_critical = home_features.get('total_critical_patterns', 0)
+        away_critical = away_features.get('total_critical_patterns', 0)
+        
+        if home_critical == 0 and away_critical == 0:
+            home_streak = home_features['overall_win_streak']
+            away_streak = away_features['overall_win_streak']
+            
+            if home_streak >= 3 and actual_result == 0:
                 pattern_broken = 1
-            elif features['home_win_streak'] < 0 and actual_result == 1:
+            elif home_streak <= -3 and actual_result == 1:
+                pattern_broken = 1
+            elif away_streak >= 3 and actual_result == 1:
+                pattern_broken = 1
+            elif away_streak <= -3 and actual_result == 0:
+                pattern_broken = 1
+            
+            return pattern_broken
+        
+        if home_features.get('home_streak_critical', 0) == 1:
+            streak = home_features['home_win_streak']
+            if streak > 0 and actual_result == 0:
+                pattern_broken = 1
+            elif streak < 0 and actual_result == 1:
                 pattern_broken = 1
         
-        if features['overall_streak_critical'] == 1:
-            if features['overall_win_streak'] > 0 and actual_result == 0:
+        if home_features.get('overall_streak_critical', 0) == 1:
+            streak = home_features['overall_win_streak']
+            if streak > 0 and actual_result == 0:
                 pattern_broken = 1
-            elif features['overall_win_streak'] < 0 and actual_result == 1:
-                pattern_broken = 1
-        
-        if features['h2h_streak_critical'] == 1:
-            if features['h2h_win_streak'] > 0 and actual_result == 0:
-                pattern_broken = 1
-            elif features['h2h_win_streak'] < 0 and actual_result == 1:
+            elif streak < 0 and actual_result == 1:
                 pattern_broken = 1
         
-        if features.get('home_alt_critical', 0) == 1:
-            expected = features.get('home_expected_alt', -1)
+        if home_features.get('h2h_streak_critical', 0) == 1:
+            streak = home_features['h2h_win_streak']
+            if streak > 0 and actual_result == 0:
+                pattern_broken = 1
+            elif streak < 0 and actual_result == 1:
+                pattern_broken = 1
+        
+        if home_features.get('home_alt_critical', 0) == 1:
+            expected = home_features.get('home_expected_alt', -1)
             if expected != -1 and actual_result != expected:
                 pattern_broken = 1
         
-        if features.get('h2h_alt_critical', 0) == 1:
-            expected = features.get('h2h_expected_alt', -1)
+        if home_features.get('h2h_alt_critical', 0) == 1:
+            expected = home_features.get('h2h_expected_alt', -1)
             if expected != -1 and actual_result != expected:
                 pattern_broken = 1
         
-        if features.get('overall_alt_critical', 0) == 1:
-            expected = features.get('overall_expected_alt', -1)
+        if home_features.get('overall_alt_critical', 0) == 1:
+            expected = home_features.get('overall_expected_alt', -1)
             if expected != -1 and actual_result != expected:
                 pattern_broken = 1
+        
+        if away_features.get('away_streak_critical', 0) == 1:
+            streak = away_features['away_win_streak']
+            if streak > 0 and actual_result == 1:
+                pattern_broken = 1
+            elif streak < 0 and actual_result == 0:
+                pattern_broken = 1
+        
+        if away_features.get('overall_streak_critical', 0) == 1:
+            streak = away_features['overall_win_streak']
+            if streak > 0 and actual_result == 1:
+                pattern_broken = 1
+            elif streak < 0 and actual_result == 0:
+                pattern_broken = 1
+        
+        if away_features.get('h2h_streak_critical', 0) == 1:
+            streak = away_features['h2h_win_streak']
+            if streak > 0 and actual_result == 1:
+                pattern_broken = 1
+            elif streak < 0 and actual_result == 0:
+                pattern_broken = 1
+        
+        if away_features.get('away_alt_critical', 0) == 1:
+            expected = away_features.get('away_expected_alt', -1)
+            if expected != -1:
+                away_expected_result = 1 - expected
+                if actual_result != away_expected_result:
+                    pattern_broken = 1
+        
+        if away_features.get('h2h_alt_critical', 0) == 1:
+            expected = away_features.get('h2h_expected_alt', -1)
+            if expected != -1:
+                away_expected_result = 1 - expected
+                if actual_result != away_expected_result:
+                    pattern_broken = 1
+        
+        if away_features.get('overall_alt_critical', 0) == 1:
+            expected = away_features.get('overall_expected_alt', -1)
+            if expected != -1:
+                away_expected_result = 1 - expected
+                if actual_result != away_expected_result:
+                    pattern_broken = 1
         
         return pattern_broken
+    
+    def _calculate_target(self, features, actual_result):
+        """Legacy method for backwards compatibility"""
+        return self._calculate_target_combined(features, {}, actual_result)
     
     def _calculate_overgrowth(self, features):
         critical_len = 5
