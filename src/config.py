@@ -16,6 +16,9 @@ CRITICAL_THRESHOLDS = {
     'h2h': 3,
     'h2h_streak': 3,
     'h2h_alternation': 6,
+    'h2h_home_streak': 3,
+    'h2h_away_streak': 2,
+    'league_home_streak': 5,
 }
 
 PATTERN_BREAK_RATES = {

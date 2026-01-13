@@ -438,6 +438,47 @@ class PatternEngine:
             features['overall_alternation_len']
         )
         
+        h2h_home_games = games_df[
+            (games_df['home_team'] == team) & 
+            (games_df['away_team'] == opponent) &
+            (games_df['date'] < game_date)
+        ].sort_values('date').tail(10)
+        
+        if len(h2h_home_games) >= 2:
+            h2h_home_results = h2h_home_games['home_win'].values
+            features['h2h_home_win_streak'] = self._current_streak(h2h_home_results)
+        else:
+            features['h2h_home_win_streak'] = 0
+        
+        h2h_away_games = games_df[
+            (games_df['home_team'] == opponent) & 
+            (games_df['away_team'] == team) &
+            (games_df['date'] < game_date)
+        ].sort_values('date').tail(10)
+        
+        if len(h2h_away_games) >= 2:
+            h2h_away_results = [1 - r for r in h2h_away_games['home_win'].values]
+            features['h2h_away_win_streak'] = self._current_streak(h2h_away_results)
+        else:
+            features['h2h_away_win_streak'] = 0
+        
+        features['h2h_home_streak_critical'] = 1 if abs(features['h2h_home_win_streak']) >= self.thresholds.get('h2h_home_streak', 3) else 0
+        features['h2h_away_streak_critical'] = 1 if abs(features['h2h_away_win_streak']) >= self.thresholds.get('h2h_away_streak', 2) else 0
+        
+        league_last_20 = games_df[games_df['date'] < game_date].sort_values('date').tail(20)
+        if len(league_last_20) > 0:
+            features['league_home_wins_last_20'] = int(league_last_20['home_win'].sum())
+            features['league_home_rate'] = league_last_20['home_win'].mean()
+            
+            league_recent = games_df[games_df['date'] < game_date].sort_values('date').tail(10)['home_win'].values
+            features['league_home_streak'] = self._current_streak(league_recent)
+        else:
+            features['league_home_wins_last_20'] = 10
+            features['league_home_rate'] = 0.5
+            features['league_home_streak'] = 0
+        
+        features['league_home_streak_critical'] = 1 if abs(features['league_home_streak']) >= self.thresholds.get('league_home_streak', 5) else 0
+        
         return features
     
     def _get_alternation_length(self, result_str):
