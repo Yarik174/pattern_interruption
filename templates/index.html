@@ -548,6 +548,89 @@
         .info-icon.red { background: rgba(239, 68, 68, 0.2); }
         .info-icon.purple { background: rgba(99, 102, 241, 0.2); }
         
+        .cpp-section {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.15));
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 12px;
+            padding: 14px;
+            margin-top: 16px;
+        }
+        
+        .cpp-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--accent-light);
+            font-weight: 600;
+        }
+        
+        .cpp-synergy {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .cpp-synergy-count {
+            background: rgba(139, 92, 246, 0.3);
+            color: #c4b5fd;
+            padding: 4px 10px;
+            border-radius: 16px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .cpp-synergy-team {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+        
+        .cpp-patterns {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+        
+        .cpp-pattern-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        
+        .cpp-pattern-chip::before {
+            content: '•';
+            color: var(--accent-light);
+        }
+        
+        .cpp-bet-recommendation {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(16, 185, 129, 0.15));
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            border-radius: 8px;
+            padding: 10px 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+            color: var(--success);
+            font-size: 0.9rem;
+        }
+        
+        .cpp-no-recommendation {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            font-style: italic;
+        }
+        
         .info-text strong {
             display: block;
             font-size: 0.85rem;
@@ -868,7 +951,8 @@
                 homePatterns: m.patterns?.home || {},
                 awayPatterns: m.patterns?.away || {},
                 prediction: m.prediction,
-                odds: m.odds
+                odds: m.odds,
+                cpp_prediction: m.cpp_prediction || null
             };
         }
         
@@ -963,7 +1047,59 @@
                     </div>
                     ` : ''}
                     
+                    ${match.cpp_prediction ? renderCPPSection(match) : ''}
+                    
                     ${match.odds ? renderOdds(match) : ''}
+                </div>
+            `;
+        }
+        
+        function renderCPPSection(match) {
+            const cpp = match.cpp_prediction;
+            if (!cpp) return '';
+            
+            const synergy = cpp.synergy || 0;
+            const patterns = cpp.patterns || [];
+            const team = cpp.team;
+            const betRecommendation = cpp.bet_recommendation;
+            
+            const teamName = team === 'home' ? match.home : (team === 'away' ? match.away : null);
+            
+            let patternsHtml = '';
+            if (patterns.length > 0) {
+                patternsHtml = `
+                    <div class="cpp-patterns">
+                        ${patterns.map(p => `<span class="cpp-pattern-chip">${typeof p === 'object' ? p.reason : p}</span>`).join('')}
+                    </div>
+                `;
+            }
+            
+            let recommendationHtml = '';
+            if (betRecommendation) {
+                recommendationHtml = `
+                    <div class="cpp-bet-recommendation">
+                        ✅ СТАВКА: ${betRecommendation.toUpperCase()}
+                    </div>
+                `;
+            } else if (synergy < 2) {
+                recommendationHtml = `
+                    <div class="cpp-no-recommendation">
+                        Нет рекомендации (синергия < 2)
+                    </div>
+                `;
+            }
+            
+            return `
+                <div class="cpp-section">
+                    <div class="cpp-header">
+                        🎯 CPP ПРОГНОЗ
+                    </div>
+                    <div class="cpp-synergy">
+                        <span class="cpp-synergy-count">🔮 Синергия: ${synergy} паттерн${synergy === 1 ? '' : (synergy >= 2 && synergy <= 4 ? 'а' : 'ов')}</span>
+                        ${teamName ? `<span class="cpp-synergy-team">→ ${teamName}</span>` : ''}
+                    </div>
+                    ${patternsHtml}
+                    ${recommendationHtml}
                 </div>
             `;
         }

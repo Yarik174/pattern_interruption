@@ -313,6 +313,90 @@ def analyze_game(home_team, away_team):
     home_overgrowth = calc_overgrowth(home_features)
     away_overgrowth = calc_overgrowth(away_features)
     
+    def get_cpp_prediction(home_f, away_f):
+        """
+        CPP логика:
+        - Серия: прерывание = противоположный результат
+        - Чередование: прерывание = повтор последнего
+        """
+        home_preds = []
+        away_preds = []
+        
+        home_streak = home_f.get('home_win_streak', 0)
+        if home_f.get('home_streak_critical', 0):
+            if home_streak > 0:
+                away_preds.append({'type': 'home_streak', 'reason': f'Прерывание домашней серии побед ({home_streak})'})
+            elif home_streak < 0:
+                home_preds.append({'type': 'home_streak', 'reason': f'Прерывание домашней серии поражений ({home_streak})'})
+        
+        overall_streak = home_f.get('overall_win_streak', 0)
+        if home_f.get('overall_streak_critical', 0):
+            if overall_streak > 0:
+                away_preds.append({'type': 'overall_streak', 'reason': f'Прерывание общей серии побед хозяев ({overall_streak})'})
+            elif overall_streak < 0:
+                home_preds.append({'type': 'overall_streak', 'reason': f'Прерывание общей серии поражений хозяев ({overall_streak})'})
+        
+        if home_f.get('home_alt_critical', 0):
+            last = home_f.get('home_last_result', 0)
+            if last == 1:
+                home_preds.append({'type': 'home_alt', 'reason': 'Прерывание чередования дома (последний W → W)'})
+            else:
+                away_preds.append({'type': 'home_alt', 'reason': 'Прерывание чередования дома (последний L → L)'})
+        
+        if home_f.get('overall_alt_critical', 0):
+            last = home_f.get('overall_last_result', 0)
+            if last == 1:
+                home_preds.append({'type': 'overall_alt', 'reason': 'Прерывание общего чередования хозяев (последний W → W)'})
+            else:
+                away_preds.append({'type': 'overall_alt', 'reason': 'Прерывание общего чередования хозяев (последний L → L)'})
+        
+        away_streak = away_f.get('away_win_streak', 0)
+        if away_f.get('away_streak_critical', 0):
+            if away_streak > 0:
+                home_preds.append({'type': 'away_streak', 'reason': f'Прерывание гостевой серии побед ({away_streak})'})
+            elif away_streak < 0:
+                away_preds.append({'type': 'away_streak', 'reason': f'Прерывание гостевой серии поражений ({away_streak})'})
+        
+        away_overall = away_f.get('overall_win_streak', 0)
+        if away_f.get('overall_streak_critical', 0):
+            if away_overall > 0:
+                home_preds.append({'type': 'away_overall', 'reason': f'Прерывание общей серии побед гостей ({away_overall})'})
+            elif away_overall < 0:
+                away_preds.append({'type': 'away_overall', 'reason': f'Прерывание общей серии поражений гостей ({away_overall})'})
+        
+        if away_f.get('overall_alt_critical', 0):
+            last = away_f.get('overall_last_result', 0)
+            if last == 1:
+                away_preds.append({'type': 'away_alt', 'reason': 'Прерывание общего чередования гостей (последний W → W)'})
+            else:
+                home_preds.append({'type': 'away_alt', 'reason': 'Прерывание общего чередования гостей (последний L → L)'})
+        
+        h2h_streak = home_f.get('h2h_win_streak', 0)
+        if home_f.get('h2h_streak_critical', 0):
+            if h2h_streak > 0:
+                away_preds.append({'type': 'h2h_streak', 'reason': f'Прерывание серии H2H ({h2h_streak})'})
+            elif h2h_streak < 0:
+                home_preds.append({'type': 'h2h_streak', 'reason': f'Прерывание серии H2H ({h2h_streak})'})
+        
+        if home_f.get('h2h_alt_critical', 0):
+            last = home_f.get('h2h_last_result', 0)
+            if last == 1:
+                home_preds.append({'type': 'h2h_alt', 'reason': 'Прерывание чередования H2H (последний W → W)'})
+            else:
+                away_preds.append({'type': 'h2h_alt', 'reason': 'Прерывание чередования H2H (последний L → L)'})
+        
+        home_synergy_count = len(home_preds)
+        away_synergy_count = len(away_preds)
+        
+        if home_synergy_count > away_synergy_count:
+            return {'team': 'home', 'synergy': home_synergy_count, 'patterns': home_preds}
+        elif away_synergy_count > home_synergy_count:
+            return {'team': 'away', 'synergy': away_synergy_count, 'patterns': away_preds}
+        else:
+            return {'team': None, 'synergy': 0, 'patterns': []}
+    
+    cpp_prediction = get_cpp_prediction(home_features, away_features)
+    
     def calc_strong_signal(synergy, alt_combo, overgrowth):
         score = 0
         if synergy >= 2:
@@ -333,6 +417,14 @@ def analyze_game(home_team, away_team):
             'home': home_strong,
             'away': away_strong,
             'max': max(home_strong, away_strong)
+        },
+        'cpp_prediction': {
+            'team': cpp_prediction['team'],
+            'synergy': cpp_prediction['synergy'],
+            'patterns': [p['reason'] for p in cpp_prediction['patterns']],
+            'bet_recommendation': home_team if cpp_prediction['team'] == 'home' and cpp_prediction['synergy'] >= 2 else (
+                away_team if cpp_prediction['team'] == 'away' and cpp_prediction['synergy'] >= 2 else None
+            )
         },
         'prediction': None
     }
