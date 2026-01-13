@@ -16,12 +16,16 @@ class PatternEngine:
         away_patterns = self._analyze_away_patterns(games_df)
         h2h_patterns = self._analyze_head_to_head_patterns(games_df)
         alternation_patterns = self._analyze_alternation_patterns(games_df)
+        league_patterns = self._analyze_league_patterns(games_df)
+        venue_h2h_patterns = self._analyze_venue_h2h_patterns(games_df)
         
         all_patterns = {
             'home': home_patterns,
             'away': away_patterns,
             'head_to_head': h2h_patterns,
-            'alternation': alternation_patterns
+            'alternation': alternation_patterns,
+            'league': league_patterns,
+            'venue_h2h': venue_h2h_patterns
         }
         
         self._print_pattern_stats(all_patterns)
@@ -197,6 +201,82 @@ class PatternEngine:
                     'critical': cp['length'] >= self.thresholds['alternation'],
                     'position': cp['position'],
                     'next_result': cp.get('next_result')
+                })
+        
+        return patterns
+    
+    def _analyze_league_patterns(self, df):
+        """Analyze league-wide home/away win patterns."""
+        print("  🏟️ Анализ паттернов лиги...")
+        patterns = []
+        
+        sorted_df = df.sort_values('date')
+        
+        results = sorted_df['home_win'].values
+        result_str = ''.join(['H' if r == 1 else 'A' for r in results])
+        
+        current_streak = 1
+        current_char = result_str[0] if result_str else None
+        
+        for i in range(1, len(result_str)):
+            if result_str[i] == current_char:
+                current_streak += 1
+            else:
+                if current_streak >= 3:
+                    streak_type = 'league_home_streak' if current_char == 'H' else 'league_away_streak'
+                    patterns.append({
+                        'type': streak_type,
+                        'length': current_streak,
+                        'position': i - current_streak,
+                        'critical': current_streak >= 5
+                    })
+                current_streak = 1
+                current_char = result_str[i]
+        
+        if current_streak >= 3:
+            streak_type = 'league_home_streak' if current_char == 'H' else 'league_away_streak'
+            patterns.append({
+                'type': streak_type,
+                'length': current_streak,
+                'position': len(result_str) - current_streak,
+                'critical': current_streak >= 5
+            })
+        
+        return patterns
+    
+    def _analyze_venue_h2h_patterns(self, df):
+        """Analyze H2H patterns at specific venues (home team always the same)."""
+        print("  🏠 Анализ H2H по аренам...")
+        patterns = []
+        
+        matchups = df.groupby(['home_team', 'away_team']).size().reset_index()
+        
+        for _, row in matchups.iterrows():
+            home_team = row['home_team']
+            away_team = row['away_team']
+            
+            venue_games = df[
+                (df['home_team'] == home_team) & (df['away_team'] == away_team)
+            ].sort_values('date')
+            
+            if len(venue_games) < 3:
+                continue
+            
+            results = venue_games['home_win'].values
+            result_str = ''.join(['W' if r == 1 else 'L' for r in results])
+            
+            streaks = self._find_streaks(result_str)
+            
+            for streak in streaks:
+                patterns.append({
+                    'home_team': home_team,
+                    'away_team': away_team,
+                    'type': 'venue_h2h_streak',
+                    'pattern': streak['pattern'],
+                    'length': streak['length'],
+                    'critical': streak['length'] >= 3,
+                    'position': streak['position'],
+                    'next_result': streak.get('next_result')
                 })
         
         return patterns
@@ -439,6 +519,42 @@ class PatternEngine:
         )
         
         return features
+    
+    def get_league_streak(self, df, before_date):
+        """Get current league-wide home/away streak before a specific date."""
+        recent = df[df['date'] < before_date].sort_values('date', ascending=False).head(10)
+        
+        if len(recent) == 0:
+            return {'type': None, 'length': 0}
+        
+        results = recent['home_win'].values
+        
+        streak_type = 'home' if results[0] == 1 else 'away'
+        streak_len = 1
+        
+        for i in range(1, len(results)):
+            if (results[i] == 1 and streak_type == 'home') or (results[i] == 0 and streak_type == 'away'):
+                streak_len += 1
+            else:
+                break
+        
+        return {'type': streak_type, 'length': streak_len}
+    
+    def get_venue_h2h_streak(self, df, home_team, away_team, before_date):
+        """Get venue-specific H2H streak (only when home_team is at home vs away_team)."""
+        venue_games = df[
+            (df['home_team'] == home_team) & 
+            (df['away_team'] == away_team) &
+            (df['date'] < before_date)
+        ].sort_values('date', ascending=False)
+        
+        if len(venue_games) == 0:
+            return {'streak': 0, 'games': 0}
+        
+        results = venue_games['home_win'].values
+        streak = self._current_streak(list(results))
+        
+        return {'streak': streak, 'games': len(venue_games)}
     
     def _get_alternation_length(self, result_str):
         if len(result_str) < 4:
