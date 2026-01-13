@@ -1,5 +1,5 @@
 {
-  "sequence_length": 10,
+  "sequence_length": 20,
   "feature_columns": [
     "goals_scored",
     "goals_conceded",
