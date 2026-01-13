@@ -121,7 +121,7 @@ class FeatureBuilder:
             
             features_list.append(combined_features)
             
-            target = self._calculate_target_combined(home_features, away_features, row['home_win'])
+            target = int(row['home_win'])
             targets.append(target)
             
             game_info.append({
@@ -143,9 +143,9 @@ class FeatureBuilder:
         
         print(f"\n✅ Сформировано {len(features_df)} образцов")
         print(f"   Количество признаков: {len(self.feature_names)}")
-        print(f"   Распределение целевой переменной:")
-        print(f"     - Паттерн прервался (1): {sum(targets)} ({100*sum(targets)/len(targets):.1f}%)")
-        print(f"     - Паттерн продолжился (0): {len(targets) - sum(targets)} ({100*(len(targets)-sum(targets))/len(targets):.1f}%)")
+        print(f"   Распределение исходов:")
+        print(f"     - Победа хозяев (1): {sum(targets)} ({100*sum(targets)/len(targets):.1f}%)")
+        print(f"     - Победа гостей (0): {len(targets) - sum(targets)} ({100*(len(targets)-sum(targets))/len(targets):.1f}%)")
         
         return features_df, targets, pd.DataFrame(game_info)
     

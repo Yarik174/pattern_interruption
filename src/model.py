@@ -90,7 +90,7 @@ class PatternPredictionModel:
         
         print("\n  Classification Report:")
         print("-" * 40)
-        report = classification_report(y_test, y_pred, target_names=['Продолжение', 'Прерывание'])
+        report = classification_report(y_test, y_pred, target_names=['Гости', 'Хозяева'])
         print(report)
         
         print("\n  Confusion Matrix:")
@@ -247,14 +247,14 @@ class PatternPredictionModel:
             else:
                 wrong_continues.append(example)
         
-        def print_examples(examples, title, n, is_correct, is_break):
+        def print_examples(examples, title, n, is_correct, is_home_win):
             print(f"\n{title}: {len(examples)}")
             print("-" * 70)
             for ex in examples[:n]:
-                pred_text = "ПРЕРЫВАНИЕ" if is_break else "ПРОДОЛЖЕНИЕ"
-                conf = ex['proba_break'] if is_break else (1 - ex['proba_break'])
+                pred_text = "ХОЗЯЕВА" if is_home_win else "ГОСТИ"
+                conf = ex['proba_break'] if is_home_win else (1 - ex['proba_break'])
                 mark = "✓" if is_correct else "✗"
-                suffix = "" if is_correct else (" (было прерывание)" if not is_break else "")
+                suffix = "" if is_correct else (" (выиграли хозяева)" if not is_home_win else " (выиграли гости)")
                 
                 print(f"  {ex['date']}  {ex['home']:20s} vs {ex['away']:20s}  "
                       f"Прогноз: {pred_text} ({conf*100:.0f}%) {mark}{suffix}")
@@ -262,10 +262,10 @@ class PatternPredictionModel:
                 if show_features and X_test is not None and len(examples) <= 3:
                     self._show_example_features(X_test[ex['idx']])
         
-        print_examples(correct_breaks, "✅ ПРАВИЛЬНЫЕ ПРЕРЫВАНИЯ (TP)", min(5, n_examples//2), True, True)
-        print_examples(correct_continues, "✅ ПРАВИЛЬНЫЕ ПРОДОЛЖЕНИЯ (TN)", min(5, n_examples//2), True, False)
-        print_examples(wrong_breaks, "❌ ЛОЖНЫЕ ПРЕРЫВАНИЯ (FP)", min(5, n_examples//2), False, True)
-        print_examples(wrong_continues, "❌ ПРОПУЩЕННЫЕ ПРЕРЫВАНИЯ (FN)", min(5, n_examples//2), False, False)
+        print_examples(correct_breaks, "✅ ПРАВИЛЬНЫЕ ПРОГНОЗЫ ХОЗЯЕВ (TP)", min(5, n_examples//2), True, True)
+        print_examples(correct_continues, "✅ ПРАВИЛЬНЫЕ ПРОГНОЗЫ ГОСТЕЙ (TN)", min(5, n_examples//2), True, False)
+        print_examples(wrong_breaks, "❌ ЛОЖНЫЕ ПРОГНОЗЫ ХОЗЯЕВ (FP)", min(5, n_examples//2), False, True)
+        print_examples(wrong_continues, "❌ ПРОПУЩЕННЫЕ ПОБЕДЫ ХОЗЯЕВ (FN)", min(5, n_examples//2), False, False)
         
         print("\n" + "=" * 80)
         
@@ -320,9 +320,9 @@ class PatternPredictionModel:
         
         result = {
             'prediction': int(prediction),
-            'prediction_label': 'ПРЕРЫВАНИЕ' if prediction == 1 else 'ПРОДОЛЖЕНИЕ',
-            'probability_break': float(proba[1]),
-            'probability_continue': float(proba[0]),
+            'prediction_label': 'ХОЗЯЕВА' if prediction == 1 else 'ГОСТИ',
+            'probability_home': float(proba[1]),
+            'probability_away': float(proba[0]),
             'confidence': float(max(proba)),
             'top_features': top_features,
             'critical_features': critical_features
@@ -349,8 +349,8 @@ class PatternPredictionModel:
             print(f"\n📅 Матч: {gi['date']}  {gi['home_team']} vs {gi['away_team']}")
         
         print(f"\n🎯 Прогноз: {details['prediction_label']}")
-        print(f"   Вероятность прерывания: {details['probability_break']*100:.1f}%")
-        print(f"   Вероятность продолжения: {details['probability_continue']*100:.1f}%")
+        print(f"   Вероятность победы хозяев: {details['probability_home']*100:.1f}%")
+        print(f"   Вероятность победы гостей: {details['probability_away']*100:.1f}%")
         print(f"   Уверенность: {details['confidence']*100:.1f}%")
         
         if details['critical_features']:
@@ -403,8 +403,9 @@ class PatternPredictionModel:
         proba = self.predict_proba(X)[0]
         
         return {
-            'pattern_break_prediction': prediction,
+            'prediction': int(prediction),
+            'predicted_winner': 'home' if prediction == 1 else 'away',
             'confidence': float(max(proba)),
-            'proba_continue': float(proba[0]),
-            'proba_break': float(proba[1])
+            'proba_away': float(proba[0]),
+            'proba_home': float(proba[1])
         }

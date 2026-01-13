@@ -128,12 +128,14 @@ def init_system():
         print("✅ Система инициализирована!")
 
 def get_latest_artifact():
-    """Получить путь к последнему артефакту"""
+    """Получить путь к последнему артефакту (только папки с датой)"""
     artifacts_dir = "artifacts"
     if not os.path.exists(artifacts_dir):
         return None
     
-    dirs = [d for d in os.listdir(artifacts_dir) if os.path.isdir(os.path.join(artifacts_dir, d))]
+    dirs = [d for d in os.listdir(artifacts_dir) 
+            if os.path.isdir(os.path.join(artifacts_dir, d)) 
+            and d.startswith('202')]
     if not dirs:
         return None
     
@@ -394,12 +396,13 @@ def analyze_game(home_team, away_team):
             X = pd.DataFrame([X_dict])[feature_names]
             
             proba = model.predict_proba(X)[0]
-            break_prob = proba[1] if len(proba) > 1 else proba[0]
+            home_prob = proba[1] if len(proba) > 1 else proba[0]
             
             analysis['prediction'] = {
-                'break_probability': round(break_prob * 100, 1),
-                'continue_probability': round((1 - break_prob) * 100, 1),
-                'recommendation': 'ПРЕРЫВАНИЕ' if break_prob >= 0.5 else 'ПРОДОЛЖЕНИЕ'
+                'home_probability': round(home_prob * 100, 1),
+                'away_probability': round((1 - home_prob) * 100, 1),
+                'predicted_winner': 'home' if home_prob >= 0.5 else 'away',
+                'recommendation': home_team if home_prob >= 0.5 else away_team
             }
         except Exception as e:
             print(f"Ошибка предсказания: {e}")
@@ -449,45 +452,30 @@ def api_analyze_all():
                 }
                 
                 if analysis.get('prediction'):
-                    break_prob = analysis['prediction']['break_probability'] / 100
+                    home_prob = analysis['prediction']['home_probability'] / 100
+                    away_prob = analysis['prediction']['away_probability'] / 100
                     home_odds = odds['home_odds']
                     away_odds = odds['away_odds']
                     
-                    home_signal = analysis['strong_signal']['home']
-                    away_signal = analysis['strong_signal']['away']
-                    home_streak = analysis['patterns']['home'].get('overall_streak', 0)
-                    away_streak = analysis['patterns']['away'].get('overall_streak', 0)
+                    predicted_winner = analysis['prediction']['predicted_winner']
                     
-                    bet_team = None
-                    bet_odds = 0
-                    bet_reasoning = ""
+                    if predicted_winner == 'home':
+                        bet_team = 'home'
+                        bet_prob = home_prob
+                        bet_odds = home_odds
+                        bet_reasoning = f"Модель прогнозирует победу {analysis['home_team']} ({home_prob*100:.0f}%)"
+                    else:
+                        bet_team = 'away'
+                        bet_prob = away_prob
+                        bet_odds = away_odds
+                        bet_reasoning = f"Модель прогнозирует победу {analysis['away_team']} ({away_prob*100:.0f}%)"
                     
-                    if home_signal >= away_signal and home_signal >= 3:
-                        if home_streak > 0:
-                            bet_team = 'away'
-                            bet_odds = away_odds
-                            bet_reasoning = f"Прерывание серии побед {analysis['home_team']} → ставка на {analysis['away_team']}"
-                        elif home_streak < 0:
-                            bet_team = 'home'
-                            bet_odds = home_odds
-                            bet_reasoning = f"Прерывание серии поражений {analysis['home_team']} → ставка на {analysis['home_team']}"
-                    elif away_signal > home_signal and away_signal >= 3:
-                        if away_streak > 0:
-                            bet_team = 'home'
-                            bet_odds = home_odds
-                            bet_reasoning = f"Прерывание серии побед {analysis['away_team']} → ставка на {analysis['home_team']}"
-                        elif away_streak < 0:
-                            bet_team = 'away'
-                            bet_odds = away_odds
-                            bet_reasoning = f"Прерывание серии поражений {analysis['away_team']} → ставка на {analysis['away_team']}"
-                    
-                    if bet_team and bet_odds > 0:
-                        ev = (break_prob * (bet_odds - 1)) - (1 - break_prob)
-                        analysis['odds']['target'] = bet_team
-                        analysis['odds']['target_odds'] = bet_odds
-                        analysis['odds']['reasoning'] = bet_reasoning
-                        analysis['odds']['ev'] = round(ev * 100, 1)
-                        analysis['odds']['profitable'] = bool(ev > 0)
+                    ev = (bet_prob * (bet_odds - 1)) - (1 - bet_prob)
+                    analysis['odds']['target'] = bet_team
+                    analysis['odds']['target_odds'] = bet_odds
+                    analysis['odds']['reasoning'] = bet_reasoning
+                    analysis['odds']['ev'] = round(ev * 100, 1)
+                    analysis['odds']['profitable'] = bool(ev > 0)
             
             results.append(analysis)
     
