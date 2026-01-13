@@ -13,7 +13,7 @@ class PatternAnalyzer:
     def __init__(self, config=None):
         self.config = config or Config()
         self.data_loader = NHLDataLoader()
-        self.feature_builder = FeatureBuilder(critical_length=5)
+        self.feature_builder = FeatureBuilder()
         
     def analyze_break_rates_by_pattern_type(self, features_df, targets, game_info):
         print("\n" + "=" * 70)

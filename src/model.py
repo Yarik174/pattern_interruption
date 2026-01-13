@@ -8,6 +8,8 @@ import joblib
 import logging
 import os
 
+from src.config import PATTERN_BREAK_RATES, BASE_HOME_WIN_RATE, CRITICAL_THRESHOLDS
+
 logger = logging.getLogger(__name__)
 
 class PatternPredictionModel:
@@ -367,7 +369,7 @@ class PatternPredictionModel:
         
         return details
     
-    def predict_match(self, home_features, away_features):
+    def predict_match(self, home_features, away_features, use_bayesian=False, patterns=None):
         if not self.is_trained:
             raise ValueError("Модель не обучена!")
         
@@ -402,10 +404,125 @@ class PatternPredictionModel:
         prediction = self.predict(X)[0]
         proba = self.predict_proba(X)[0]
         
-        return {
+        result = {
             'prediction': int(prediction),
             'predicted_winner': 'home' if prediction == 1 else 'away',
             'confidence': float(max(proba)),
             'proba_away': float(proba[0]),
             'proba_home': float(proba[1])
         }
+        
+        if use_bayesian and patterns:
+            bayesian_predictor = BayesianPatternPredictor()
+            bayesian_prob = bayesian_predictor.calculate_break_probability(patterns)
+            is_home_prediction = prediction == 1
+            adjusted_prob = bayesian_predictor.bayesian_update_with_base_rate(
+                bayesian_prob, is_home_prediction
+            )
+            result['bayesian_probability'] = float(bayesian_prob)
+            result['bayesian_adjusted'] = float(adjusted_prob)
+        
+        return result
+
+
+class BayesianPatternPredictor:
+    """Байесовский предиктор для CPP с учётом весов паттернов"""
+    
+    def __init__(self, prior_samples=10):
+        self.break_rates = PATTERN_BREAK_RATES
+        self.base_rate = BASE_HOME_WIN_RATE
+        self.prior_samples = prior_samples  # for Bayesian smoothing
+        
+    def calculate_break_probability(self, patterns, sample_counts=None):
+        """
+        Calculate weighted break probability using Bayesian update.
+        
+        patterns: list of dicts with {type, length, last_result}
+        sample_counts: optional dict with {pattern_type: n_samples} for smoothing
+        """
+        if not patterns:
+            return 0.5
+            
+        weighted_probs = []
+        weights = []
+        
+        for p in patterns:
+            pattern_type = p['type']
+            length = p.get('length', 5)
+            
+            # Get base break rate for this pattern type
+            base_prob = self.break_rates.get(pattern_type, 0.5)
+            
+            # Apply length adjustment (longer = slightly higher probability)
+            length_factor = min(1.0 + (length - 5) * 0.02, 1.2)
+            adjusted_prob = min(base_prob * length_factor, 0.75)
+            
+            # Bayesian smoothing for small samples
+            if sample_counts and pattern_type in sample_counts:
+                n = sample_counts[pattern_type]
+                smoothed_prob = self._bayesian_smooth(adjusted_prob, n)
+            else:
+                smoothed_prob = adjusted_prob
+            
+            # Weight by pattern importance
+            weight = self._get_pattern_weight(pattern_type)
+            weighted_probs.append(smoothed_prob * weight)
+            weights.append(weight)
+        
+        if sum(weights) > 0:
+            return sum(weighted_probs) / sum(weights)
+        return 0.5
+    
+    def _bayesian_smooth(self, observed_rate, n_samples):
+        """Apply Bayesian smoothing with prior"""
+        prior_rate = 0.5
+        alpha = self.prior_samples
+        smoothed = (observed_rate * n_samples + prior_rate * alpha) / (n_samples + alpha)
+        return smoothed
+    
+    def _get_pattern_weight(self, pattern_type):
+        """Get weight for pattern type based on reliability"""
+        weights = {
+            'overall_alternation': 1.3,  # most reliable
+            'home_alternation': 1.2,
+            'overall_streak': 1.0,
+            'home_streak': 0.9,
+            'h2h_streak': 0.9,
+            'away_streak': 0.5,  # least reliable
+            'h2h_alternation': 0.8,
+            'away_alternation': 0.6,
+        }
+        return weights.get(pattern_type, 1.0)
+    
+    def bayesian_update_with_base_rate(self, pattern_prob, is_home_prediction):
+        """
+        Apply Bayesian update considering base rate of home wins (54%).
+        
+        If predicting home win: combine with positive base rate
+        If predicting away win: work against base rate
+        """
+        if is_home_prediction:
+            # Prediction aligns with base rate
+            prior = self.base_rate
+        else:
+            # Prediction against base rate
+            prior = 1 - self.base_rate
+        
+        # Simple Bayesian combination
+        # P(outcome | pattern) = P(pattern | outcome) * P(outcome) / P(pattern)
+        # Simplified: weighted average
+        combined = 0.6 * pattern_prob + 0.4 * prior
+        return combined
+    
+    def get_conditional_probability(self, pattern_type, length):
+        """Get P(break | pattern_type, length) with length adjustment"""
+        base = self.break_rates.get(pattern_type, 0.5)
+        threshold = CRITICAL_THRESHOLDS.get(pattern_type, 5)
+        
+        # Excess length over threshold
+        excess = max(0, length - threshold)
+        
+        # Slight increase for longer patterns (diminishing returns)
+        adjustment = min(excess * 0.015, 0.10)
+        
+        return min(base + adjustment, 0.75)

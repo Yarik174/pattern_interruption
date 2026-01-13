@@ -1,10 +1,11 @@
 import pandas as pd
 import numpy as np
 from collections import defaultdict
+from src.config import CRITICAL_THRESHOLDS
 
 class PatternEngine:
-    def __init__(self, critical_length=5):
-        self.critical_length = critical_length
+    def __init__(self, critical_thresholds=None):
+        self.thresholds = critical_thresholds or CRITICAL_THRESHOLDS
         self.patterns = defaultdict(list)
         
     def analyze_all_patterns(self, games_df):
@@ -50,7 +51,7 @@ class PatternEngine:
                     'type': 'home_streak',
                     'pattern': streak['pattern'],
                     'length': streak['length'],
-                    'critical': streak['length'] >= self.critical_length,
+                    'critical': streak['length'] >= self.thresholds['home_streak'],
                     'position': streak['position'],
                     'next_result': streak.get('next_result')
                 })
@@ -61,7 +62,7 @@ class PatternEngine:
                     'type': 'home_alternation',
                     'pattern': alt['pattern'],
                     'length': alt['length'],
-                    'critical': alt['length'] >= self.critical_length,
+                    'critical': alt['length'] >= self.thresholds['home_alternation'],
                     'position': alt['position'],
                     'next_result': alt.get('next_result')
                 })
@@ -92,7 +93,7 @@ class PatternEngine:
                     'type': 'away_streak',
                     'pattern': streak['pattern'],
                     'length': streak['length'],
-                    'critical': streak['length'] >= self.critical_length,
+                    'critical': streak['length'] >= self.thresholds['away_streak'],
                     'position': streak['position'],
                     'next_result': streak.get('next_result')
                 })
@@ -103,7 +104,7 @@ class PatternEngine:
                     'type': 'away_alternation',
                     'pattern': alt['pattern'],
                     'length': alt['length'],
-                    'critical': alt['length'] >= self.critical_length,
+                    'critical': alt['length'] >= self.thresholds['away_alternation'],
                     'position': alt['position'],
                     'next_result': alt.get('next_result')
                 })
@@ -146,7 +147,7 @@ class PatternEngine:
                     'type': 'h2h_streak',
                     'pattern': streak['pattern'],
                     'length': streak['length'],
-                    'critical': streak['length'] >= self.critical_length,
+                    'critical': streak['length'] >= self.thresholds['h2h_streak'],
                     'position': streak['position'],
                     'next_result': streak.get('next_result')
                 })
@@ -157,7 +158,7 @@ class PatternEngine:
                     'type': 'h2h_alternation',
                     'pattern': alt['pattern'],
                     'length': alt['length'],
-                    'critical': alt['length'] >= self.critical_length,
+                    'critical': alt['length'] >= self.thresholds['h2h_alternation'],
                     'position': alt['position'],
                     'next_result': alt.get('next_result')
                 })
@@ -193,7 +194,7 @@ class PatternEngine:
                     'type': 'complex_alternation',
                     'pattern': cp['pattern'],
                     'length': cp['length'],
-                    'critical': cp['length'] >= self.critical_length,
+                    'critical': cp['length'] >= self.thresholds['alternation'],
                     'position': cp['position'],
                     'next_result': cp.get('next_result')
                 })
@@ -306,7 +307,7 @@ class PatternEngine:
         
         print("-" * 40)
         print(f"  ВСЕГО: {total} паттернов")
-        print(f"  Критических (≥{self.critical_length}): {critical_total}")
+        print(f"  Критических: {critical_total}")
     
     def get_pattern_features(self, team, opponent, games_df, game_date):
         features = {}
@@ -406,15 +407,15 @@ class PatternEngine:
             features['overall_last_result'] = -1
             features['overall_expected_alt'] = -1
         
-        features['home_streak_critical'] = 1 if abs(features['home_win_streak']) >= self.critical_length else 0
-        features['away_streak_critical'] = 1 if abs(features['away_win_streak']) >= self.critical_length else 0
-        features['h2h_streak_critical'] = 1 if abs(features['h2h_win_streak']) >= self.critical_length else 0
-        features['overall_streak_critical'] = 1 if abs(features['overall_win_streak']) >= self.critical_length else 0
+        features['home_streak_critical'] = 1 if abs(features['home_win_streak']) >= self.thresholds['home_streak'] else 0
+        features['away_streak_critical'] = 1 if abs(features['away_win_streak']) >= self.thresholds['away_streak'] else 0
+        features['h2h_streak_critical'] = 1 if abs(features['h2h_win_streak']) >= self.thresholds['h2h'] else 0
+        features['overall_streak_critical'] = 1 if abs(features['overall_win_streak']) >= self.thresholds['overall_streak'] else 0
         
-        features['home_alt_critical'] = 1 if features['home_alternation_len'] >= self.critical_length else 0
-        features['away_alt_critical'] = 1 if features['away_alternation_len'] >= self.critical_length else 0
-        features['h2h_alt_critical'] = 1 if features['h2h_alternation_len'] >= self.critical_length else 0
-        features['overall_alt_critical'] = 1 if features['overall_alternation_len'] >= self.critical_length else 0
+        features['home_alt_critical'] = 1 if features['home_alternation_len'] >= self.thresholds['home_alternation'] else 0
+        features['away_alt_critical'] = 1 if features['away_alternation_len'] >= self.thresholds['away_alternation'] else 0
+        features['h2h_alt_critical'] = 1 if features['h2h_alternation_len'] >= self.thresholds['h2h_alternation'] else 0
+        features['overall_alt_critical'] = 1 if features['overall_alternation_len'] >= self.thresholds['overall_alternation'] else 0
         
         features['total_critical_patterns'] = (
             features['home_streak_critical'] + features['away_streak_critical'] +

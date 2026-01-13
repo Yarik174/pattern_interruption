@@ -1,0 +1,65 @@
+{
+  "config": {
+    "data": {
+      "n_seasons": 10,
+      "use_cache": true,
+      "cache_dir": "data/cache"
+    },
+    "patterns": {
+      "critical_thresholds": {
+        "overall_streak": 5,
+        "home_streak": 4,
+        "away_streak": 3,
+        "alternation": 6,
+        "home_alternation": 6,
+        "away_alternation": 6,
+        "overall_alternation": 6,
+        "h2h": 3,
+        "h2h_streak": 3,
+        "h2h_alternation": 6
+      },
+      "break_rates": {
+        "overall_alternation": 0.581,
+        "home_alternation": 0.556,
+        "overall_streak": 0.482,
+        "home_streak": 0.469,
+        "h2h_streak": 0.468,
+        "away_streak": 0.234,
+        "h2h_alternation": 0.5,
+        "away_alternation": 0.5
+      },
+      "base_home_win_rate": 0.543,
+      "min_games_for_pattern": 3,
+      "bayesian_prior_samples": 10
+    },
+    "model": {
+      "n_estimators": 100,
+      "max_depth": 10,
+      "min_samples_split": 5,
+      "min_samples_leaf": 2,
+      "max_features": "sqrt",
+      "class_weight": "balanced",
+      "random_state": 42
+    },
+    "training": {
+      "test_size": 0.2,
+      "cv_folds": 5,
+      "use_grid_search": false,
+      "calibrate_probabilities": true,
+      "break_threshold": 0.55,
+      "continuation_threshold": 0.7
+    },
+    "output": {
+      "artifacts_dir": "artifacts",
+      "save_predictions": true,
+      "save_model": true,
+      "n_prediction_examples": 10
+    }
+  },
+  "n_samples": 13452,
+  "n_features": 96,
+  "class_distribution": {
+    "break": 7312,
+    "continue": 6140
+  }
+}

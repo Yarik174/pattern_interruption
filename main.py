@@ -91,8 +91,8 @@ def main():
     print("ЭТАП 2: АНАЛИЗ ПАТТЕРНОВ")
     print("=" * 60)
     
-    critical_length = config.get('patterns', 'critical_length', 5)
-    pattern_engine = PatternEngine(critical_length=critical_length)
+    critical_thresholds = config.get('patterns', 'critical_thresholds', None)
+    pattern_engine = PatternEngine(critical_thresholds=critical_thresholds)
     all_patterns = pattern_engine.analyze_all_patterns(games_df)
     
     artifacts.save_patterns_summary(all_patterns)
@@ -101,7 +101,7 @@ def main():
     print("ЭТАП 3: ФОРМИРОВАНИЕ ПРИЗНАКОВ")
     print("=" * 60)
     
-    feature_builder = FeatureBuilder(critical_length=critical_length)
+    feature_builder = FeatureBuilder(critical_thresholds=critical_thresholds)
     X, y, game_info = feature_builder.build_features(games_df)
     
     print("\n" + "=" * 60)
@@ -283,7 +283,7 @@ def main():
                            + all_patterns.get('head_to_head', []) + all_patterns.get('alternation', [])
                            if p.get('critical', False))
     
-    print(f"\n📊 Найдено критических паттернов (≥{critical_length}): {critical_patterns}")
+    print(f"\n📊 Найдено критических паттернов: {critical_patterns}")
     print("   • Эти паттерны имеют наибольшую вероятность прерывания")
     
     print(f"\n📁 Артефакты сохранены в: {run_summary['run_dir']}")

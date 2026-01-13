@@ -5,6 +5,32 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+CRITICAL_THRESHOLDS = {
+    'overall_streak': 5,
+    'home_streak': 4,
+    'away_streak': 3,
+    'alternation': 6,
+    'home_alternation': 6,
+    'away_alternation': 6,
+    'overall_alternation': 6,
+    'h2h': 3,
+    'h2h_streak': 3,
+    'h2h_alternation': 6,
+}
+
+PATTERN_BREAK_RATES = {
+    'overall_alternation': 0.581,
+    'home_alternation': 0.556,
+    'overall_streak': 0.482,
+    'home_streak': 0.469,
+    'h2h_streak': 0.468,
+    'away_streak': 0.234,
+    'h2h_alternation': 0.50,
+    'away_alternation': 0.50,
+}
+
+BASE_HOME_WIN_RATE = 0.543
+
 DEFAULT_CONFIG = {
     'data': {
         'n_seasons': 10,
@@ -12,8 +38,11 @@ DEFAULT_CONFIG = {
         'cache_dir': 'data/cache'
     },
     'patterns': {
-        'critical_length': 5,
-        'min_games_for_pattern': 3
+        'critical_thresholds': CRITICAL_THRESHOLDS,
+        'break_rates': PATTERN_BREAK_RATES,
+        'base_home_win_rate': BASE_HOME_WIN_RATE,
+        'min_games_for_pattern': 3,
+        'bayesian_prior_samples': 10,
     },
     'model': {
         'n_estimators': 100,

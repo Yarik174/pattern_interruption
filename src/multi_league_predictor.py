@@ -10,6 +10,7 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.multi_league_loader import MultiLeagueLoader, LEAGUES
+from src.config import PATTERN_BREAK_RATES, BASE_HOME_WIN_RATE, CRITICAL_THRESHOLDS
 
 
 class MultiLeaguePatternEngine:
@@ -177,13 +178,15 @@ class MultiLeaguePatternEngine:
         if home_pattern.get('overall_critical'):
             if overall_streak > 0:
                 away_predictions.append({
-                    'type': 'home_overall_streak',
+                    'type': 'overall_streak',
+                    'length': abs(overall_streak),
                     'value': overall_streak,
                     'reason': f'Прерывание серии побед хозяев ({overall_streak})'
                 })
             elif overall_streak < 0:
                 home_predictions.append({
-                    'type': 'home_overall_streak', 
+                    'type': 'overall_streak',
+                    'length': abs(overall_streak),
                     'value': overall_streak,
                     'reason': f'Прерывание серии поражений хозяев ({overall_streak})'
                 })
@@ -192,13 +195,15 @@ class MultiLeaguePatternEngine:
         if home_pattern.get('home_critical'):
             if home_streak > 0:
                 away_predictions.append({
-                    'type': 'home_home_streak',
+                    'type': 'home_streak',
+                    'length': abs(home_streak),
                     'value': home_streak,
                     'reason': f'Прерывание домашней серии побед ({home_streak})'
                 })
             elif home_streak < 0:
                 home_predictions.append({
-                    'type': 'home_home_streak',
+                    'type': 'home_streak',
+                    'length': abs(home_streak),
                     'value': home_streak,
                     'reason': f'Прерывание домашней серии поражений ({home_streak})'
                 })
@@ -208,13 +213,15 @@ class MultiLeaguePatternEngine:
             alt_len = home_pattern.get('overall_alt', 0)
             if last_result == 'W':
                 home_predictions.append({
-                    'type': 'home_alternation',
+                    'type': 'overall_alternation',
+                    'length': alt_len,
                     'value': alt_len,
                     'reason': f'Прерывание чередования хозяев (последний W, повтор)'
                 })
             else:
                 away_predictions.append({
-                    'type': 'home_alternation',
+                    'type': 'overall_alternation',
+                    'length': alt_len,
                     'value': alt_len,
                     'reason': f'Прерывание чередования хозяев (последний L, повтор)'
                 })
@@ -223,13 +230,15 @@ class MultiLeaguePatternEngine:
         if away_pattern.get('overall_critical'):
             if away_overall_streak > 0:
                 home_predictions.append({
-                    'type': 'away_overall_streak',
+                    'type': 'overall_streak',
+                    'length': abs(away_overall_streak),
                     'value': away_overall_streak,
                     'reason': f'Прерывание серии побед гостей ({away_overall_streak})'
                 })
             elif away_overall_streak < 0:
                 away_predictions.append({
-                    'type': 'away_overall_streak',
+                    'type': 'overall_streak',
+                    'length': abs(away_overall_streak),
                     'value': away_overall_streak,
                     'reason': f'Прерывание серии поражений гостей ({away_overall_streak})'
                 })
@@ -238,13 +247,15 @@ class MultiLeaguePatternEngine:
         if away_pattern.get('away_critical'):
             if away_away_streak > 0:
                 home_predictions.append({
-                    'type': 'away_away_streak',
+                    'type': 'away_streak',
+                    'length': abs(away_away_streak),
                     'value': away_away_streak,
                     'reason': f'Прерывание гостевой серии побед ({away_away_streak})'
                 })
             elif away_away_streak < 0:
                 away_predictions.append({
-                    'type': 'away_away_streak',
+                    'type': 'away_streak',
+                    'length': abs(away_away_streak),
                     'value': away_away_streak,
                     'reason': f'Прерывание гостевой серии поражений ({away_away_streak})'
                 })
@@ -255,12 +266,14 @@ class MultiLeaguePatternEngine:
             if last_result == 'W':
                 away_predictions.append({
                     'type': 'away_alternation',
+                    'length': alt_len,
                     'value': alt_len,
                     'reason': f'Прерывание чередования гостей (последний W, повтор)'
                 })
             else:
                 home_predictions.append({
                     'type': 'away_alternation',
+                    'length': alt_len,
                     'value': alt_len,
                     'reason': f'Прерывание чередования гостей (последний L, повтор)'
                 })
@@ -504,7 +517,7 @@ class MultiLeaguePatternEngine:
             ev_result['note'] = 'Коэффициенты недоступны'
             return ev_result
         
-        probability = self._estimate_cpp_probability(synergy)
+        probability = self._estimate_cpp_probability(patterns, synergy)
         
         ev = (probability * (odds - 1)) - (1 - probability)
         ev_percent = ev * 100
@@ -523,21 +536,54 @@ class MultiLeaguePatternEngine:
         
         return ev_result
     
-    def _estimate_cpp_probability(self, synergy):
-        """Оценить вероятность на основе синергии паттернов
-        
-        Калибровано на NHL данных:
-        - 2 паттерна → ~55%
-        - 3 паттерна → ~60%
-        - 4+ паттернов → ~65%
+    def _estimate_cpp_probability(self, patterns, synergy):
         """
-        prob_map = {
-            2: 0.55,
-            3: 0.60,
-            4: 0.65,
-            5: 0.70,
+        Calculate weighted break probability using real pattern weights.
+        
+        patterns: list of pattern details with type and length
+        synergy: number of patterns agreeing
+        """
+        if synergy < 2 or not patterns:
+            return 0.5
+        
+        total_weight = 0
+        weighted_prob = 0
+        
+        for p in patterns:
+            pattern_type = p.get('type', 'overall_streak')
+            length = p.get('length', 5)
+            
+            base_rate = PATTERN_BREAK_RATES.get(pattern_type, 0.5)
+            
+            threshold = CRITICAL_THRESHOLDS.get(pattern_type, 5)
+            excess = max(0, length - threshold)
+            adjusted_rate = min(base_rate + excess * 0.015, 0.75)
+            
+            weight = self._get_pattern_weight(pattern_type)
+            
+            weighted_prob += adjusted_rate * weight
+            total_weight += weight
+        
+        if total_weight > 0:
+            raw_prob = weighted_prob / total_weight
+            adjusted = 0.6 * raw_prob + 0.4 * (1 - BASE_HOME_WIN_RATE)
+            return adjusted
+        
+        return 0.5
+    
+    def _get_pattern_weight(self, pattern_type):
+        """Get reliability weight for pattern type."""
+        weights = {
+            'overall_alternation': 1.3,
+            'home_alternation': 1.2,
+            'overall_streak': 1.0,
+            'home_streak': 0.9,
+            'h2h_streak': 0.9,
+            'away_streak': 0.5,
+            'h2h_alternation': 0.8,
+            'away_alternation': 0.6,
         }
-        return prob_map.get(min(synergy, 5), 0.55)
+        return weights.get(pattern_type, 1.0)
     
     def _estimate_break_prob(self, score, league='NHL'):
         """Оценить вероятность прерывания по Score

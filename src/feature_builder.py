@@ -1,10 +1,11 @@
 import pandas as pd
 import numpy as np
 from src.pattern_engine import PatternEngine
+from src.config import CRITICAL_THRESHOLDS, PATTERN_BREAK_RATES, BASE_HOME_WIN_RATE
 
 class FeatureBuilder:
-    def __init__(self, critical_length=5):
-        self.pattern_engine = PatternEngine(critical_length=critical_length)
+    def __init__(self, critical_thresholds=None):
+        self.pattern_engine = PatternEngine(critical_thresholds=critical_thresholds)
         self.feature_names = []
         
     def build_features(self, games_df):
@@ -118,6 +119,17 @@ class FeatureBuilder:
                 combined_features['home_strong_signal'],
                 combined_features['away_strong_signal']
             )
+            
+            home_break_outcomes = self._calculate_predicted_break_outcome(home_features, 'home')
+            away_break_outcomes = self._calculate_predicted_break_outcome(away_features, 'away')
+            combined_features['home_predicted_break'] = len(home_break_outcomes)
+            combined_features['away_predicted_break'] = len(away_break_outcomes)
+            
+            combined_features['home_independent_patterns'] = self._calculate_independent_patterns(home_features)
+            combined_features['away_independent_patterns'] = self._calculate_independent_patterns(away_features)
+            
+            combined_features['home_weighted_break_prob'] = self._calculate_weighted_break_probability(home_features, 'home')
+            combined_features['away_weighted_break_prob'] = self._calculate_weighted_break_probability(away_features, 'away')
             
             features_list.append(combined_features)
             
@@ -389,6 +401,181 @@ class FeatureBuilder:
         if alt_combo >= 2:
             score += 1
         return score
+    
+    def _calculate_predicted_break_outcome(self, features, team_context):
+        predictions = {}
+        
+        if team_context == 'home':
+            streak_key = 'home_win_streak'
+            streak_crit_key = 'home_streak_critical'
+            alt_crit_key = 'home_alt_critical'
+            last_result_key = 'home_last_result'
+        else:
+            streak_key = 'away_win_streak'
+            streak_crit_key = 'away_streak_critical'
+            alt_crit_key = 'away_alt_critical'
+            last_result_key = 'away_last_result'
+        
+        if features.get(streak_crit_key, 0) == 1:
+            streak = features.get(streak_key, 0)
+            if streak > 0:
+                predictions['streak'] = 0
+            elif streak < 0:
+                predictions['streak'] = 1
+        
+        if features.get('overall_streak_critical', 0) == 1:
+            overall_streak = features.get('overall_win_streak', 0)
+            if overall_streak > 0:
+                predictions['overall_streak'] = 0
+            elif overall_streak < 0:
+                predictions['overall_streak'] = 1
+        
+        if features.get('h2h_streak_critical', 0) == 1:
+            h2h_streak = features.get('h2h_win_streak', 0)
+            if h2h_streak > 0:
+                predictions['h2h_streak'] = 0
+            elif h2h_streak < 0:
+                predictions['h2h_streak'] = 1
+        
+        if features.get(alt_crit_key, 0) == 1:
+            last_result = features.get(last_result_key, -1)
+            if last_result != -1:
+                predictions['alternation'] = last_result
+        
+        if features.get('overall_alt_critical', 0) == 1:
+            last_result = features.get('overall_last_result', -1)
+            if last_result != -1:
+                predictions['overall_alternation'] = last_result
+        
+        if features.get('h2h_alt_critical', 0) == 1:
+            last_result = features.get('h2h_last_result', -1)
+            if last_result != -1:
+                predictions['h2h_alternation'] = last_result
+        
+        return predictions
+    
+    def _calculate_independent_patterns(self, features):
+        independent_count = 0
+        
+        home_streak_crit = features.get('home_streak_critical', 0)
+        away_streak_crit = features.get('away_streak_critical', 0)
+        overall_streak_crit = features.get('overall_streak_critical', 0)
+        h2h_streak_crit = features.get('h2h_streak_critical', 0)
+        
+        home_alt_crit = features.get('home_alt_critical', 0)
+        away_alt_crit = features.get('away_alt_critical', 0)
+        overall_alt_crit = features.get('overall_alt_critical', 0)
+        h2h_alt_crit = features.get('h2h_alt_critical', 0)
+        
+        context_streak = home_streak_crit or away_streak_crit
+        if context_streak and overall_streak_crit:
+            independent_count += 1
+        elif context_streak or overall_streak_crit:
+            independent_count += 1
+        
+        if h2h_streak_crit:
+            independent_count += 1
+        
+        context_alt = home_alt_crit or away_alt_crit
+        if context_alt and overall_alt_crit:
+            independent_count += 1
+        elif context_alt or overall_alt_crit:
+            independent_count += 1
+        
+        if h2h_alt_crit:
+            independent_count += 1
+        
+        return independent_count
+    
+    def _calculate_opponent_strength(self, team, history):
+        if len(history) == 0:
+            return 0.5
+        
+        team_games = history[(history['home_team'] == team) | (history['away_team'] == team)]
+        
+        if len(team_games) == 0:
+            return 0.5
+        
+        opponents = []
+        for _, game in team_games.iterrows():
+            if game['home_team'] == team:
+                opponents.append(game['away_team'])
+            else:
+                opponents.append(game['home_team'])
+        
+        opponent_win_rates = []
+        for opp in set(opponents):
+            opp_games = history[(history['home_team'] == opp) | (history['away_team'] == opp)]
+            if len(opp_games) < 5:
+                continue
+            
+            opp_wins = 0
+            for _, game in opp_games.iterrows():
+                if game['home_team'] == opp and game['home_win'] == 1:
+                    opp_wins += 1
+                elif game['away_team'] == opp and game['home_win'] == 0:
+                    opp_wins += 1
+            
+            opp_win_rate = opp_wins / len(opp_games)
+            opponent_win_rates.append(opp_win_rate)
+        
+        if len(opponent_win_rates) == 0:
+            return 0.5
+        
+        return sum(opponent_win_rates) / len(opponent_win_rates)
+    
+    def _calculate_weighted_break_probability(self, features, team_context):
+        break_probs = []
+        weights = []
+        
+        if team_context == 'home':
+            streak_crit_key = 'home_streak_critical'
+            alt_crit_key = 'home_alt_critical'
+            streak_rate_key = 'home_streak'
+            alt_rate_key = 'home_alternation'
+        else:
+            streak_crit_key = 'away_streak_critical'
+            alt_crit_key = 'away_alt_critical'
+            streak_rate_key = 'away_streak'
+            alt_rate_key = 'away_alternation'
+        
+        if features.get(streak_crit_key, 0) == 1:
+            rate = PATTERN_BREAK_RATES.get(streak_rate_key, 0.5)
+            break_probs.append(rate)
+            weights.append(1.0)
+        
+        if features.get('overall_streak_critical', 0) == 1:
+            rate = PATTERN_BREAK_RATES.get('overall_streak', 0.5)
+            break_probs.append(rate)
+            weights.append(1.2)
+        
+        if features.get('h2h_streak_critical', 0) == 1:
+            rate = PATTERN_BREAK_RATES.get('h2h_streak', 0.5)
+            break_probs.append(rate)
+            weights.append(1.0)
+        
+        if features.get(alt_crit_key, 0) == 1:
+            rate = PATTERN_BREAK_RATES.get(alt_rate_key, 0.5)
+            break_probs.append(rate)
+            weights.append(1.0)
+        
+        if features.get('overall_alt_critical', 0) == 1:
+            rate = PATTERN_BREAK_RATES.get('overall_alternation', 0.5)
+            break_probs.append(rate)
+            weights.append(1.2)
+        
+        if features.get('h2h_alt_critical', 0) == 1:
+            rate = PATTERN_BREAK_RATES.get('h2h_alternation', 0.5)
+            break_probs.append(rate)
+            weights.append(1.0)
+        
+        if len(break_probs) == 0:
+            return 0.0
+        
+        weighted_sum = sum(p * w for p, w in zip(break_probs, weights))
+        total_weight = sum(weights)
+        
+        return weighted_sum / total_weight
     
     def get_feature_importance_names(self):
         return self.feature_names
