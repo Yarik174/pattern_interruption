@@ -142,11 +142,54 @@ class HockeyLSTM(nn.Module):
 class SequenceDataPreparer:
     """Prepares sequence data for LSTM model"""
     
-    def __init__(self, sequence_length=10, cache_dir='data/cache'):
+    DEFAULT_HOME_ODDS = 1.9
+    DEFAULT_AWAY_ODDS = 1.9
+    DEFAULT_IMPLIED_PROB = 0.52
+    
+    def __init__(self, sequence_length=10, cache_dir='data/cache', with_odds=False):
         self.sequence_length = sequence_length
         self.cache_dir = cache_dir
         self.scaler = StandardScaler()
         self.feature_columns = []
+        self.with_odds = with_odds
+    
+    def merge_with_odds(self, df, odds_df):
+        """Merge match data with odds data"""
+        if odds_df is None or odds_df.empty:
+            logger.warning("No odds data provided, using defaults")
+            df['home_odds'] = self.DEFAULT_HOME_ODDS
+            df['away_odds'] = self.DEFAULT_AWAY_ODDS
+            df['implied_prob'] = self.DEFAULT_IMPLIED_PROB
+            return df
+        
+        df = df.copy()
+        df['date'] = pd.to_datetime(df['date'])
+        odds_df = odds_df.copy()
+        odds_df['date'] = pd.to_datetime(odds_df['date'])
+        
+        df['home_team_upper'] = df['home_team'].str.upper()
+        df['away_team_upper'] = df['away_team'].str.upper()
+        odds_df['home_team_upper'] = odds_df['home_team'].str.upper()
+        odds_df['away_team_upper'] = odds_df['away_team'].str.upper()
+        
+        merged = pd.merge(
+            df,
+            odds_df[['date', 'home_team_upper', 'away_team_upper', 'home_odds', 'away_odds']],
+            on=['date', 'home_team_upper', 'away_team_upper'],
+            how='left'
+        )
+        
+        merged['home_odds'] = merged['home_odds'].fillna(self.DEFAULT_HOME_ODDS)
+        merged['away_odds'] = merged['away_odds'].fillna(self.DEFAULT_AWAY_ODDS)
+        merged['implied_prob'] = 1 / merged['home_odds']
+        merged['implied_prob'] = merged['implied_prob'].fillna(self.DEFAULT_IMPLIED_PROB)
+        
+        merged = merged.drop(columns=['home_team_upper', 'away_team_upper'])
+        
+        matched = merged['home_odds'] != self.DEFAULT_HOME_ODDS
+        logger.info(f"Matched {matched.sum()} / {len(merged)} games with odds ({matched.mean()*100:.1f}%)")
+        
+        return merged
         
     def load_period_data(self, game_ids, max_games=None):
         """Load period scoring data for games"""
@@ -237,6 +280,11 @@ class SequenceDataPreparer:
                 'total_goals': row['home_score'] + row['away_score']
             }
             
+            if self.with_odds:
+                match_features['home_odds'] = row.get('home_odds', self.DEFAULT_HOME_ODDS)
+                match_features['away_odds'] = row.get('away_odds', self.DEFAULT_AWAY_ODDS)
+                match_features['implied_prob'] = row.get('implied_prob', self.DEFAULT_IMPLIED_PROB)
+            
             if home not in team_history:
                 team_history[home] = []
             team_history[home].append(match_features.copy())
@@ -250,6 +298,11 @@ class SequenceDataPreparer:
                 'goal_diff': row['away_score'] - row['home_score'],
                 'total_goals': row['home_score'] + row['away_score']
             }
+            
+            if self.with_odds:
+                away_features['home_odds'] = row.get('home_odds', self.DEFAULT_HOME_ODDS)
+                away_features['away_odds'] = row.get('away_odds', self.DEFAULT_AWAY_ODDS)
+                away_features['implied_prob'] = row.get('implied_prob', self.DEFAULT_IMPLIED_PROB)
             
             if away not in team_history:
                 team_history[away] = []
@@ -265,6 +318,8 @@ class SequenceDataPreparer:
                 'goals_scored', 'goals_conceded', 'won', 
                 'home_game', 'overtime', 'goal_diff', 'total_goals'
             ]
+            if self.with_odds:
+                self.feature_columns.extend(['home_odds', 'away_odds', 'implied_prob'])
         
         team_history = self.build_team_history(df)
         
@@ -487,7 +542,7 @@ class SequenceModelTrainer:
 
 
 def train_sequence_model(df, period_data=None, sequence_length=10, 
-                         hidden_dim=64, epochs=50, batch_size=32):
+                         hidden_dim=64, epochs=50, batch_size=32, with_odds=False):
     """Main function to train the sequence model"""
     
     logger.info("=" * 50)
@@ -498,7 +553,10 @@ def train_sequence_model(df, period_data=None, sequence_length=10,
         logger.warning("⚠️ Period data not provided - period goals predictions will be zeros!")
         logger.warning("   Use --load-periods flag to enable period scoring prediction")
     
-    preparer = SequenceDataPreparer(sequence_length=sequence_length)
+    if with_odds:
+        logger.info("🎲 Training with odds features enabled")
+    
+    preparer = SequenceDataPreparer(sequence_length=sequence_length, with_odds=with_odds)
     
     logger.info(f"Preparing sequences (length={sequence_length})...")
     home_seq, away_seq, labels_winner, labels_periods = preparer.prepare_sequences(
@@ -563,7 +621,8 @@ def save_sequence_model(model, preparer, path='artifacts/sequence_model'):
         'feature_columns': preparer.feature_columns,
         'input_dim': len(preparer.feature_columns),
         'hidden_dim': model.hidden_dim,
-        'num_layers': model.num_layers
+        'num_layers': model.num_layers,
+        'with_odds': preparer.with_odds
     }
     with open(os.path.join(path, 'config.json'), 'w') as f:
         json.dump(config, f, indent=2)
@@ -583,7 +642,10 @@ def load_sequence_model(path='artifacts/sequence_model'):
     )
     model.load_state_dict(torch.load(os.path.join(path, 'model.pth')))
     
-    preparer = SequenceDataPreparer(sequence_length=config['sequence_length'])
+    preparer = SequenceDataPreparer(
+        sequence_length=config['sequence_length'],
+        with_odds=config.get('with_odds', False)
+    )
     preparer.feature_columns = config['feature_columns']
     preparer.scaler = joblib.load(os.path.join(path, 'scaler.pkl'))
     

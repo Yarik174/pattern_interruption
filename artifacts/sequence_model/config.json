@@ -1,5 +1,5 @@
 {
-  "sequence_length": 20,
+  "sequence_length": 10,
   "feature_columns": [
     "goals_scored",
     "goals_conceded",
@@ -7,9 +7,13 @@
     "home_game",
     "overtime",
     "goal_diff",
-    "total_goals"
+    "total_goals",
+    "home_odds",
+    "away_odds",
+    "implied_prob"
   ],
-  "input_dim": 7,
+  "input_dim": 10,
   "hidden_dim": 64,
-  "num_layers": 2
+  "num_layers": 2,
+  "with_odds": true
 }
