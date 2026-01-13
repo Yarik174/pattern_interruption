@@ -215,13 +215,17 @@ python train_sequence.py --epochs 50 --load-periods --max-period-games 2000
 
 ### Прибыльные КОМБИНАЦИИ паттернов (синергия)
 
+**Данные: 5320 матчей (2016-2023), 7 сезонов NHL**
+
 | Комбинация | n | WR | ROI |
 |------------|---|-----|-----|
-| **H2H_Away + HomeLoss→Break** | 20 | 75.0% | **+34.5%** |
-| **HomeWin + AwayLoss + HomeWin6+→Break** | 34 | 38.2% | **+23.3%** |
-| **H2H_Home + HomeWin + AwayLoss** | 7 | 100% | **+40.1%** |
-| **H2H_Home + HomeWin6+→Break** | 5 | 80.0% | **+6.5%** |
-| Синергия ≥2 (комбинированная) | 123 | 52.8% | **+2.7%** |
+| **HomeWin + AwayLoss + HomeWin6+→Break** | 54 | 48.1% | **+38.1%** |
+| **H2H_Home + HomeLoss→Break** | 18 | 66.7% | **+12.1%** |
+| **H2H_Home + HomeWin6+→Break** | 16 | 75.0% | **+9.1%** |
+| **H2H_Away + HomeLoss→Break** | 39 | 59.0% | **+5.4%** |
+| H2H_Away (одиночный) | 400 | 55.5% | +3.2% |
+| HomeWin + AwayLoss | 61 | 65.6% | +3.2% |
+| H2H_Home+HomeWin+AwayLoss+HomeWin6+ | 12 | 75.0% | +1.9% |
 
 ### Расшифровка паттернов
 - **H2H_Home/Away** — H2H серия ≥3 в пользу команды
