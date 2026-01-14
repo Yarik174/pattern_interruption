@@ -3,7 +3,7 @@ modules = ["web", "python-3.11"]
 
 [nix]
 channel = "stable-24_11"
-packages = ["bazel", "cairo", "curl", "double-conversion", "ffmpeg-full", "freetype", "ghostscript", "giflib", "gitFull", "glibcLocales", "gobject-introspection", "grpc", "gtk3", "jsoncpp", "libjpeg_turbo", "nsync", "ocl-icd", "opencl-headers", "openssl", "pkg-config", "qhull", "snappy", "static-web-server", "tcl", "tk", "which", "xcodebuild", "zlib"]
+packages = ["bazel", "cairo", "curl", "double-conversion", "ffmpeg-full", "freetype", "ghostscript", "giflib", "gitFull", "glibcLocales", "gobject-introspection", "grpc", "gtk3", "jsoncpp", "libjpeg_turbo", "nsync", "ocl-icd", "opencl-headers", "openssl", "pkg-config", "playwright-driver", "qhull", "snappy", "static-web-server", "tcl", "tk", "which", "xcodebuild", "zlib", "nspr", "nss", "xorg.libX11", "xorg.libXcomposite", "xorg.libXdamage", "xorg.libXext", "xorg.libXfixes", "xorg.libXrandr", "xorg.libxcb", "alsa-lib", "at-spi2-atk", "cups", "mesa", "pango", "glib", "libxkbcommon", "dbus", "expat", "libdrm"]
 
 [deployment]
 publicDir = "/"
