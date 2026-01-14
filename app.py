@@ -539,8 +539,8 @@ def analyze_game(home_team, away_team):
 
 @app.route('/')
 def index():
-    """Главная страница"""
-    return render_template('index.html')
+    """Главная страница - перенаправление на прогнозы"""
+    return redirect(url_for('routes.predictions_page'))
 
 @app.route('/api/upcoming')
 def api_upcoming():

@@ -1,0 +1,131 @@
+{
+  "colorScheme": "light",
+  "fonts": [
+    {
+      "family": "OTSono",
+      "count": 167
+    },
+    {
+      "family": "-apple-system",
+      "count": 167
+    },
+    {
+      "family": "BlinkMacSystemFont",
+      "count": 167
+    },
+    {
+      "family": "Segoe UI",
+      "count": 167
+    },
+    {
+      "family": "sans-serif",
+      "count": 167
+    },
+    {
+      "family": "Roboto",
+      "count": 143
+    },
+    {
+      "family": "Oxygen",
+      "count": 143
+    },
+    {
+      "family": "Ubuntu",
+      "count": 143
+    },
+    {
+      "family": "Cantarell",
+      "count": 143
+    },
+    {
+      "family": "Fira Sans",
+      "count": 143
+    }
+  ],
+  "colors": {
+    "primary": "#BEFF50",
+    "accent": "#216BA5",
+    "background": "#F5F5EB",
+    "textPrimary": "#14140F",
+    "link": "#216BA5"
+  },
+  "typography": {
+    "fontFamilies": {
+      "primary": "OTSono",
+      "heading": "OTSono"
+    },
+    "fontStacks": {
+      "body": [
+        "OTSono",
+        "-apple-system",
+        "BlinkMacSystemFont",
+        "Segoe UI",
+        "Roboto",
+        "Oxygen",
+        "Ubuntu",
+        "Cantarell",
+        "Fira Sans",
+        "Droid Sans",
+        "Helvetica Neue",
+        "sans-serif"
+      ],
+      "heading": [
+        "OTSono",
+        "-apple-system",
+        "BlinkMacSystemFont",
+        "Segoe UI",
+        "Helvetica",
+        "Arial",
+        "sans-serif"
+      ],
+      "paragraph": [
+        "OTSono",
+        "-apple-system",
+        "BlinkMacSystemFont",
+        "Segoe UI",
+        "Helvetica",
+        "Arial",
+        "sans-serif"
+      ]
+    },
+    "fontSizes": {
+      "h1": "90px",
+      "h2": "80px",
+      "body": "14px"
+    }
+  },
+  "spacing": {
+    "baseUnit": 4,
+    "borderRadius": "5px"
+  },
+  "components": {},
+  "images": {
+    "logo": "https://a.storyblok.com/f/287723338557348/404x152/4093d23973/en_product-ui_ana-torres.png/m/filters:quality(75):format(webp)",
+    "favicon": "https://d2balr5nj4353r.cloudfront.net/favicon-32x32.png",
+    "ogImage": "https://a.storyblok.com/f/287723338557348/5264x3440/f3cbdc0e1e/preview-thumbnail.png/m/1200x628"
+  },
+  "__framework_hints": [],
+  "__llm_logo_reasoning": {
+    "selectedIndex": 1,
+    "reasoning": "Strong indicators: variant bonus (+23), in header, header location, visible, reasonable size. Score: 88 (clear winner by 88 points)",
+    "confidence": 0.9
+  },
+  "__llm_button_reasoning": {
+    "primary": {
+      "index": -1,
+      "text": "N/A",
+      "reasoning": "LLM failed"
+    },
+    "secondary": {
+      "index": -1,
+      "text": "N/A",
+      "reasoning": "LLM failed"
+    },
+    "confidence": 0
+  },
+  "confidence": {
+    "buttons": 0,
+    "colors": 0,
+    "overall": 0
+  }
+}

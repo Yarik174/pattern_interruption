@@ -7,25 +7,28 @@
     <title>Прогнозы | Hockey Predictor</title>
     <style>
         :root {
-            --bg-primary: #0D1117;
-            --bg-secondary: #161B22;
-            --bg-card: #21262D;
-            --accent: #BFFF00;
+            --bg-primary: #F5F5EB;
+            --bg-secondary: #EBEBDF;
+            --bg-card: #FFFFFF;
+            --accent: #BEFF50;
             --accent-dark: #9FDF00;
-            --success: #3FB950;
-            --warning: #D29922;
-            --danger: #F85149;
-            --text-primary: #F0F6FC;
-            --text-secondary: #8B949E;
-            --text-muted: #6E7681;
-            --border: #30363D;
-            --border-light: #21262D;
+            --link: #216BA5;
+            --success: #22C55E;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --text-primary: #14140F;
+            --text-secondary: #5A5A52;
+            --text-muted: #8A8A7A;
+            --border: #D4D4C8;
+            --border-light: #E8E8DC;
+            --shadow: 0 2px 8px rgba(0,0,0,0.06);
+            --shadow-lg: 0 8px 24px rgba(0,0,0,0.1);
         }
         
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
             background: var(--bg-primary);
             color: var(--text-primary);
             min-height: 100vh;
@@ -42,57 +45,112 @@
             border-bottom: 1px solid var(--border);
         }
         
-        .logo { display: flex; align-items: center; gap: 12px; }
+        .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
         .logo-icon {
-            width: 36px; height: 36px;
+            width: 40px; height: 40px;
             background: var(--accent);
-            border-radius: 8px;
+            border-radius: 10px;
             display: flex; align-items: center; justify-content: center;
-            font-size: 18px;
+            font-size: 20px;
+            box-shadow: var(--shadow);
         }
-        .logo h1 { font-size: 1.25rem; font-weight: 700; }
+        .logo h1 { font-size: 1.25rem; font-weight: 700; color: var(--text-primary); }
         
-        nav { display: flex; gap: 8px; }
+        nav { display: flex; gap: 4px; }
         nav a {
-            padding: 8px 16px;
+            padding: 10px 18px;
             border-radius: 8px;
             text-decoration: none;
             color: var(--text-secondary);
             font-weight: 500;
+            font-size: 0.9rem;
             transition: all 0.2s;
         }
         nav a:hover { background: var(--bg-card); color: var(--text-primary); }
-        nav a.active { background: var(--accent); color: #000; }
+        nav a.active { background: var(--accent); color: var(--text-primary); font-weight: 600; }
+        
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+        
+        .page-subtitle {
+            color: var(--text-muted);
+            margin-bottom: 24px;
+        }
+        
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .stat-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border-light);
+            box-shadow: var(--shadow);
+        }
+        
+        .stat-card .value { 
+            font-size: 2rem; 
+            font-weight: 700; 
+            color: var(--text-primary);
+        }
+        
+        .stat-card .value.accent { color: var(--accent-dark); }
+        .stat-card .value.success { color: var(--success); }
+        .stat-card .value.danger { color: var(--danger); }
+        
+        .stat-card .label { 
+            font-size: 0.875rem; 
+            color: var(--text-muted); 
+            margin-top: 4px; 
+        }
         
         .filters {
-            display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap;
+            display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap;
         }
+        
         .filter-btn {
             padding: 8px 16px;
             border-radius: 20px;
             border: 1px solid var(--border);
-            background: var(--bg-secondary);
+            background: var(--bg-card);
             color: var(--text-secondary);
             cursor: pointer;
             font-size: 0.875rem;
+            font-weight: 500;
             transition: all 0.2s;
         }
-        .filter-btn:hover, .filter-btn.active {
+        
+        .filter-btn:hover {
+            border-color: var(--accent-dark);
+            color: var(--text-primary);
+        }
+        
+        .filter-btn.active {
+            background: var(--accent);
             border-color: var(--accent);
-            color: var(--accent);
+            color: var(--text-primary);
         }
         
         .predictions-table {
             width: 100%;
             border-collapse: collapse;
-            background: var(--bg-secondary);
+            background: var(--bg-card);
             border-radius: 12px;
             overflow: hidden;
+            box-shadow: var(--shadow);
         }
         
         .predictions-table th {
-            background: var(--bg-card);
-            padding: 16px;
+            background: var(--bg-secondary);
+            padding: 14px 16px;
             text-align: left;
             font-weight: 600;
             font-size: 0.75rem;
@@ -104,11 +162,11 @@
         
         .predictions-table td {
             padding: 16px;
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid var(--border-light);
             font-size: 0.9rem;
         }
         
-        .predictions-table tr:hover { background: var(--bg-card); }
+        .predictions-table tr:hover { background: var(--bg-secondary); }
         .predictions-table tr:last-child td { border-bottom: none; }
         
         .league-badge {
@@ -116,20 +174,27 @@
             align-items: center;
             gap: 6px;
             padding: 4px 10px;
-            border-radius: 4px;
+            border-radius: 6px;
             font-size: 0.75rem;
             font-weight: 600;
         }
-        .league-NHL { background: rgba(0, 51, 160, 0.2); color: #4A9FFF; }
-        .league-KHL { background: rgba(200, 50, 50, 0.2); color: #FF6B6B; }
-        .league-SHL { background: rgba(0, 106, 167, 0.2); color: #00A3FF; }
-        .league-Liiga { background: rgba(0, 47, 108, 0.2); color: #5B9FFF; }
-        .league-DEL { background: rgba(221, 0, 0, 0.2); color: #FF5555; }
+        
+        .league-NHL { background: #E8F0FE; color: #1A73E8; }
+        .league-KHL { background: #FCE8E8; color: #DC3545; }
+        .league-SHL { background: #E8F4FE; color: #0A6EBD; }
+        .league-Liiga { background: #E8EEF8; color: #2E4A82; }
+        .league-DEL { background: #FEE8E8; color: #CC0000; }
         
         .teams { display: flex; flex-direction: column; gap: 4px; }
         .team { display: flex; align-items: center; gap: 8px; }
         .team-name { font-weight: 500; }
-        .team-home::before { content: ""; display: inline-block; width: 6px; height: 6px; background: var(--accent); border-radius: 50%; }
+        .team-home::before { 
+            content: ""; 
+            display: inline-block; 
+            width: 6px; height: 6px; 
+            background: var(--accent-dark); 
+            border-radius: 50%; 
+        }
         
         .prediction-outcome {
             display: inline-flex;
@@ -139,113 +204,135 @@
             font-weight: 600;
             font-size: 0.875rem;
         }
-        .outcome-home { background: rgba(191, 255, 0, 0.15); color: var(--accent); }
-        .outcome-away { background: rgba(59, 130, 246, 0.15); color: #60A5FA; }
-        .outcome-draw { background: rgba(139, 148, 158, 0.15); color: var(--text-secondary); }
         
-        .odds { font-weight: 600; font-size: 1rem; color: var(--accent); }
+        .outcome-home { background: rgba(190, 255, 80, 0.2); color: #5A7F00; }
+        .outcome-away { background: rgba(33, 107, 165, 0.1); color: var(--link); }
+        .outcome-draw { background: var(--bg-secondary); color: var(--text-secondary); }
+        
+        .odds { font-weight: 600; font-size: 1rem; color: var(--accent-dark); }
         
         .confidence {
             display: flex; align-items: center; gap: 8px;
         }
+        
         .confidence-bar {
-            width: 100px; height: 8px;
-            background: var(--bg-card);
+            width: 80px; height: 8px;
+            background: var(--bg-secondary);
             border-radius: 4px;
             overflow: hidden;
         }
+        
         .confidence-fill {
             height: 100%;
-            background: linear-gradient(90deg, var(--warning), var(--accent));
+            background: linear-gradient(90deg, var(--warning), var(--accent-dark));
             border-radius: 4px;
             transition: width 0.3s;
         }
-        .confidence-value { font-weight: 600; min-width: 35px; }
+        
+        .confidence-value { font-weight: 600; min-width: 35px; color: var(--text-secondary); }
         
         .status-badge {
             display: inline-flex;
             align-items: center;
             gap: 4px;
-            padding: 4px 8px;
-            border-radius: 4px;
+            padding: 4px 10px;
+            border-radius: 6px;
             font-size: 0.75rem;
-            font-weight: 500;
+            font-weight: 600;
         }
-        .status-pending { background: rgba(210, 153, 34, 0.15); color: var(--warning); }
-        .status-accepted { background: rgba(63, 185, 80, 0.15); color: var(--success); }
-        .status-rejected { background: rgba(248, 81, 73, 0.15); color: var(--danger); }
-        .status-win { background: rgba(63, 185, 80, 0.3); color: var(--success); }
-        .status-loss { background: rgba(248, 81, 73, 0.3); color: var(--danger); }
+        
+        .status-pending { background: #FEF3E2; color: #B45309; }
+        .status-accepted { background: #DCFCE7; color: #166534; }
+        .status-rejected { background: #FEE2E2; color: #991B1B; }
+        .status-win { background: #DCFCE7; color: #166534; }
+        .status-loss { background: #FEE2E2; color: #991B1B; }
         
         .action-btn {
-            padding: 6px 12px;
-            border-radius: 6px;
+            padding: 8px 14px;
+            border-radius: 8px;
             border: none;
             cursor: pointer;
             font-size: 0.875rem;
             font-weight: 500;
             transition: all 0.2s;
+            text-decoration: none;
         }
+        
         .action-btn.view {
-            background: var(--bg-card);
+            background: var(--bg-secondary);
             color: var(--text-primary);
             border: 1px solid var(--border);
         }
-        .action-btn.view:hover { border-color: var(--accent); color: var(--accent); }
+        
+        .action-btn.view:hover { 
+            background: var(--accent); 
+            border-color: var(--accent); 
+        }
         
         .empty-state {
             text-align: center;
-            padding: 60px 20px;
+            padding: 80px 20px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+        }
+        
+        .empty-state .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        
+        .empty-state h3 { 
+            font-size: 1.25rem; 
+            margin-bottom: 8px; 
+            color: var(--text-primary); 
+        }
+        
+        .empty-state p {
             color: var(--text-muted);
         }
-        .empty-state h3 { font-size: 1.25rem; margin-bottom: 8px; color: var(--text-secondary); }
         
-        .stats-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 16px;
-            margin-bottom: 24px;
+        @media (max-width: 768px) {
+            header { flex-direction: column; gap: 16px; align-items: flex-start; }
+            nav { width: 100%; overflow-x: auto; }
+            .stats-row { grid-template-columns: repeat(2, 1fr); }
+            .predictions-table { font-size: 0.875rem; }
+            .predictions-table th, .predictions-table td { padding: 12px 8px; }
         }
-        .stat-card {
-            background: var(--bg-secondary);
-            border-radius: 12px;
-            padding: 20px;
-            border: 1px solid var(--border);
-        }
-        .stat-card .value { font-size: 2rem; font-weight: 700; color: var(--accent); }
-        .stat-card .label { font-size: 0.875rem; color: var(--text-muted); margin-top: 4px; }
     </style>
 </head>
 <body>
     <div class="app">
         <header>
-            <div class="logo">
+            <a href="/" class="logo">
                 <div class="logo-icon">🏒</div>
                 <h1>Hockey Predictor</h1>
-            </div>
+            </a>
             <nav>
-                <a href="/">Матчи</a>
-                <a href="/predictions" class="active">Прогнозы</a>
+                <a href="/" class="active">Прогнозы</a>
                 <a href="/dashboard">Дашборд</a>
                 <a href="/statistics">Статистика</a>
             </nav>
         </header>
         
+        <h1 class="page-title">Прогнозы</h1>
+        <p class="page-subtitle">Автоматические рекомендации на основе паттернов и CPP логики</p>
+        
         <div class="stats-row">
             <div class="stat-card">
-                <div class="value" id="total-predictions">{{ stats.total or 0 }}</div>
+                <div class="value">{{ stats.total or 0 }}</div>
                 <div class="label">Всего прогнозов</div>
             </div>
             <div class="stat-card">
-                <div class="value" id="pending-predictions">{{ stats.pending or 0 }}</div>
+                <div class="value accent">{{ stats.pending or 0 }}</div>
                 <div class="label">Ожидают решения</div>
             </div>
             <div class="stat-card">
-                <div class="value" style="color: var(--success)">{{ stats.win_rate or 0 }}%</div>
+                <div class="value success">{{ stats.win_rate or 0 }}%</div>
                 <div class="label">Win Rate</div>
             </div>
             <div class="stat-card">
-                <div class="value" style="color: {% if stats.roi and stats.roi > 0 %}var(--success){% else %}var(--danger){% endif %}">
+                <div class="value {% if stats.roi and stats.roi > 0 %}success{% else %}danger{% endif %}">
                     {{ '%+.1f'|format(stats.roi or 0) }}%
                 </div>
                 <div class="label">ROI</div>
@@ -339,8 +426,9 @@
         </table>
         {% else %}
         <div class="empty-state">
+            <div class="icon">📊</div>
             <h3>Нет прогнозов</h3>
-            <p>Прогнозы появятся когда будут обнаружены новые коэффициенты</p>
+            <p>Прогнозы появятся когда будут обнаружены матчи с коэффициентами</p>
         </div>
         {% endif %}
     </div>
