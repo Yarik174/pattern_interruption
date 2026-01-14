@@ -22,7 +22,7 @@ class OddsMonitor:
                  check_interval: int = 300):
         """
         Args:
-            odds_loader: Загрузчик коэффициентов (AllBestBetsLoader)
+            odds_loader: Загрузчик коэффициентов (APISportsOddsLoader)
             prediction_callback: Функция генерации прогноза (match_data) -> prediction
             notification_callback: Функция отправки уведомления (prediction) -> bool
             check_interval: Интервал проверки в секундах (default: 5 минут)
