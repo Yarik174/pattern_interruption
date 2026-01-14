@@ -1,8 +1,9 @@
 """
 Sequence Model for Hockey Match Prediction
 LSTM-based model predicting:
-1. Winner (home/away/draw classification)
-2. Goals per period (regression for 3 periods)
+1. Regulation result (home/away/draw) - result in regulation time
+2. Final result (home/away) - including overtime
+3. Goals per period (regression for 3 periods)
 
 Uses last N matches of each team as input sequence.
 """
@@ -24,22 +25,24 @@ logger = logging.getLogger(__name__)
 
 
 class HockeySequenceDataset(torch.utils.data.Dataset):
-    """Dataset for hockey match sequences"""
+    """Dataset for hockey match sequences with regulation and final labels"""
     
-    def __init__(self, home_sequences, away_sequences, labels_winner, labels_periods):
+    def __init__(self, home_sequences, away_sequences, labels_regulation, labels_final, labels_periods):
         self.home_sequences = torch.tensor(home_sequences, dtype=torch.float32)
         self.away_sequences = torch.tensor(away_sequences, dtype=torch.float32)
-        self.labels_winner = torch.tensor(labels_winner, dtype=torch.long)
+        self.labels_regulation = torch.tensor(labels_regulation, dtype=torch.long)
+        self.labels_final = torch.tensor(labels_final, dtype=torch.long)
         self.labels_periods = torch.tensor(labels_periods, dtype=torch.float32)
     
     def __len__(self):
-        return len(self.labels_winner)
+        return len(self.labels_final)
     
     def __getitem__(self, idx):
         return (
             self.home_sequences[idx],
             self.away_sequences[idx],
-            self.labels_winner[idx],
+            self.labels_regulation[idx],
+            self.labels_final[idx],
             self.labels_periods[idx]
         )
 
@@ -51,7 +54,10 @@ class HockeyLSTM(nn.Module):
     Architecture:
     - Two parallel LSTMs for home and away team sequences
     - Concatenated hidden states
-    - Two output heads: classification (winner) + regression (period goals)
+    - Three output heads:
+      - fc_regulation: 3 classes (Home/Away/Draw) for regulation time
+      - fc_final: 3 classes (Home/Away/Draw) for final result (Draw ~0%)
+      - fc_periods: regression for period goals
     """
     
     def __init__(self, input_dim, hidden_dim=64, num_layers=2, dropout=0.3):
@@ -81,7 +87,9 @@ class HockeyLSTM(nn.Module):
             nn.Dropout(dropout)
         )
         
-        self.fc_winner = nn.Linear(64, 3)
+        self.fc_regulation = nn.Linear(64, 3)
+        
+        self.fc_final = nn.Linear(64, 3)
         
         self.fc_periods = nn.Sequential(
             nn.Linear(64, 32),
@@ -100,10 +108,11 @@ class HockeyLSTM(nn.Module):
         
         shared = self.fc_shared(combined)
         
-        winner_logits = self.fc_winner(shared)
+        regulation_logits = self.fc_regulation(shared)
+        final_logits = self.fc_final(shared)
         period_goals = self.fc_periods(shared)
         
-        return winner_logits, period_goals
+        return regulation_logits, final_logits, period_goals
     
     def predict_match(self, home_seq, away_seq):
         """Direct prediction without trainer wrapper"""
@@ -119,22 +128,37 @@ class HockeyLSTM(nn.Module):
                 home_seq = home_seq.unsqueeze(0)
                 away_seq = away_seq.unsqueeze(0)
             
-            winner_logits, period_pred = self.forward(home_seq, away_seq)
+            regulation_logits, final_logits, period_pred = self.forward(home_seq, away_seq)
             
-            winner_probs = torch.softmax(winner_logits, dim=1).numpy()[0]
+            regulation_probs = torch.softmax(regulation_logits, dim=1).numpy()[0]
+            final_probs = torch.softmax(final_logits, dim=1).numpy()[0]
             period_pred = period_pred.numpy()[0]
         
+        final_home = final_probs[0] + final_probs[2] * 0.5
+        final_away = final_probs[1] + final_probs[2] * 0.5
+        
         return {
+            'regulation_probs': {
+                'home': float(regulation_probs[0]),
+                'away': float(regulation_probs[1]),
+                'draw': float(regulation_probs[2])
+            },
+            'final_probs': {
+                'home': float(final_home),
+                'away': float(final_away)
+            },
             'winner_probs': {
-                'home': float(winner_probs[0]),
-                'away': float(winner_probs[1]),
-                'draw': float(winner_probs[2])
+                'home': float(final_probs[0]),
+                'away': float(final_probs[1]),
+                'draw': float(final_probs[2])
             },
             'period_goals': {
                 'home': [float(round(max(0, float(g)), 1)) for g in period_pred[:3]],
                 'away': [float(round(max(0, float(g)), 1)) for g in period_pred[3:]]
             },
-            'predicted_winner': ['home', 'away', 'draw'][int(np.argmax(winner_probs))],
+            'predicted_regulation': ['home', 'away', 'draw'][int(np.argmax(regulation_probs))],
+            'predicted_final': 'home' if final_home > final_away else 'away',
+            'predicted_winner': ['home', 'away', 'draw'][int(np.argmax(final_probs))],
             'predicted_total': float(round(sum(max(0, float(g)) for g in period_pred), 1))
         }
 
@@ -261,7 +285,7 @@ class SequenceDataPreparer:
         return period_data
     
     def build_team_history(self, df):
-        """Build match history for each team"""
+        """Build match history for each team with regulation features"""
         team_history = {}
         
         df_sorted = df.sort_values('date').reset_index(drop=True)
@@ -269,15 +293,32 @@ class SequenceDataPreparer:
         for _, row in df_sorted.iterrows():
             home = row['home_team']
             away = row['away_team']
+            overtime = row.get('overtime', 0)
+            
+            if overtime == 1:
+                regulation_result = 2
+            else:
+                if row['home_score'] > row['away_score']:
+                    regulation_result = 0
+                else:
+                    regulation_result = 1
+            
+            home_won_final = 1 if row['home_win'] == 1 else 0
+            home_won_regulation = 1 if (regulation_result == 0) else 0
+            home_won_overtime = 1 if (home_won_final == 1 and overtime == 1) else 0
+            home_draw_regulation = 1 if (regulation_result == 2) else 0
             
             match_features = {
                 'goals_scored': row['home_score'],
                 'goals_conceded': row['away_score'],
-                'won': 1 if row['home_win'] == 1 else 0,
+                'won': home_won_final,
                 'home_game': 1,
-                'overtime': row.get('overtime', 0),
+                'overtime': overtime,
                 'goal_diff': row['home_score'] - row['away_score'],
-                'total_goals': row['home_score'] + row['away_score']
+                'total_goals': row['home_score'] + row['away_score'],
+                'won_regulation': home_won_regulation,
+                'won_overtime': home_won_overtime,
+                'draw_regulation': home_draw_regulation
             }
             
             if self.with_odds:
@@ -289,14 +330,22 @@ class SequenceDataPreparer:
                 team_history[home] = []
             team_history[home].append(match_features.copy())
             
+            away_won_final = 1 if row['home_win'] == 0 else 0
+            away_won_regulation = 1 if (regulation_result == 1) else 0
+            away_won_overtime = 1 if (away_won_final == 1 and overtime == 1) else 0
+            away_draw_regulation = 1 if (regulation_result == 2) else 0
+            
             away_features = {
                 'goals_scored': row['away_score'],
                 'goals_conceded': row['home_score'],
-                'won': 1 if row['home_win'] == 0 else 0,
+                'won': away_won_final,
                 'home_game': 0,
-                'overtime': row.get('overtime', 0),
+                'overtime': overtime,
                 'goal_diff': row['away_score'] - row['home_score'],
-                'total_goals': row['home_score'] + row['away_score']
+                'total_goals': row['home_score'] + row['away_score'],
+                'won_regulation': away_won_regulation,
+                'won_overtime': away_won_overtime,
+                'draw_regulation': away_draw_regulation
             }
             
             if self.with_odds:
@@ -316,7 +365,8 @@ class SequenceDataPreparer:
         if self.feature_columns == []:
             self.feature_columns = [
                 'goals_scored', 'goals_conceded', 'won', 
-                'home_game', 'overtime', 'goal_diff', 'total_goals'
+                'home_game', 'overtime', 'goal_diff', 'total_goals',
+                'won_regulation', 'won_overtime', 'draw_regulation'
             ]
             if self.with_odds:
                 self.feature_columns.extend(['home_odds', 'away_odds', 'implied_prob'])
@@ -327,7 +377,8 @@ class SequenceDataPreparer:
         
         home_sequences = []
         away_sequences = []
-        labels_winner = []
+        labels_regulation = []
+        labels_final = []
         labels_periods = []
         
         current_match_idx = {team: 0 for team in team_history}
@@ -349,13 +400,23 @@ class SequenceDataPreparer:
                 home_sequences.append(home_seq)
                 away_sequences.append(away_seq)
                 
-                if row['home_score'] > row['away_score']:
-                    winner = 0
-                elif row['home_score'] < row['away_score']:
-                    winner = 1
+                overtime = row.get('overtime', 0)
+                if overtime == 1:
+                    regulation_result = 2
                 else:
-                    winner = 2
-                labels_winner.append(winner)
+                    if row['home_score'] > row['away_score']:
+                        regulation_result = 0
+                    else:
+                        regulation_result = 1
+                labels_regulation.append(regulation_result)
+                
+                if row['home_score'] > row['away_score']:
+                    final_result = 0
+                elif row['home_score'] < row['away_score']:
+                    final_result = 1
+                else:
+                    final_result = 2
+                labels_final.append(final_result)
                 
                 game_id = str(row['game_id'])
                 if period_data and game_id in period_data:
@@ -376,7 +437,8 @@ class SequenceDataPreparer:
         return (
             np.array(home_sequences),
             np.array(away_sequences),
-            np.array(labels_winner),
+            np.array(labels_regulation),
+            np.array(labels_final),
             np.array(labels_periods)
         )
     
@@ -404,19 +466,26 @@ class SequenceDataPreparer:
 
 
 class SequenceModelTrainer:
-    """Trainer for LSTM model"""
+    """Trainer for LSTM model with dual prediction heads"""
     
     def __init__(self, model, device='cpu'):
         self.model = model.to(device)
         self.device = device
-        self.history = {'train_loss': [], 'val_loss': [], 'val_acc': []}
+        self.history = {
+            'train_loss': [], 
+            'val_loss': [], 
+            'val_acc_regulation': [],
+            'val_acc_final': [],
+            'val_acc': []
+        }
     
     def train(self, train_loader, val_loader, epochs=50, lr=0.001, 
-              weight_winner=1.0, weight_periods=0.5):
+              weight_regulation=1.0, weight_final=1.0, weight_periods=0.5):
         """Train the model"""
         
         optimizer = torch.optim.Adam(self.model.parameters(), lr=lr)
-        criterion_winner = nn.CrossEntropyLoss()
+        criterion_regulation = nn.CrossEntropyLoss()
+        criterion_final = nn.CrossEntropyLoss()
         criterion_periods = nn.MSELoss()
         
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
@@ -431,19 +500,21 @@ class SequenceModelTrainer:
             self.model.train()
             train_loss = 0.0
             
-            for home_seq, away_seq, winner, periods in train_loader:
+            for home_seq, away_seq, reg_label, final_label, periods in train_loader:
                 home_seq = home_seq.to(self.device)
                 away_seq = away_seq.to(self.device)
-                winner = winner.to(self.device)
+                reg_label = reg_label.to(self.device)
+                final_label = final_label.to(self.device)
                 periods = periods.to(self.device)
                 
                 optimizer.zero_grad()
                 
-                winner_pred, periods_pred = self.model(home_seq, away_seq)
+                reg_pred, final_pred, periods_pred = self.model(home_seq, away_seq)
                 
-                loss_winner = criterion_winner(winner_pred, winner)
+                loss_regulation = criterion_regulation(reg_pred, reg_label)
+                loss_final = criterion_final(final_pred, final_label)
                 loss_periods = criterion_periods(periods_pred, periods)
-                loss = weight_winner * loss_winner + weight_periods * loss_periods
+                loss = weight_regulation * loss_regulation + weight_final * loss_final + weight_periods * loss_periods
                 
                 loss.backward()
                 optimizer.step()
@@ -453,9 +524,11 @@ class SequenceModelTrainer:
             train_loss /= len(train_loader)
             self.history['train_loss'].append(train_loss)
             
-            val_loss, val_acc = self.evaluate(val_loader)
+            val_loss, val_acc_reg, val_acc_final = self.evaluate(val_loader)
             self.history['val_loss'].append(val_loss)
-            self.history['val_acc'].append(val_acc)
+            self.history['val_acc_regulation'].append(val_acc_reg)
+            self.history['val_acc_final'].append(val_acc_final)
+            self.history['val_acc'].append(val_acc_final)
             
             scheduler.step(val_loss)
             
@@ -471,7 +544,8 @@ class SequenceModelTrainer:
                     f"Epoch {epoch+1}/{epochs} - "
                     f"Train Loss: {train_loss:.4f}, "
                     f"Val Loss: {val_loss:.4f}, "
-                    f"Val Acc: {val_acc:.2%}"
+                    f"Reg Acc: {val_acc_reg:.2%}, "
+                    f"Final Acc: {val_acc_final:.2%}"
                 )
             
             if patience_counter >= 10:
@@ -488,30 +562,36 @@ class SequenceModelTrainer:
         """Evaluate model on validation set"""
         self.model.eval()
         total_loss = 0.0
-        correct = 0
+        correct_reg = 0
+        correct_final = 0
         total = 0
         
-        criterion_winner = nn.CrossEntropyLoss()
+        criterion_regulation = nn.CrossEntropyLoss()
+        criterion_final = nn.CrossEntropyLoss()
         criterion_periods = nn.MSELoss()
         
         with torch.no_grad():
-            for home_seq, away_seq, winner, periods in loader:
+            for home_seq, away_seq, reg_label, final_label, periods in loader:
                 home_seq = home_seq.to(self.device)
                 away_seq = away_seq.to(self.device)
-                winner = winner.to(self.device)
+                reg_label = reg_label.to(self.device)
+                final_label = final_label.to(self.device)
                 periods = periods.to(self.device)
                 
-                winner_pred, periods_pred = self.model(home_seq, away_seq)
+                reg_pred, final_pred, periods_pred = self.model(home_seq, away_seq)
                 
-                loss_winner = criterion_winner(winner_pred, winner)
+                loss_regulation = criterion_regulation(reg_pred, reg_label)
+                loss_final = criterion_final(final_pred, final_label)
                 loss_periods = criterion_periods(periods_pred, periods)
-                total_loss += (loss_winner + 0.5 * loss_periods).item()
+                total_loss += (loss_regulation + loss_final + 0.5 * loss_periods).item()
                 
-                _, predicted = torch.max(winner_pred, 1)
-                total += winner.size(0)
-                correct += (predicted == winner).sum().item()
+                _, predicted_reg = torch.max(reg_pred, 1)
+                _, predicted_final = torch.max(final_pred, 1)
+                total += reg_label.size(0)
+                correct_reg += (predicted_reg == reg_label).sum().item()
+                correct_final += (predicted_final == final_label).sum().item()
         
-        return total_loss / len(loader), correct / total
+        return total_loss / len(loader), correct_reg / total, correct_final / total
     
     def predict(self, home_seq, away_seq):
         """Make prediction for a single match"""
@@ -521,22 +601,37 @@ class SequenceModelTrainer:
             home_tensor = torch.tensor(home_seq, dtype=torch.float32).unsqueeze(0).to(self.device)
             away_tensor = torch.tensor(away_seq, dtype=torch.float32).unsqueeze(0).to(self.device)
             
-            winner_logits, period_goals = self.model(home_tensor, away_tensor)
+            regulation_logits, final_logits, period_goals = self.model(home_tensor, away_tensor)
             
-            winner_probs = torch.softmax(winner_logits, dim=1).cpu().numpy()[0]
+            regulation_probs = torch.softmax(regulation_logits, dim=1).cpu().numpy()[0]
+            final_probs = torch.softmax(final_logits, dim=1).cpu().numpy()[0]
             period_goals = period_goals.cpu().numpy()[0]
         
+        final_home = final_probs[0] + final_probs[2] * 0.5
+        final_away = final_probs[1] + final_probs[2] * 0.5
+        
         return {
+            'regulation_probs': {
+                'home': float(regulation_probs[0]),
+                'away': float(regulation_probs[1]),
+                'draw': float(regulation_probs[2])
+            },
+            'final_probs': {
+                'home': float(final_home),
+                'away': float(final_away)
+            },
             'winner_probs': {
-                'home': float(winner_probs[0]),
-                'away': float(winner_probs[1]),
-                'draw': float(winner_probs[2])
+                'home': float(final_probs[0]),
+                'away': float(final_probs[1]),
+                'draw': float(final_probs[2])
             },
             'period_goals': {
                 'home': [float(round(max(0, float(g)), 1)) for g in period_goals[:3]],
                 'away': [float(round(max(0, float(g)), 1)) for g in period_goals[3:]]
             },
-            'predicted_winner': ['home', 'away', 'draw'][int(np.argmax(winner_probs))],
+            'predicted_regulation': ['home', 'away', 'draw'][int(np.argmax(regulation_probs))],
+            'predicted_final': 'home' if final_home > final_away else 'away',
+            'predicted_winner': ['home', 'away', 'draw'][int(np.argmax(final_probs))],
             'predicted_total': float(round(sum(max(0, float(g)) for g in period_goals), 1))
         }
 
@@ -546,7 +641,7 @@ def train_sequence_model(df, period_data=None, sequence_length=10,
     """Main function to train the sequence model"""
     
     logger.info("=" * 50)
-    logger.info("Training Sequence Model (LSTM)")
+    logger.info("Training Sequence Model (LSTM) - Dual Prediction")
     logger.info("=" * 50)
     
     if period_data is None or len(period_data) == 0:
@@ -559,25 +654,30 @@ def train_sequence_model(df, period_data=None, sequence_length=10,
     preparer = SequenceDataPreparer(sequence_length=sequence_length, with_odds=with_odds)
     
     logger.info(f"Preparing sequences (length={sequence_length})...")
-    home_seq, away_seq, labels_winner, labels_periods = preparer.prepare_sequences(
+    home_seq, away_seq, labels_regulation, labels_final, labels_periods = preparer.prepare_sequences(
         df, period_data
     )
     
-    logger.info(f"Total samples: {len(labels_winner)}")
+    logger.info(f"Total samples: {len(labels_final)}")
     logger.info(f"Sequence shape: {home_seq.shape}")
+    
+    reg_dist = np.bincount(labels_regulation, minlength=3) / len(labels_regulation)
+    final_dist = np.bincount(labels_final, minlength=3) / len(labels_final)
+    logger.info(f"Regulation label distribution: Home={reg_dist[0]:.1%}, Away={reg_dist[1]:.1%}, Draw={reg_dist[2]:.1%}")
+    logger.info(f"Final label distribution: Home={final_dist[0]:.1%}, Away={final_dist[1]:.1%}, Draw={final_dist[2]:.1%}")
     
     home_seq, away_seq = preparer.normalize_sequences(home_seq, away_seq, fit=True)
     
-    indices = np.arange(len(labels_winner))
+    indices = np.arange(len(labels_final))
     train_idx, val_idx = train_test_split(indices, test_size=0.2, random_state=42)
     
     train_dataset = HockeySequenceDataset(
         home_seq[train_idx], away_seq[train_idx],
-        labels_winner[train_idx], labels_periods[train_idx]
+        labels_regulation[train_idx], labels_final[train_idx], labels_periods[train_idx]
     )
     val_dataset = HockeySequenceDataset(
         home_seq[val_idx], away_seq[val_idx],
-        labels_winner[val_idx], labels_periods[val_idx]
+        labels_regulation[val_idx], labels_final[val_idx], labels_periods[val_idx]
     )
     
     train_loader = torch.utils.data.DataLoader(
@@ -594,16 +694,18 @@ def train_sequence_model(df, period_data=None, sequence_length=10,
     logger.info(f"  Input dim: {input_dim}")
     logger.info(f"  Hidden dim: {hidden_dim}")
     logger.info(f"  Parameters: {sum(p.numel() for p in model.parameters()):,}")
+    logger.info(f"  Output heads: Regulation (3 classes), Final (3 classes), Periods (6 values)")
     
     trainer = SequenceModelTrainer(model)
     
     logger.info(f"Training for {epochs} epochs...")
     history = trainer.train(train_loader, val_loader, epochs=epochs)
     
-    final_loss, final_acc = trainer.evaluate(val_loader)
+    final_loss, final_acc_reg, final_acc_final = trainer.evaluate(val_loader)
     logger.info(f"\nFinal Results:")
     logger.info(f"  Validation Loss: {final_loss:.4f}")
-    logger.info(f"  Validation Accuracy: {final_acc:.2%}")
+    logger.info(f"  Regulation Accuracy: {final_acc_reg:.2%}")
+    logger.info(f"  Final Accuracy: {final_acc_final:.2%}")
     
     return model, preparer, trainer, history
 
@@ -622,7 +724,9 @@ def save_sequence_model(model, preparer, path='artifacts/sequence_model'):
         'input_dim': len(preparer.feature_columns),
         'hidden_dim': model.hidden_dim,
         'num_layers': model.num_layers,
-        'with_odds': preparer.with_odds
+        'with_odds': preparer.with_odds,
+        'model_version': 2,
+        'dual_prediction': True
     }
     with open(os.path.join(path, 'config.json'), 'w') as f:
         json.dump(config, f, indent=2)
@@ -640,7 +744,7 @@ def load_sequence_model(path='artifacts/sequence_model'):
         hidden_dim=config['hidden_dim'],
         num_layers=config.get('num_layers', 2)
     )
-    model.load_state_dict(torch.load(os.path.join(path, 'model.pth')))
+    model.load_state_dict(torch.load(os.path.join(path, 'model.pth'), weights_only=True))
     
     preparer = SequenceDataPreparer(
         sequence_length=config['sequence_length'],

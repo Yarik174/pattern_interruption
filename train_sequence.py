@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 
 def run_roi_backtest(model, preparer, df, trainer):
-    """Run ROI backtest on validation data"""
+    """Run ROI backtest on validation data for both regulation and final predictions"""
     print("\n" + "=" * 60)
     print("📊 ROI Backtest on Validation Data")
     print("=" * 60)
@@ -44,15 +44,15 @@ def run_roi_backtest(model, preparer, df, trainer):
         print("⚠️ No odds data available for backtest")
         return None
     
-    home_seq, away_seq, labels_winner, labels_periods = preparer.prepare_sequences(df)
+    home_seq, away_seq, labels_regulation, labels_final, labels_periods = preparer.prepare_sequences(df)
     
-    if len(labels_winner) == 0:
+    if len(labels_final) == 0:
         print("⚠️ No sequences available for backtest")
         return None
     
     home_seq, away_seq = preparer.normalize_sequences(home_seq, away_seq, fit=False)
     
-    indices = np.arange(len(labels_winner))
+    indices = np.arange(len(labels_final))
     _, val_idx = train_test_split(indices, test_size=0.2, random_state=42)
     
     df_sorted = df.sort_values('date').reset_index(drop=True)
@@ -72,14 +72,15 @@ def run_roi_backtest(model, preparer, df, trainer):
         current_match_idx[home] = home_idx + 1
         current_match_idx[away] = away_idx + 1
     
-    valid_df_indices = [valid_indices[i] for i in val_idx if i < len(valid_indices)]
-    
-    total_bets = 0
-    wins = 0
-    total_profit = 0.0
+    ml_total_bets = 0
+    ml_wins = 0
+    ml_total_profit = 0.0
     stake = 1.0
-    
     confidence_threshold = 0.55
+    
+    reg_total_bets = 0
+    reg_wins = 0
+    reg_total_profit = 0.0
     
     model.eval()
     with torch.no_grad():
@@ -99,55 +100,100 @@ def run_roi_backtest(model, preparer, df, trainer):
             home_tensor = torch.tensor(home_seq[seq_idx:seq_idx+1], dtype=torch.float32)
             away_tensor = torch.tensor(away_seq[seq_idx:seq_idx+1], dtype=torch.float32)
             
-            winner_logits, _ = model(home_tensor, away_tensor)
-            probs = torch.softmax(winner_logits, dim=1).numpy()[0]
+            reg_logits, final_logits, _ = model(home_tensor, away_tensor)
             
-            home_prob = probs[0]
-            away_prob = probs[1]
+            reg_probs = torch.softmax(reg_logits, dim=1).numpy()[0]
+            final_probs = torch.softmax(final_logits, dim=1).numpy()[0]
             
-            actual_winner = labels_winner[seq_idx]
+            final_home = final_probs[0] + final_probs[2] * 0.5
+            final_away = final_probs[1] + final_probs[2] * 0.5
             
-            bet_placed = False
+            actual_regulation = labels_regulation[seq_idx]
+            actual_final = labels_final[seq_idx]
             
-            if home_prob > confidence_threshold:
-                total_bets += 1
-                bet_placed = True
-                if actual_winner == 0:
-                    wins += 1
-                    total_profit += stake * (home_odds - 1)
+            if final_home > confidence_threshold:
+                ml_total_bets += 1
+                if actual_final == 0:
+                    ml_wins += 1
+                    ml_total_profit += stake * (home_odds - 1)
                 else:
-                    total_profit -= stake
-            
-            elif away_prob > confidence_threshold:
-                total_bets += 1
-                bet_placed = True
-                if actual_winner == 1:
-                    wins += 1
-                    total_profit += stake * (away_odds - 1)
+                    ml_total_profit -= stake
+            elif final_away > confidence_threshold:
+                ml_total_bets += 1
+                if actual_final == 1:
+                    ml_wins += 1
+                    ml_total_profit += stake * (away_odds - 1)
                 else:
-                    total_profit -= stake
+                    ml_total_profit -= stake
+            
+            reg_home_prob = reg_probs[0]
+            reg_away_prob = reg_probs[1]
+            reg_draw_prob = reg_probs[2]
+            
+            reg_home_odds = home_odds * 0.85
+            reg_away_odds = away_odds * 0.85
+            reg_draw_odds = 4.5
+            
+            if reg_home_prob > confidence_threshold:
+                reg_total_bets += 1
+                if actual_regulation == 0:
+                    reg_wins += 1
+                    reg_total_profit += stake * (reg_home_odds - 1)
+                else:
+                    reg_total_profit -= stake
+            elif reg_away_prob > confidence_threshold:
+                reg_total_bets += 1
+                if actual_regulation == 1:
+                    reg_wins += 1
+                    reg_total_profit += stake * (reg_away_odds - 1)
+                else:
+                    reg_total_profit -= stake
     
-    if total_bets > 0:
-        win_rate = wins / total_bets
-        roi = (total_profit / (total_bets * stake)) * 100
+    results = {}
+    
+    print(f"\n📈 MONEY LINE (Final Result) Backtest (confidence > {confidence_threshold*100:.0f}%):")
+    if ml_total_bets > 0:
+        ml_win_rate = ml_wins / ml_total_bets
+        ml_roi = (ml_total_profit / (ml_total_bets * stake)) * 100
         
-        print(f"\n📈 Backtest Results (confidence > {confidence_threshold*100:.0f}%):")
-        print(f"   Total bets: {total_bets}")
-        print(f"   Wins: {wins}")
-        print(f"   Win rate: {win_rate:.1%}")
-        print(f"   ROI: {roi:+.2f}%")
-        print(f"   Profit: {total_profit:+.2f} units")
+        print(f"   Total bets: {ml_total_bets}")
+        print(f"   Wins: {ml_wins}")
+        print(f"   Win rate: {ml_win_rate:.1%}")
+        print(f"   ROI: {ml_roi:+.2f}%")
+        print(f"   Profit: {ml_total_profit:+.2f} units")
         
-        return {
-            'total_bets': total_bets,
-            'wins': wins,
-            'win_rate': win_rate,
-            'roi': roi,
-            'profit': total_profit
+        results['money_line'] = {
+            'total_bets': ml_total_bets,
+            'wins': ml_wins,
+            'win_rate': ml_win_rate,
+            'roi': ml_roi,
+            'profit': ml_total_profit
         }
     else:
-        print("⚠️ No bets placed (no matches with odds above confidence threshold)")
-        return None
+        print("   ⚠️ No bets placed")
+    
+    print(f"\n📈 1X2 (Regulation Result) Backtest (confidence > {confidence_threshold*100:.0f}%):")
+    if reg_total_bets > 0:
+        reg_win_rate = reg_wins / reg_total_bets
+        reg_roi = (reg_total_profit / (reg_total_bets * stake)) * 100
+        
+        print(f"   Total bets: {reg_total_bets}")
+        print(f"   Wins: {reg_wins}")
+        print(f"   Win rate: {reg_win_rate:.1%}")
+        print(f"   ROI: {reg_roi:+.2f}%")
+        print(f"   Profit: {reg_total_profit:+.2f} units")
+        
+        results['regulation'] = {
+            'total_bets': reg_total_bets,
+            'wins': reg_wins,
+            'win_rate': reg_win_rate,
+            'roi': reg_roi,
+            'profit': reg_total_profit
+        }
+    else:
+        print("   ⚠️ No bets placed")
+    
+    return results if results else None
 
 
 def main():
@@ -163,7 +209,7 @@ def main():
     args = parser.parse_args()
     
     print("=" * 60)
-    print("🏒 Hockey Sequence Model Training")
+    print("🏒 Hockey Sequence Model Training (Dual Prediction)")
     print("=" * 60)
     print(f"  Epochs: {args.epochs}")
     print(f"  Sequence Length: {args.seq_length}")
@@ -171,6 +217,7 @@ def main():
     print(f"  Batch Size: {args.batch_size}")
     print(f"  Seasons: {args.seasons}")
     print(f"  With Odds: {args.with_odds}")
+    print("  Prediction Heads: Regulation (1X2) + Final (Money Line)")
     print("=" * 60)
     
     loader = NHLDataLoader()
@@ -182,6 +229,9 @@ def main():
         return
     
     print(f"\n📊 Loaded {len(df)} matches from {args.seasons} seasons")
+    
+    overtime_pct = df['overtime'].mean() * 100
+    print(f"   Overtime games: {overtime_pct:.1f}%")
     
     odds_df = None
     if args.with_odds:
@@ -223,9 +273,10 @@ def main():
     print("\n" + "=" * 60)
     print("✅ Training Complete!")
     print("=" * 60)
-    print(f"  Final Validation Accuracy: {history['val_acc'][-1]:.2%}")
+    print(f"  Final Validation Accuracy (Regulation): {history['val_acc_regulation'][-1]:.2%}")
+    print(f"  Final Validation Accuracy (Final): {history['val_acc_final'][-1]:.2%}")
     print(f"  Final Validation Loss: {history['val_loss'][-1]:.4f}")
-    print(f"  Features: {preparer.feature_columns}")
+    print(f"  Features ({len(preparer.feature_columns)}): {preparer.feature_columns}")
     print(f"  Model saved to: artifacts/sequence_model/")
     print("=" * 60)
 

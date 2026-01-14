@@ -8,12 +8,17 @@
     "overtime",
     "goal_diff",
     "total_goals",
+    "won_regulation",
+    "won_overtime",
+    "draw_regulation",
     "home_odds",
     "away_odds",
     "implied_prob"
   ],
-  "input_dim": 10,
+  "input_dim": 13,
   "hidden_dim": 64,
   "num_layers": 2,
-  "with_odds": true
+  "with_odds": true,
+  "model_version": 2,
+  "dual_prediction": true
 }
