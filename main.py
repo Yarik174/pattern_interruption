@@ -9,6 +9,8 @@ NHL Pattern Prediction System
 - Синергия: несколько паттернов → выше уверенность
 """
 
+from app import app
+
 import sys
 import warnings
 import logging
@@ -22,7 +24,7 @@ from src.model import PatternPredictionModel
 from src.config import Config, setup_logging, GRID_SEARCH_PARAMS
 from src.artifacts import ArtifactManager
 
-def main():
+def train_model():
     config = Config()
     
     log_file = f"artifacts/training.log"
@@ -301,7 +303,7 @@ def main():
 
 if __name__ == "__main__":
     try:
-        results, model, artifacts = main()
+        results, model, artifacts = train_model()
     except KeyboardInterrupt:
         print("\n\n⛔ Прервано пользователем")
         sys.exit(0)

@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+    <title>Прогноз #{{ prediction.id }} | Hockey Predictor</title>
+    <style>
+        :root {
+            --bg-primary: #0D1117;
+            --bg-secondary: #161B22;
+            --bg-card: #21262D;
+            --accent: #BFFF00;
+            --success: #3FB950;
+            --warning: #D29922;
+            --danger: #F85149;
+            --text-primary: #F0F6FC;
+            --text-secondary: #8B949E;
+            --text-muted: #6E7681;
+            --border: #30363D;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        
+        .app { max-width: 1200px; margin: 0 auto; padding: 24px; }
+        
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.875rem;
+            margin-bottom: 24px;
+        }
+        .back-link:hover { color: var(--accent); }
+        
+        .match-header {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border);
+        }
+        
+        .match-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        
+        .league-date {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .league-badge {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+        .league-NHL { background: rgba(0, 51, 160, 0.2); color: #4A9FFF; }
+        .league-KHL { background: rgba(200, 50, 50, 0.2); color: #FF6B6B; }
+        .league-SHL { background: rgba(0, 106, 167, 0.2); color: #00A3FF; }
+        .league-Liiga { background: rgba(0, 47, 108, 0.2); color: #5B9FFF; }
+        .league-DEL { background: rgba(221, 0, 0, 0.2); color: #FF5555; }
+        
+        .match-date { color: var(--text-muted); font-size: 0.875rem; }
+        
+        .teams-vs {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+        }
+        
+        .team-card {
+            text-align: center;
+            flex: 1;
+            max-width: 300px;
+        }
+        
+        .team-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        
+        .team-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+        }
+        
+        .team-odds {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-top: 12px;
+        }
+        .team-odds.predicted { color: var(--accent); }
+        
+        .vs {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            padding: 16px;
+            background: var(--bg-card);
+            border-radius: 50%;
+        }
+        
+        .prediction-banner {
+            background: linear-gradient(135deg, rgba(191, 255, 0, 0.1), rgba(191, 255, 0, 0.05));
+            border: 2px solid var(--accent);
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            margin-top: 24px;
+        }
+        
+        .prediction-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        
+        .prediction-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+        
+        .confidence-display {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        
+        .confidence-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+        
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+        }
+        
+        .section {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 24px;
+            border: 1px solid var(--border);
+            margin-bottom: 24px;
+        }
+        
+        .section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text-secondary);
+        }
+        
+        .patterns-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .pattern-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: var(--bg-card);
+            border-radius: 8px;
+        }
+        
+        .pattern-name { font-weight: 500; }
+        .pattern-value { color: var(--accent); font-weight: 600; }
+        
+        .match-history {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .history-row {
+            display: flex;
+            align-items: center;
+            padding: 10px 12px;
+            background: var(--bg-card);
+            border-radius: 6px;
+            font-size: 0.875rem;
+        }
+        
+        .history-date { width: 80px; color: var(--text-muted); }
+        .history-score { width: 60px; font-weight: 600; text-align: center; }
+        .history-teams { flex: 1; }
+        .history-result {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.75rem;
+        }
+        .result-W { background: var(--success); color: #000; }
+        .result-L { background: var(--danger); color: #fff; }
+        .result-D { background: var(--warning); color: #000; }
+        
+        .decision-form {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 24px;
+            border: 1px solid var(--border);
+        }
+        
+        .decision-buttons {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .decision-btn {
+            flex: 1;
+            padding: 16px;
+            border-radius: 8px;
+            border: 2px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .decision-btn:hover { border-color: var(--text-secondary); }
+        .decision-btn.accept:hover, .decision-btn.accept.selected { border-color: var(--success); background: rgba(63, 185, 80, 0.1); }
+        .decision-btn.reject:hover, .decision-btn.reject.selected { border-color: var(--danger); background: rgba(248, 81, 73, 0.1); }
+        
+        .comment-field {
+            width: 100%;
+            min-height: 100px;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            resize: vertical;
+            margin-bottom: 16px;
+        }
+        .comment-field:focus { outline: none; border-color: var(--accent); }
+        .comment-field::placeholder { color: var(--text-muted); }
+        
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            border-radius: 8px;
+            border: none;
+            background: var(--accent);
+            color: #000;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .submit-btn:hover { background: #a8e600; }
+        .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .already-decided {
+            background: var(--bg-card);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+        }
+        .already-decided .status { font-size: 1.25rem; font-weight: 600; margin-bottom: 8px; }
+        .already-decided .comment { color: var(--text-secondary); font-style: italic; }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <a href="/predictions" class="back-link">← Назад к прогнозам</a>
+        
+        <div class="match-header">
+            <div class="match-info">
+                <div class="league-date">
+                    <span class="league-badge league-{{ prediction.league }}">{{ prediction.league }}</span>
+                    <span class="match-date">{{ prediction.match_date.strftime('%d %B %Y, %H:%M') if prediction.match_date else '-' }}</span>
+                </div>
+                <span style="color: var(--text-muted); font-size: 0.875rem;">ID: #{{ prediction.id }}</span>
+            </div>
+            
+            <div class="teams-vs">
+                <div class="team-card">
+                    <div class="team-label">Хозяева</div>
+                    <div class="team-name">{{ prediction.home_team }}</div>
+                    <div class="team-odds {{ 'predicted' if prediction.predicted_outcome == 'home' else '' }}">
+                        {{ '%.2f'|format(prediction.home_odds) if prediction.home_odds else '-' }}
+                    </div>
+                </div>
+                
+                <div class="vs">VS</div>
+                
+                <div class="team-card">
+                    <div class="team-label">Гости</div>
+                    <div class="team-name">{{ prediction.away_team }}</div>
+                    <div class="team-odds {{ 'predicted' if prediction.predicted_outcome == 'away' else '' }}">
+                        {{ '%.2f'|format(prediction.away_odds) if prediction.away_odds else '-' }}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="prediction-banner">
+                <div class="prediction-label">Прогноз модели</div>
+                <div class="prediction-value">
+                    {% if prediction.predicted_outcome == 'home' %}
+                        Победа {{ prediction.home_team }}
+                    {% elif prediction.predicted_outcome == 'away' %}
+                        Победа {{ prediction.away_team }}
+                    {% else %}
+                        {{ prediction.predicted_outcome }}
+                    {% endif %}
+                </div>
+                <div class="confidence-display">
+                    <span style="color: var(--text-muted)">Уверенность:</span>
+                    <span class="confidence-number" style="color: var(--accent)">{{ prediction.confidence_1_10 }}/10</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="grid-2">
+            <div>
+                <div class="section">
+                    <h3 class="section-title">Последние матчи: {{ prediction.home_team }}</h3>
+                    <div class="match-history" id="home-history">
+                        {% for match in home_history[:5] %}
+                        <div class="history-row">
+                            <span class="history-date">{{ match.date }}</span>
+                            <span class="history-teams">{{ match.opponent }}</span>
+                            <span class="history-score">{{ match.score }}</span>
+                            <span class="history-result result-{{ match.result }}">{{ match.result }}</span>
+                        </div>
+                        {% else %}
+                        <div style="color: var(--text-muted); text-align: center; padding: 20px;">Загрузка...</div>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h3 class="section-title">Последние матчи: {{ prediction.away_team }}</h3>
+                    <div class="match-history" id="away-history">
+                        {% for match in away_history[:5] %}
+                        <div class="history-row">
+                            <span class="history-date">{{ match.date }}</span>
+                            <span class="history-teams">{{ match.opponent }}</span>
+                            <span class="history-score">{{ match.score }}</span>
+                            <span class="history-result result-{{ match.result }}">{{ match.result }}</span>
+                        </div>
+                        {% else %}
+                        <div style="color: var(--text-muted); text-align: center; padding: 20px;">Загрузка...</div>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h3 class="section-title">Личные встречи (H2H)</h3>
+                    <div class="match-history" id="h2h-history">
+                        {% for match in h2h_history[:5] %}
+                        <div class="history-row">
+                            <span class="history-date">{{ match.date }}</span>
+                            <span class="history-teams">{{ match.home }} - {{ match.away }}</span>
+                            <span class="history-score">{{ match.score }}</span>
+                        </div>
+                        {% else %}
+                        <div style="color: var(--text-muted); text-align: center; padding: 20px;">Загрузка...</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <div class="section">
+                    <h3 class="section-title">Паттерны</h3>
+                    <div class="patterns-list">
+                        {% if prediction.patterns_data %}
+                            {% for pattern_name, pattern_value in prediction.patterns_data.items() %}
+                            <div class="pattern-item">
+                                <span class="pattern-name">{{ pattern_name }}</span>
+                                <span class="pattern-value">{{ pattern_value }}</span>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                        <div style="color: var(--text-muted); text-align: center; padding: 20px;">Паттерны не найдены</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="decision-form">
+                    <h3 class="section-title">Ваше решение</h3>
+                    
+                    {% if prediction.user_decision %}
+                    <div class="already-decided">
+                        <div class="status" style="color: {{ 'var(--success)' if prediction.user_decision.decision == 'accepted' else 'var(--danger)' }}">
+                            {{ 'Принят' if prediction.user_decision.decision == 'accepted' else 'Отклонён' }}
+                        </div>
+                        {% if prediction.user_decision.comment %}
+                        <div class="comment">"{{ prediction.user_decision.comment }}"</div>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <form action="/prediction/{{ prediction.id }}/decide" method="POST">
+                        <div class="decision-buttons">
+                            <button type="button" class="decision-btn accept" onclick="selectDecision('accepted')">
+                                ✓ Принять
+                            </button>
+                            <button type="button" class="decision-btn reject" onclick="selectDecision('rejected')">
+                                ✗ Отклонить
+                            </button>
+                        </div>
+                        <input type="hidden" name="decision" id="decision-input" value="">
+                        <textarea class="comment-field" name="comment" placeholder="Комментарий (опционально)..."></textarea>
+                        <button type="submit" class="submit-btn" id="submit-btn" disabled>Сохранить решение</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function selectDecision(decision) {
+            document.getElementById('decision-input').value = decision;
+            document.getElementById('submit-btn').disabled = false;
+            
+            document.querySelectorAll('.decision-btn').forEach(btn => btn.classList.remove('selected'));
+            event.target.classList.add('selected');
+        }
+    </script>
+</body>
+</html>

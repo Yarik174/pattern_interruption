@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+    <title>Настройка Telegram | Hockey Predictor</title>
+    <style>
+        :root {
+            --bg-primary: #0D1117;
+            --bg-secondary: #161B22;
+            --bg-card: #21262D;
+            --accent: #BFFF00;
+            --success: #3FB950;
+            --warning: #D29922;
+            --danger: #F85149;
+            --text-primary: #F0F6FC;
+            --text-secondary: #8B949E;
+            --text-muted: #6E7681;
+            --border: #30363D;
+            --telegram: #0088cc;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        
+        .app { max-width: 800px; margin: 0 auto; padding: 24px; }
+        
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.875rem;
+            margin-bottom: 24px;
+        }
+        .back-link:hover { color: var(--accent); }
+        
+        .page-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        
+        .page-subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 32px;
+        }
+        
+        .section {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 24px;
+            border: 1px solid var(--border);
+            margin-bottom: 24px;
+        }
+        
+        .section-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .step {
+            display: flex;
+            gap: 16px;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .step:last-child { border-bottom: none; }
+        
+        .step-number {
+            width: 32px;
+            height: 32px;
+            background: var(--telegram);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        
+        .step-content h4 {
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .step-content p {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            line-height: 1.6;
+        }
+        
+        .step-content code {
+            background: var(--bg-card);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            color: var(--accent);
+        }
+        
+        .step-content a {
+            color: var(--telegram);
+            text-decoration: none;
+        }
+        
+        .step-content a:hover { text-decoration: underline; }
+        
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: var(--telegram);
+        }
+        
+        .form-input::placeholder { color: var(--text-muted); }
+        
+        .btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: var(--telegram);
+            color: #fff;
+        }
+        
+        .btn-primary:hover { opacity: 0.9; }
+        
+        .btn-test {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            margin-right: 12px;
+        }
+        
+        .btn-test:hover { border-color: var(--text-secondary); }
+        
+        .status-message {
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 16px;
+            font-size: 0.875rem;
+        }
+        
+        .status-success {
+            background: rgba(63, 185, 80, 0.1);
+            border: 1px solid var(--success);
+            color: var(--success);
+        }
+        
+        .status-error {
+            background: rgba(248, 81, 73, 0.1);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+        }
+        
+        .current-settings {
+            background: var(--bg-card);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+        }
+        
+        .setting-row .name { color: var(--text-muted); }
+        .setting-row .value { font-weight: 500; }
+        .setting-row .value.configured { color: var(--success); }
+        .setting-row .value.not-configured { color: var(--warning); }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <a href="/dashboard" class="back-link">← Назад к дашборду</a>
+        
+        <h1 class="page-title">Настройка Telegram бота</h1>
+        <p class="page-subtitle">Получайте уведомления о новых прогнозах прямо в Telegram</p>
+        
+        <div class="section">
+            <h3 class="section-title">📱 Текущий статус</h3>
+            <div class="current-settings">
+                <div class="setting-row">
+                    <span class="name">Bot Token</span>
+                    <span class="value {{ 'configured' if bot_configured else 'not-configured' }}">
+                        {{ 'Настроен' if bot_configured else 'Не настроен' }}
+                    </span>
+                </div>
+                <div class="setting-row">
+                    <span class="name">Chat ID</span>
+                    <span class="value {{ 'configured' if chat_configured else 'not-configured' }}">
+                        {{ 'Настроен' if chat_configured else 'Не настроен' }}
+                    </span>
+                </div>
+                <div class="setting-row">
+                    <span class="name">Статус</span>
+                    <span class="value {{ 'configured' if is_active else 'not-configured' }}">
+                        {{ 'Активен' if is_active else 'Неактивен' }}
+                    </span>
+                </div>
+            </div>
+            
+            {% if bot_info %}
+            <p style="color: var(--success); font-size: 0.875rem;">
+                Подключён бот: @{{ bot_info.bot_username }}
+            </p>
+            {% endif %}
+        </div>
+        
+        <div class="section">
+            <h3 class="section-title">📝 Инструкция по созданию бота</h3>
+            
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h4>Откройте BotFather в Telegram</h4>
+                    <p>Перейдите по ссылке <a href="https://t.me/BotFather" target="_blank">t.me/BotFather</a> или найдите @BotFather в поиске Telegram.</p>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h4>Создайте нового бота</h4>
+                    <p>Отправьте команду <code>/newbot</code> и следуйте инструкциям. Придумайте имя (например, "Hockey Predictor") и username (например, hockey_predictor_bot).</p>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h4>Скопируйте токен</h4>
+                    <p>BotFather пришлёт вам API токен вида <code>123456789:ABCdefGHIjklMNOpqrsTUVwxyz</code>. Скопируйте его.</p>
+                </div>
+            </div>
+            
+            <div class="step">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <h4>Получите Chat ID</h4>
+                    <p>Напишите своему боту любое сообщение, затем откройте:<br>
+                    <code>https://api.telegram.org/bot&lt;ВАШ_ТОКЕН&gt;/getUpdates</code><br>
+                    Найдите <code>"chat":{"id": ЧИСЛО}</code> — это ваш Chat ID.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h3 class="section-title">⚙️ Сохранить настройки</h3>
+            <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 0.875rem;">
+                Токен и Chat ID сохраняются как секреты в настройках проекта для безопасности.
+            </p>
+            
+            <form id="telegram-form">
+                <div class="form-group">
+                    <label class="form-label">Bot Token</label>
+                    <input type="text" class="form-input" name="bot_token" placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz" value="">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Chat ID</label>
+                    <input type="text" class="form-input" name="chat_id" placeholder="123456789" value="">
+                </div>
+                
+                <button type="button" class="btn btn-test" onclick="testConnection()">Тест соединения</button>
+                <button type="submit" class="btn btn-primary">Сохранить</button>
+                
+                <div id="status-message"></div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        function testConnection() {
+            const token = document.querySelector('input[name="bot_token"]').value;
+            const chatId = document.querySelector('input[name="chat_id"]').value;
+            
+            if (!token) {
+                showStatus('Введите Bot Token', 'error');
+                return;
+            }
+            
+            fetch('/api/telegram/test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ bot_token: token, chat_id: chatId })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.ok) {
+                    showStatus(`Успешно! Бот: @${data.bot_username}`, 'success');
+                } else {
+                    showStatus(`Ошибка: ${data.error}`, 'error');
+                }
+            })
+            .catch(err => showStatus('Ошибка соединения', 'error'));
+        }
+        
+        function showStatus(message, type) {
+            const el = document.getElementById('status-message');
+            el.className = `status-message status-${type}`;
+            el.textContent = message;
+        }
+        
+        document.getElementById('telegram-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            showStatus('Для сохранения токенов перейдите в Secrets в настройках Replit и добавьте TELEGRAM_BOT_TOKEN и TELEGRAM_CHAT_ID', 'success');
+        });
+    </script>
+</body>
+</html>

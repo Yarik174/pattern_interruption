@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+    <title>Статистика | Hockey Predictor</title>
+    <style>
+        :root {
+            --bg-primary: #0D1117;
+            --bg-secondary: #161B22;
+            --bg-card: #21262D;
+            --accent: #BFFF00;
+            --success: #3FB950;
+            --warning: #D29922;
+            --danger: #F85149;
+            --text-primary: #F0F6FC;
+            --text-secondary: #8B949E;
+            --text-muted: #6E7681;
+            --border: #30363D;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        
+        .app { max-width: 1400px; margin: 0 auto; padding: 24px; }
+        
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 0 24px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .logo { display: flex; align-items: center; gap: 12px; }
+        .logo-icon {
+            width: 36px; height: 36px;
+            background: var(--accent);
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+        }
+        .logo h1 { font-size: 1.25rem; font-weight: 700; }
+        
+        nav { display: flex; gap: 8px; }
+        nav a {
+            padding: 8px 16px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: var(--text-secondary);
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        nav a:hover { background: var(--bg-card); color: var(--text-primary); }
+        nav a.active { background: var(--accent); color: #000; }
+        
+        .page-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 24px;
+        }
+        
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+        
+        .comparison-card {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid var(--border);
+        }
+        
+        .comparison-card.model { border-color: var(--accent); }
+        .comparison-card.manual { border-color: #60A5FA; }
+        
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+        
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+        
+        .card-badge {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .badge-model { background: rgba(191, 255, 0, 0.15); color: var(--accent); }
+        .badge-manual { background: rgba(96, 165, 250, 0.15); color: #60A5FA; }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+        
+        .stat-item {
+            background: var(--bg-card);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+        }
+        
+        .stat-item .value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        
+        .stat-item .label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+        
+        .section {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 24px;
+            border: 1px solid var(--border);
+            margin-bottom: 24px;
+        }
+        
+        .section-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        
+        .league-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+        
+        .league-card {
+            background: var(--bg-card);
+            border-radius: 8px;
+            padding: 16px;
+        }
+        
+        .league-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .league-name { font-weight: 600; }
+        
+        .league-metrics {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.875rem;
+        }
+        
+        .metric-row .name { color: var(--text-muted); }
+        .metric-row .value { font-weight: 600; }
+        
+        .progress-bar {
+            height: 8px;
+            background: var(--bg-primary);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 12px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+        
+        .history-chart {
+            background: var(--bg-card);
+            border-radius: 8px;
+            padding: 20px;
+            min-height: 200px;
+            display: flex;
+            align-items: flex-end;
+            gap: 4px;
+        }
+        
+        .chart-bar {
+            flex: 1;
+            min-width: 20px;
+            border-radius: 4px 4px 0 0;
+            position: relative;
+            transition: all 0.2s;
+        }
+        
+        .chart-bar:hover {
+            opacity: 0.8;
+        }
+        
+        .chart-bar .tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+        
+        .chart-bar:hover .tooltip { opacity: 1; }
+        
+        .table-container {
+            overflow-x: auto;
+        }
+        
+        .stats-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .stats-table th {
+            text-align: left;
+            padding: 12px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .stats-table td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .stats-table tr:last-child td { border-bottom: none; }
+        
+        .trend {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: 600;
+        }
+        .trend.up { color: var(--success); }
+        .trend.down { color: var(--danger); }
+        .trend.neutral { color: var(--text-muted); }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">🏒</div>
+                <h1>Hockey Predictor</h1>
+            </div>
+            <nav>
+                <a href="/">Матчи</a>
+                <a href="/predictions">Прогнозы</a>
+                <a href="/dashboard">Дашборд</a>
+                <a href="/statistics" class="active">Статистика</a>
+            </nav>
+        </header>
+        
+        <h1 class="page-title">Сравнение: Модель vs Ручной отбор</h1>
+        
+        <div class="comparison-grid">
+            <div class="comparison-card model">
+                <div class="card-header">
+                    <h2 class="card-title">Прогнозы модели</h2>
+                    <span class="card-badge badge-model">AI</span>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="value">{{ model_stats.total or 0 }}</div>
+                        <div class="label">Всего</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="value" style="color: var(--success)">{{ model_stats.wins or 0 }}</div>
+                        <div class="label">Выигрыши</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="value" style="color: var(--accent)">{{ '%.1f'|format(model_stats.win_rate or 0) }}%</div>
+                        <div class="label">Win Rate</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="value" style="color: {% if (model_stats.roi or 0) > 0 %}var(--success){% else %}var(--danger){% endif %}">
+                            {{ '%+.1f'|format(model_stats.roi or 0) }}%
+                        </div>
+                        <div class="label">ROI</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="comparison-card manual">
+                <div class="card-header">
+                    <h2 class="card-title">Ручной отбор</h2>
+                    <span class="card-badge badge-manual">Вы</span>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="value">{{ manual_stats.total or 0 }}</div>
+                        <div class="label">Принято</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="value" style="color: var(--success)">{{ manual_stats.wins or 0 }}</div>
+                        <div class="label">Выигрыши</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="value" style="color: #60A5FA">{{ '%.1f'|format(manual_stats.win_rate or 0) }}%</div>
+                        <div class="label">Win Rate</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="value" style="color: {% if (manual_stats.roi or 0) > 0 %}var(--success){% else %}var(--danger){% endif %}">
+                            {{ '%+.1f'|format(manual_stats.roi or 0) }}%
+                        </div>
+                        <div class="label">ROI</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h3 class="section-title">📊 Статистика по лигам</h3>
+            <div class="league-stats">
+                {% for league in ['NHL', 'KHL', 'SHL', 'Liiga', 'DEL'] %}
+                <div class="league-card">
+                    <div class="league-header">
+                        <span class="league-name">{{ league }}</span>
+                    </div>
+                    <div class="league-metrics">
+                        <div class="metric-row">
+                            <span class="name">Прогнозов</span>
+                            <span class="value">{{ league_stats[league].total if league_stats and league in league_stats else 0 }}</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="name">Win Rate</span>
+                            <span class="value" style="color: var(--success)">
+                                {{ '%.0f'|format(league_stats[league].win_rate) if league_stats and league in league_stats and league_stats[league].win_rate else 0 }}%
+                            </span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="name">ROI</span>
+                            <span class="value">
+                                {{ '%+.1f'|format(league_stats[league].roi) if league_stats and league in league_stats and league_stats[league].roi else 0 }}%
+                            </span>
+                        </div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {{ league_stats[league].win_rate if league_stats and league in league_stats and league_stats[league].win_rate else 0 }}%; background: var(--accent);"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div class="section">
+            <h3 class="section-title">📈 История по месяцам</h3>
+            {% if monthly_stats %}
+            <div class="table-container">
+                <table class="stats-table">
+                    <thead>
+                        <tr>
+                            <th>Месяц</th>
+                            <th>Прогнозов</th>
+                            <th>Win Rate</th>
+                            <th>ROI</th>
+                            <th>Принято</th>
+                            <th>Тренд</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for month in monthly_stats %}
+                        <tr>
+                            <td>{{ month.month }}</td>
+                            <td>{{ month.total }}</td>
+                            <td>{{ '%.1f'|format(month.win_rate) }}%</td>
+                            <td style="color: {% if month.roi > 0 %}var(--success){% else %}var(--danger){% endif %}">
+                                {{ '%+.1f'|format(month.roi) }}%
+                            </td>
+                            <td>{{ month.accepted }}</td>
+                            <td>
+                                <span class="trend {{ 'up' if month.trend > 0 else 'down' if month.trend < 0 else 'neutral' }}">
+                                    {{ '↑' if month.trend > 0 else '↓' if month.trend < 0 else '→' }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <p>Нет данных для отображения. Статистика появится после первых прогнозов.</p>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="section">
+            <h3 class="section-title">🎯 Анализ уверенности</h3>
+            <div class="league-stats">
+                {% for conf in range(1, 11) %}
+                <div class="league-card" style="text-align: center;">
+                    <div style="font-size: 1.5rem; font-weight: 700; margin-bottom: 8px;">{{ conf }}/10</div>
+                    <div class="league-metrics">
+                        <div class="metric-row">
+                            <span class="name">Ставок</span>
+                            <span class="value">{{ confidence_stats[conf].total if confidence_stats and conf in confidence_stats else 0 }}</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="name">Win Rate</span>
+                            <span class="value" style="color: var(--success)">
+                                {{ '%.0f'|format(confidence_stats[conf].win_rate) if confidence_stats and conf in confidence_stats and confidence_stats[conf].win_rate else '-' }}%
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</body>
+</html>

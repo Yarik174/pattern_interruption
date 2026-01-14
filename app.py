@@ -6,7 +6,7 @@ NHL Pattern Prediction Web Interface
 import warnings
 warnings.filterwarnings('ignore', category=UserWarning)
 
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request, redirect, url_for
 import joblib
 import pandas as pd
 from datetime import datetime, timedelta
@@ -23,6 +23,40 @@ from src.feature_builder import FeatureBuilder
 
 app = Flask(__name__, static_folder='static')
 app.config['TEMPLATES_AUTO_RELOAD'] = True
+app.secret_key = os.environ.get("SESSION_SECRET")
+
+if not app.secret_key:
+    raise RuntimeError("SESSION_SECRET environment variable is required. Please set it in the Secrets tab.")
+
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_recycle": 300,
+    "pool_pre_ping": True,
+}
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+from models import db, Prediction, UserDecision, ModelVersion, TelegramSettings, OddsMonitorLog
+db.init_app(app)
+
+with app.app_context():
+    db.create_all()
+    
+from src.routes import routes_bp, init_routes, set_monitor, set_telegram
+init_routes(db, {
+    'Prediction': Prediction,
+    'UserDecision': UserDecision,
+    'ModelVersion': ModelVersion,
+    'TelegramSettings': TelegramSettings
+})
+app.register_blueprint(routes_bp)
+
+from src.telegram_bot import TelegramNotifier
+from src.allbestbets_loader import AllBestBetsLoader, get_demo_odds
+from src.odds_monitor import OddsMonitor
+
+telegram_notifier = TelegramNotifier()
+odds_loader = AllBestBetsLoader()
+set_telegram(telegram_notifier)
 
 @app.after_request
 def add_header(response):
@@ -1233,7 +1267,116 @@ def api_sequence_predict(home, away):
     })
 
 
-if __name__ == '__main__':
+def create_prediction_from_match(match_data):
+    """
+    Создать прогноз на основе данных матча
+    
+    Args:
+        match_data: Данные матча с коэффициентами
+        
+    Returns:
+        Prediction object или None
+    """
+    try:
+        init_system()
+        
+        home_team = match_data.get('home_team', '')
+        away_team = match_data.get('away_team', '')
+        league = match_data.get('league', 'NHL')
+        
+        home_odds = match_data.get('home_odds')
+        away_odds = match_data.get('away_odds')
+        
+        if not home_odds or not away_odds:
+            return None
+        
+        if home_odds < away_odds:
+            predicted_outcome = 'home'
+            confidence = min(0.95, 1 / home_odds + 0.1)
+        else:
+            predicted_outcome = 'away'
+            confidence = min(0.95, 1 / away_odds + 0.1)
+        
+        confidence_1_10 = max(1, min(10, int(confidence * 10)))
+        
+        prediction = Prediction(
+            match_date=match_data.get('match_date', datetime.utcnow()),
+            league=league,
+            home_team=home_team,
+            away_team=away_team,
+            prediction_type='Money Line',
+            predicted_outcome=predicted_outcome,
+            confidence=confidence,
+            confidence_1_10=confidence_1_10,
+            home_odds=home_odds,
+            away_odds=away_odds,
+            draw_odds=match_data.get('draw_odds'),
+            bookmaker=match_data.get('bookmaker', ''),
+            patterns_data=match_data.get('patterns', {}),
+            model_version='1.0.0'
+        )
+        
+        with app.app_context():
+            db.session.add(prediction)
+            db.session.commit()
+            
+            if telegram_notifier.is_configured():
+                telegram_notifier.send_prediction_alert(prediction.to_dict())
+                prediction.notified_telegram = True
+                db.session.commit()
+        
+        return prediction
+        
+    except Exception as e:
+        print(f"Error creating prediction: {e}")
+        return None
+
+
+def init_odds_monitor():
+    """Инициализация монитора коэффициентов"""
+    global odds_loader
+    
+    def prediction_callback(match_data):
+        return create_prediction_from_match(match_data)
+    
+    def notification_callback(prediction):
+        if prediction and telegram_notifier.is_configured():
+            return telegram_notifier.send_prediction_alert(prediction.to_dict())
+        return False
+    
+    monitor = OddsMonitor(
+        odds_loader=odds_loader,
+        prediction_callback=prediction_callback,
+        notification_callback=notification_callback,
+        check_interval=300
+    )
+    
+    set_monitor(monitor)
+    monitor.start()
+    return monitor
+
+
+_startup_done = False
+
+def startup_initialization():
+    """Выполняется один раз при старте приложения"""
+    global _startup_done
+    if _startup_done:
+        return
+    _startup_done = True
+    
     import threading
     threading.Thread(target=warmup_multi_league, daemon=True).start()
+    
+    if odds_loader.is_configured():
+        threading.Thread(target=init_odds_monitor, daemon=True).start()
+        print("✅ Odds monitor initialized")
+    else:
+        print("⚠️ AllBestBets API not configured, odds monitor disabled")
+
+
+startup_initialization()
+
+
+if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

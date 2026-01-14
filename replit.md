@@ -9,6 +9,32 @@ I value iterative development and regular updates on progress.
 Please ask for confirmation before implementing significant architectural changes or adding new external dependencies.
 Ensure all generated code is well-commented and follows standard Python best practices.
 
+## Recent Changes (2026-01-14)
+
+### New Features Added:
+1. **PostgreSQL Database Integration** - Tables for predictions, user decisions, model versions
+2. **AllBestBets API Integration** - For real-time betting odds (requires ALLBESTBETS_API_TOKEN, ALLBESTBETS_FILTER_ID)
+3. **Telegram Bot Notifications** - Alerts when new predictions are generated (requires TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID)
+4. **Background Odds Monitor** - Automatically checks for new odds and generates predictions
+5. **New Web Pages:**
+   - `/predictions` - Table of all predictions with filters
+   - `/prediction/<id>` - Detailed prediction page with patterns (Flashscore-style) and decision form
+   - `/dashboard` - Model dashboard with metrics, version info, and monitor controls
+   - `/statistics` - Comparison of model predictions vs manual selection
+   - `/settings/telegram` - Telegram bot setup instructions
+
+### New Files:
+- `models.py` - SQLAlchemy database models
+- `src/allbestbets_loader.py` - AllBestBets API client
+- `src/telegram_bot.py` - Telegram notification system
+- `src/odds_monitor.py` - Background odds monitoring
+- `src/routes.py` - New Flask routes for predictions, dashboard, statistics
+- `templates/predictions.html` - Predictions table page
+- `templates/prediction_detail.html` - Detailed prediction view
+- `templates/dashboard.html` - Model dashboard
+- `templates/statistics.html` - Statistics comparison page
+- `templates/telegram_setup.html` - Telegram setup instructions
+
 ## System Architecture
 The system is built around a core pattern recognition engine that identifies various types of patterns, including home series, away series, head-to-head records, and alternating win/loss sequences. It utilizes both a Random Forest model for general predictions and a Critical Pattern Prediction (CPP) logic for identifying high-confidence pattern breaks.
 
@@ -20,6 +46,8 @@ The system is built around a core pattern recognition engine that identifies var
     - **Random Forest:** `model.py` implements a Random Forest classifier with probability calibration. It uses 112 features and achieves an accuracy of ~54.44%.
     - **LSTM Sequence Model:** `sequence_model.py` uses a PyTorch-based LSTM neural network with dual prediction for regulation (1X2) and final (Money Line) results.
 - **CPP Logic:** This logic determines pattern breaks based on predefined critical lengths and rules. Synergy (multiple patterns pointing to the same outcome) is a key factor for bet recommendations.
+- **Database:** PostgreSQL with SQLAlchemy ORM for storing predictions, user decisions, and model versions.
+- **Notifications:** Telegram bot for real-time alerts.
 
 ## LSTM Sequence Model (обновлено 2026-01-14)
 
@@ -66,9 +94,20 @@ goals_scored, goals_conceded, won, home_game, overtime, goal_diff, total_goals, 
 ## External Dependencies
 - **NHL API:** For NHL match data.
 - **API-Sports:** For KHL, SHL, Liiga, and DEL match data.
-- **The Odds API:** For real-time betting odds (ODDS_API_KEY в секретах).
+- **AllBestBets API:** For real-time betting odds from 55+ bookmakers (free plan: odds up to 1%, 60s delay)
+- **The Odds API:** Alternative for NHL odds (ODDS_API_KEY в секретах).
+- **Telegram Bot API:** For notifications
 - **Исторические odds:** data/odds/sbro-*.csv (2016-2023, 5320 матчей)
-- **Flask, PyTorch, Scikit-learn:** Core frameworks
+- **Flask, Flask-SQLAlchemy, PyTorch, Scikit-learn:** Core frameworks
+
+## Environment Variables (Secrets)
+- `DATABASE_URL` - PostgreSQL connection string (auto-configured)
+- `SESSION_SECRET` - Flask session secret
+- `ALLBESTBETS_API_TOKEN` - AllBestBets API token (optional)
+- `ALLBESTBETS_FILTER_ID` - AllBestBets filter ID (optional)
+- `TELEGRAM_BOT_TOKEN` - Telegram bot token (optional)
+- `TELEGRAM_CHAT_ID` - Telegram chat ID for notifications (optional)
+- `ODDS_API_KEY` - The Odds API key (optional, for NHL only)
 
 ## Команды
 
@@ -77,5 +116,13 @@ goals_scored, goals_conceded, won, home_game, overtime, goal_diff, total_goals, 
 uv run python train_sequence.py --epochs 50 --seasons 7 --with-odds
 
 # Запуск сервера
-uv run python app.py
+gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app
 ```
+
+## Web Interface Routes
+- `/` - Main matches page (original)
+- `/predictions` - Predictions table with filters
+- `/prediction/<id>` - Detailed prediction with patterns and decision form
+- `/dashboard` - Model dashboard with metrics
+- `/statistics` - Model vs manual selection comparison
+- `/settings/telegram` - Telegram bot setup
