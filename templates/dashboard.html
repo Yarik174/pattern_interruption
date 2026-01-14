@@ -232,8 +232,8 @@
             color: var(--text-muted);
         }
         
-        /* Pipeline Visualization */
-        .pipeline-container {
+        /* Storytelling Visualization */
+        .story-container {
             background: linear-gradient(135deg, #1a1a2e 0%, #0f0f23 100%);
             border-radius: 16px;
             padding: 40px 32px;
@@ -241,220 +241,246 @@
             overflow: hidden;
         }
         
-        .pipeline-steps {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 16px;
-            position: relative;
-        }
-        
-        .pipeline-step {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            position: relative;
-            z-index: 2;
-        }
-        
-        .step-icon {
-            width: 80px;
-            height: 80px;
-            border-radius: 20px;
+        .story-match-header {
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 36px;
-            margin-bottom: 16px;
-            position: relative;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-            animation: stepPulse 3s ease-in-out infinite;
+            gap: 24px;
+            margin-bottom: 32px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
         }
         
-        .step-icon.step-1 { background: linear-gradient(135deg, #3B82F6, #1D4ED8); animation-delay: 0s; }
-        .step-icon.step-2 { background: linear-gradient(135deg, #8B5CF6, #6D28D9); animation-delay: 0.5s; }
-        .step-icon.step-3 { background: linear-gradient(135deg, #F59E0B, #D97706); animation-delay: 1s; }
-        .step-icon.step-4 { background: linear-gradient(135deg, #EC4899, #BE185D); animation-delay: 1.5s; }
-        .step-icon.step-5 { background: linear-gradient(135deg, #22C55E, #16A34A); animation-delay: 2s; }
-        
-        @keyframes stepPulse {
-            0%, 100% { transform: scale(1); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
-            50% { transform: scale(1.05); box-shadow: 0 12px 40px rgba(190,255,80,0.2); }
+        .story-team {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
         
-        .step-number {
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            width: 28px;
-            height: 28px;
-            background: var(--accent);
-            border-radius: 50%;
+        .story-team-logo {
+            width: 56px;
+            height: 56px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
-            font-weight: 800;
-            color: #000;
-            border: 3px solid #1a1a2e;
+            font-size: 28px;
         }
         
-        .step-title {
+        .story-team-info {
+            text-align: left;
+        }
+        
+        .story-team-name {
             color: #fff;
             font-weight: 700;
-            font-size: 1rem;
+            font-size: 1.1rem;
+        }
+        
+        .story-team-role {
+            color: rgba(255,255,255,0.5);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+        }
+        
+        .story-vs {
+            color: rgba(255,255,255,0.3);
+            font-size: 1.5rem;
+            font-weight: 800;
+        }
+        
+        .patterns-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .pattern-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+            position: relative;
+            animation: patternAppear 0.6s ease-out backwards;
+        }
+        
+        .pattern-card:nth-child(1) { animation-delay: 0.2s; }
+        .pattern-card:nth-child(2) { animation-delay: 0.4s; }
+        .pattern-card:nth-child(3) { animation-delay: 0.6s; }
+        
+        @keyframes patternAppear {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .pattern-card.danger { border-color: #EF4444; }
+        .pattern-card.success { border-color: #22C55E; }
+        .pattern-card.info { border-color: #3B82F6; }
+        
+        .pattern-icon {
+            font-size: 32px;
+            margin-bottom: 12px;
+        }
+        
+        .pattern-team {
+            color: rgba(255,255,255,0.6);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
             margin-bottom: 8px;
         }
         
-        .step-desc {
-            color: rgba(255,255,255,0.6);
-            font-size: 0.8rem;
-            line-height: 1.5;
-            max-width: 140px;
+        .pattern-value {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 4px;
         }
         
-        .step-highlight {
-            color: var(--accent);
-            font-weight: 600;
+        .pattern-card.danger .pattern-value { color: #EF4444; }
+        .pattern-card.success .pattern-value { color: #22C55E; }
+        .pattern-card.info .pattern-value { color: #3B82F6; }
+        
+        .pattern-label {
+            color: rgba(255,255,255,0.7);
+            font-size: 0.85rem;
+            font-weight: 500;
         }
         
-        /* Arrow between steps */
-        .pipeline-arrow {
-            position: absolute;
-            top: 40px;
+        .synergy-connector {
             display: flex;
+            justify-content: center;
             align-items: center;
-            color: var(--accent);
-            z-index: 1;
-        }
-        
-        .arrow-line {
-            width: 100%;
-            height: 3px;
-            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            margin: 8px 0 24px;
             position: relative;
         }
         
-        .arrow-line::after {
-            content: "→";
+        .synergy-lines {
             position: absolute;
-            right: -12px;
-            top: -12px;
-            font-size: 24px;
-            color: var(--accent);
-            animation: arrowPulse 1.5s ease-in-out infinite;
+            width: 100%;
+            height: 40px;
+            top: -20px;
         }
         
-        @keyframes arrowPulse {
-            0%, 100% { opacity: 0.5; transform: translateX(0); }
-            50% { opacity: 1; transform: translateX(4px); }
-        }
-        
-        /* Data flow animation */
-        .data-particle {
-            position: absolute;
-            width: 8px;
-            height: 8px;
-            background: var(--accent);
-            border-radius: 50%;
-            box-shadow: 0 0 12px var(--accent);
-            animation: dataFlow 4s linear infinite;
-        }
-        
-        @keyframes dataFlow {
-            0% { left: 0%; opacity: 0; }
-            10% { opacity: 1; }
-            90% { opacity: 1; }
-            100% { left: 100%; opacity: 0; }
-        }
-        
-        /* Example match card */
-        .pipeline-example {
-            margin-top: 32px;
-            background: rgba(255,255,255,0.05);
-            border-radius: 12px;
-            padding: 20px 24px;
-            border: 1px solid rgba(190,255,80,0.2);
-        }
-        
-        .example-header {
+        .synergy-badge {
+            background: linear-gradient(135deg, #8B5CF6, #6D28D9);
+            color: #fff;
+            padding: 12px 28px;
+            border-radius: 30px;
+            font-weight: 700;
+            font-size: 0.9rem;
             display: flex;
             align-items: center;
-            gap: 12px;
-            margin-bottom: 16px;
+            gap: 8px;
+            box-shadow: 0 8px 32px rgba(139, 92, 246, 0.4);
+            animation: synergyPulse 2s ease-in-out infinite;
+            z-index: 2;
         }
         
-        .example-label {
-            color: var(--accent);
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+        @keyframes synergyPulse {
+            0%, 100% { box-shadow: 0 8px 32px rgba(139, 92, 246, 0.4); }
+            50% { box-shadow: 0 12px 48px rgba(139, 92, 246, 0.6); }
         }
         
-        .example-match {
+        .result-card {
+            background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(34, 197, 94, 0.05));
+            border: 2px solid #22C55E;
+            border-radius: 16px;
+            padding: 24px 32px;
             display: flex;
             align-items: center;
-            justify-content: center;
+            justify-content: space-between;
+            animation: resultAppear 0.8s ease-out 1s backwards;
+        }
+        
+        @keyframes resultAppear {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        
+        .result-main {
+            display: flex;
+            align-items: center;
             gap: 20px;
         }
         
-        .example-team {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            color: #fff;
-        }
-        
-        .team-logo {
-            width: 40px;
-            height: 40px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 8px;
+        .result-icon {
+            width: 64px;
+            height: 64px;
+            background: #22C55E;
+            border-radius: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 20px;
+            font-size: 32px;
         }
         
-        .team-name {
-            font-weight: 600;
-            font-size: 1rem;
-        }
-        
-        .vs-text {
-            color: rgba(255,255,255,0.4);
-            font-size: 0.875rem;
-            font-weight: 600;
-        }
-        
-        .example-arrow {
-            color: var(--accent);
-            font-size: 24px;
-            margin: 0 16px;
-        }
-        
-        .example-result {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-        }
-        
-        .result-prediction {
-            background: var(--accent);
-            color: #000;
-            padding: 8px 20px;
-            border-radius: 8px;
-            font-weight: 700;
-            font-size: 1rem;
-        }
-        
-        .result-confidence {
-            color: rgba(255,255,255,0.5);
+        .result-text h4 {
+            color: #22C55E;
             font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+        
+        .result-text .prediction {
+            color: #fff;
+            font-size: 1.5rem;
+            font-weight: 800;
+        }
+        
+        .result-stats {
+            display: flex;
+            gap: 32px;
+        }
+        
+        .result-stat {
+            text-align: center;
+        }
+        
+        .result-stat .value {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: var(--accent);
+        }
+        
+        .result-stat .label {
+            color: rgba(255,255,255,0.5);
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .confidence-bar {
+            margin-top: 16px;
+        }
+        
+        .confidence-bar .bar-bg {
+            height: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .confidence-bar .bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #22C55E, var(--accent));
+            border-radius: 4px;
+            animation: fillBar 1.5s ease-out 1.2s backwards;
+        }
+        
+        @keyframes fillBar {
+            from { width: 0; }
+        }
+        
+        .confidence-bar .bar-label {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 6px;
+            font-size: 0.75rem;
+            color: rgba(255,255,255,0.5);
         }
         
         /* Metrics Grid */
@@ -795,9 +821,9 @@
             .cpp-grid { grid-template-columns: 1fr; }
             .params-grid { grid-template-columns: repeat(2, 1fr); }
             .inference-grid { grid-template-columns: repeat(2, 1fr); }
-            .pipeline-steps { flex-wrap: wrap; gap: 24px; justify-content: center; }
-            .pipeline-step { flex: 0 0 40%; }
-            .pipeline-container svg { display: none; }
+            .patterns-grid { grid-template-columns: 1fr 1fr; }
+            .result-card { flex-direction: column; gap: 20px; text-align: center; }
+            .result-stats { justify-content: center; }
         }
         
         @media (max-width: 768px) {
@@ -805,11 +831,10 @@
             .model-hero-content { flex-direction: column; gap: 24px; text-align: center; }
             .model-stats { justify-content: center; }
             .metrics-grid { grid-template-columns: repeat(2, 1fr); }
-            .pipeline-steps { flex-direction: column; align-items: center; gap: 20px; }
-            .pipeline-step { flex: none; width: 100%; max-width: 280px; }
-            .step-desc { max-width: 200px; }
-            .example-match { flex-direction: column; gap: 12px; }
-            .example-arrow { transform: rotate(90deg); }
+            .patterns-grid { grid-template-columns: 1fr; }
+            .story-match-header { flex-direction: column; gap: 12px; }
+            .result-card { padding: 20px; }
+            .result-stats { flex-direction: column; gap: 16px; }
         }
     </style>
 </head>
@@ -898,121 +923,102 @@
             </div>
         </div>
         
-        <!-- How The System Works - Pipeline -->
+        <!-- How The System Finds Value - Storytelling -->
         <div class="nn-section">
             <div class="section-header">
                 <h3 class="section-title">
-                    🔄 Как работает система
-                    <span class="section-badge">5 простых шагов</span>
+                    🎯 Как система находит выгодные ставки
+                    <span class="section-badge">Реальный пример</span>
                 </h3>
             </div>
             
-            <div class="pipeline-container">
-                <div class="pipeline-steps">
-                    <!-- Step 1: Get Games -->
-                    <div class="pipeline-step">
-                        <div class="step-icon step-1">
-                            <span class="step-number">1</span>
-                            📅
-                        </div>
-                        <div class="step-title">Расписание</div>
-                        <div class="step-desc">
-                            Получаем <span class="step-highlight">матчи на сегодня</span> через API-Sports
+            <div class="story-container">
+                <!-- Match Header -->
+                <div class="story-match-header">
+                    <div class="story-team">
+                        <div class="story-team-logo">🐻</div>
+                        <div class="story-team-info">
+                            <div class="story-team-name">Boston Bruins</div>
+                            <div class="story-team-role">Дома</div>
                         </div>
                     </div>
-                    
-                    <!-- Step 2: Historical Data -->
-                    <div class="pipeline-step">
-                        <div class="step-icon step-2">
-                            <span class="step-number">2</span>
-                            📊
-                        </div>
-                        <div class="step-title">История</div>
-                        <div class="step-desc">
-                            Загружаем <span class="step-highlight">7 сезонов NHL</span> — 5320 матчей
-                        </div>
-                    </div>
-                    
-                    <!-- Step 3: Feature Building -->
-                    <div class="pipeline-step">
-                        <div class="step-icon step-3">
-                            <span class="step-number">3</span>
-                            🔢
-                        </div>
-                        <div class="step-title">Анализ</div>
-                        <div class="step-desc">
-                            Вычисляем <span class="step-highlight">112 факторов</span>: серии, H2H, форма
-                        </div>
-                    </div>
-                    
-                    <!-- Step 4: AI Prediction -->
-                    <div class="pipeline-step">
-                        <div class="step-icon step-4">
-                            <span class="step-number">4</span>
-                            🧠
-                        </div>
-                        <div class="step-title">Прогноз AI</div>
-                        <div class="step-desc">
-                            Модель анализирует данные за <span class="step-highlight">23 мс</span>
-                        </div>
-                    </div>
-                    
-                    <!-- Step 5: Recommendation -->
-                    <div class="pipeline-step">
-                        <div class="step-icon step-5">
-                            <span class="step-number">5</span>
-                            ✅
-                        </div>
-                        <div class="step-title">Рекомендация</div>
-                        <div class="step-desc">
-                            Вы решаете: <span class="step-highlight">принять</span> или пропустить
+                    <div class="story-vs">VS</div>
+                    <div class="story-team">
+                        <div class="story-team-logo">🍁</div>
+                        <div class="story-team-info">
+                            <div class="story-team-name">Toronto Maple Leafs</div>
+                            <div class="story-team-role">В гостях</div>
                         </div>
                     </div>
                 </div>
                 
-                <!-- Animated arrows between steps -->
-                <svg style="position: absolute; top: 76px; left: 0; right: 0; height: 8px; z-index: 1;" preserveAspectRatio="none">
-                    <defs>
-                        <linearGradient id="arrowGradient">
-                            <stop offset="0%" stop-color="transparent"/>
-                            <stop offset="50%" stop-color="#BEFF50"/>
-                            <stop offset="100%" stop-color="transparent"/>
-                        </linearGradient>
-                    </defs>
-                    <line x1="18%" y1="4" x2="22%" y2="4" stroke="url(#arrowGradient)" stroke-width="3" stroke-linecap="round">
-                        <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite"/>
-                    </line>
-                    <line x1="38%" y1="4" x2="42%" y2="4" stroke="url(#arrowGradient)" stroke-width="3" stroke-linecap="round">
-                        <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" begin="0.5s" repeatCount="indefinite"/>
-                    </line>
-                    <line x1="58%" y1="4" x2="62%" y2="4" stroke="url(#arrowGradient)" stroke-width="3" stroke-linecap="round">
-                        <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" begin="1s" repeatCount="indefinite"/>
-                    </line>
-                    <line x1="78%" y1="4" x2="82%" y2="4" stroke="url(#arrowGradient)" stroke-width="3" stroke-linecap="round">
-                        <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" begin="1.5s" repeatCount="indefinite"/>
-                    </line>
-                </svg>
-                
-                <!-- Example Match -->
-                <div class="pipeline-example">
-                    <div class="example-header">
-                        <span class="example-label">💡 Пример работы</span>
+                <!-- Pattern Cards -->
+                <div class="patterns-grid">
+                    <div class="pattern-card danger">
+                        <div class="pattern-icon">📉</div>
+                        <div class="pattern-team">Toronto</div>
+                        <div class="pattern-value">5</div>
+                        <div class="pattern-label">поражений на выезде подряд</div>
                     </div>
-                    <div class="example-match">
-                        <div class="example-team">
-                            <div class="team-logo">🐻</div>
-                            <div class="team-name">Boston Bruins</div>
+                    <div class="pattern-card success">
+                        <div class="pattern-icon">📈</div>
+                        <div class="pattern-team">Boston</div>
+                        <div class="pattern-value">4</div>
+                        <div class="pattern-label">победы дома подряд</div>
+                    </div>
+                    <div class="pattern-card info">
+                        <div class="pattern-icon">⚔️</div>
+                        <div class="pattern-team">Личные встречи</div>
+                        <div class="pattern-value">4-1</div>
+                        <div class="pattern-label">в пользу Boston</div>
+                    </div>
+                </div>
+                
+                <!-- Synergy Connector -->
+                <div class="synergy-connector">
+                    <svg class="synergy-lines" viewBox="0 0 100 40" preserveAspectRatio="none">
+                        <path d="M16 0 L50 35" stroke="rgba(139,92,246,0.4)" stroke-width="0.5" fill="none"/>
+                        <path d="M50 0 L50 35" stroke="rgba(139,92,246,0.4)" stroke-width="0.5" fill="none"/>
+                        <path d="M84 0 L50 35" stroke="rgba(139,92,246,0.4)" stroke-width="0.5" fill="none"/>
+                    </svg>
+                    <div class="synergy-badge">
+                        ⚡ Синергия: 3 паттерна совпали
+                    </div>
+                </div>
+                
+                <!-- Result Card -->
+                <div class="result-card">
+                    <div class="result-main">
+                        <div class="result-icon">✅</div>
+                        <div class="result-text">
+                            <h4>Рекомендация системы</h4>
+                            <div class="prediction">Победа Boston Bruins</div>
                         </div>
-                        <div class="vs-text">VS</div>
-                        <div class="example-team">
-                            <div class="team-logo">🍁</div>
-                            <div class="team-name">Toronto Maple Leafs</div>
+                    </div>
+                    <div class="result-stats">
+                        <div class="result-stat">
+                            <div class="value">76%</div>
+                            <div class="label">Win Rate</div>
                         </div>
-                        <div class="example-arrow">→</div>
-                        <div class="example-result">
-                            <div class="result-prediction">Boston Win</div>
-                            <div class="result-confidence">Уверенность: 7.8 / 10</div>
+                        <div class="result-stat">
+                            <div class="value">+27%</div>
+                            <div class="label">ROI</div>
                         </div>
+                        <div class="result-stat">
+                            <div class="value">21</div>
+                            <div class="label">Ставок в истории</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Confidence Bar -->
+                <div class="confidence-bar">
+                    <div class="bar-bg">
+                        <div class="bar-fill" style="width: 76%"></div>
+                    </div>
+                    <div class="bar-label">
+                        <span>Уверенность модели</span>
+                        <span>76%</span>
                     </div>
                 </div>
             </div>
