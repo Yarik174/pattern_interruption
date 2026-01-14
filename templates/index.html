@@ -84,6 +84,30 @@
             gap: 32px;
         }
         
+        nav {
+            display: flex;
+            gap: 8px;
+        }
+        
+        nav a {
+            padding: 8px 16px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: var(--text-secondary);
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        nav a:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+        
+        nav a.active {
+            background: var(--accent);
+            color: #000;
+        }
+        
         .stat-item {
             text-align: center;
         }
@@ -723,6 +747,12 @@
                 <div class="logo-icon">🏒</div>
                 <h1>Pattern Predictor</h1>
             </div>
+            <nav>
+                <a href="/" class="active">Матчи</a>
+                <a href="/predictions">Прогнозы</a>
+                <a href="/dashboard">Дашборд</a>
+                <a href="/statistics">Статистика</a>
+            </nav>
             <div class="header-stats" id="headerStats">
                 <div class="stat-item">
                     <div class="stat-value" id="matchCount">-</div>
