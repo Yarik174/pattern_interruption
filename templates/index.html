@@ -846,25 +846,26 @@
             showLoading();
             
             try {
-                const nhlResponse = await fetch('/api/analyze-all');
-                const nhlData = await nhlResponse.json();
-                state.nhlMatches = nhlData.matches || [];
+                const [nhlResponse, euroResponse] = await Promise.all([
+                    fetch('/api/analyze-all').then(r => r.json()),
+                    fetch('/api/european_matches').then(r => r.json()).catch(e => {
+                        console.log('European leagues error:', e);
+                        return { KHL: { matches: [] }, SHL: { matches: [] }, Liiga: { matches: [] }, DEL: { matches: [] } };
+                    })
+                ]);
+                
+                state.nhlMatches = nhlResponse.matches || [];
+                
+                state.multiLeagueData = {
+                    'KHL': euroResponse.KHL || { matches: [] },
+                    'SHL': euroResponse.SHL || { matches: [] },
+                    'LIIGA': euroResponse.Liiga || { matches: [] },
+                    'DEL': euroResponse.DEL || { matches: [] }
+                };
                 
                 updateTabCounts();
                 updateHeaderStats();
                 renderMatches();
-                
-                fetch('/api/multi-league/upcoming')
-                    .then(r => r.json())
-                    .then(data => {
-                        state.multiLeagueData = data.leagues || {};
-                        updateTabCounts();
-                        updateHeaderStats();
-                        if (state.currentLeague !== 'nhl') {
-                            renderMatches();
-                        }
-                    })
-                    .catch(e => console.log('Multi-league error:', e));
                     
             } catch (error) {
                 showError(error.message);
@@ -888,8 +889,10 @@
             const nhlFiltered = state.nhlMatches.filter(m => m.strong_signal?.max >= 3).length;
             document.getElementById('nhl-count').textContent = nhlFiltered;
             
+            const leagueKeyMap = { 'khl': 'KHL', 'shl': 'SHL', 'liiga': 'LIIGA', 'del': 'DEL' };
             ['khl', 'shl', 'liiga', 'del'].forEach(league => {
-                const data = state.multiLeagueData[league.toUpperCase()] || {};
+                const key = leagueKeyMap[league];
+                const data = state.multiLeagueData[key] || {};
                 const count = (data.matches || []).filter(m => (m.score || 0) >= 3).length;
                 document.getElementById(`${league}-count`).textContent = count;
             });
@@ -939,7 +942,9 @@
                     .filter(m => (m.strong_signal?.max || 0) >= state.minScore)
                     .map(m => formatNHLMatch(m));
             } else {
-                const leagueData = state.multiLeagueData[state.currentLeague.toUpperCase()] || {};
+                const leagueKeyMap = { 'khl': 'KHL', 'shl': 'SHL', 'liiga': 'LIIGA', 'del': 'DEL' };
+                const leagueKey = leagueKeyMap[state.currentLeague] || state.currentLeague.toUpperCase();
+                const leagueData = state.multiLeagueData[leagueKey] || {};
                 matches = (leagueData.matches || [])
                     .filter(m => (m.score || 0) >= state.minScore)
                     .map(m => formatMultiLeagueMatch(m));
@@ -947,12 +952,13 @@
             
             if (matches.length === 0) {
                 const isMultiLeague = state.currentLeague !== 'nhl';
-                const leagueHasData = isMultiLeague && state.multiLeagueData[state.currentLeague.toUpperCase()]?.matches?.length > 0;
+                const leagueKey = state.currentLeague.toUpperCase() === 'LIIGA' ? 'LIIGA' : state.currentLeague.toUpperCase();
+                const leagueHasData = isMultiLeague && state.multiLeagueData[leagueKey]?.matches?.length > 0;
                 
                 let message = '';
                 if (isMultiLeague && !leagueHasData) {
-                    message = `<h3>Нет данных для ${state.currentLeague.toUpperCase()}</h3>
-                              <p>Для загрузки европейских лиг требуется API_SPORTS_KEY</p>`;
+                    message = `<h3>Загрузка ${state.currentLeague.toUpperCase()}...</h3>
+                              <p>Данные загружаются из кэша. Обновите страницу через несколько секунд.</p>`;
                 } else {
                     message = `<h3>Нет матчей с score ≥ ${state.minScore}</h3>
                               <p>Попробуйте уменьшить порог фильтра или выбрать другую лигу</p>`;
@@ -980,6 +986,7 @@
         }
         
         function formatMultiLeagueMatch(m) {
+            const cpp = m.cpp_prediction || {};
             return {
                 home: m.home,
                 away: m.away,
@@ -997,11 +1004,12 @@
                     synergy: m.away_synergy || 0,
                     alternation_combo: m.away_alt || 0
                 },
-                prediction: m.break_probability ? {
-                    break_probability: m.break_probability,
-                    continue_probability: 100 - m.break_probability,
-                    recommendation: m.break_probability >= 50 ? 'ПРЕРЫВАНИЕ' : 'ПРОДОЛЖЕНИЕ'
+                prediction: cpp.synergy >= 2 ? {
+                    break_probability: 55 + (cpp.synergy - 2) * 5,
+                    continue_probability: 45 - (cpp.synergy - 2) * 5,
+                    recommendation: 'ПРЕРЫВАНИЕ'
                 } : null,
+                cpp_prediction: cpp,
                 odds: m.odds
             };
         }
