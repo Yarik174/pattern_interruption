@@ -118,9 +118,21 @@ gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app
 ```
 
 ## Web Interface Routes
-- `/` - Main matches page (original)
+- `/` - Redirect to predictions (main page)
 - `/predictions` - Predictions table with filters
 - `/prediction/<id>` - Detailed prediction with patterns and decision form
-- `/dashboard` - Model dashboard with metrics
+- `/dashboard` - AI Model Dashboard with neural network visualization
 - `/statistics` - Model vs manual selection comparison
 - `/settings/telegram` - Telegram bot setup
+
+## UI Design (2026-01-14)
+- **Theme:** Perk.com inspired light theme
+- **Colors:** #BEFF50 accent, #F5F5EB background, #14140F text
+- **Navigation:** 3 pages (Predictions → Dashboard → Statistics)
+- **Dashboard:** Impressive AI visualization with:
+  - LSTM + Random Forest architecture diagram
+  - 112 features, 5320 matches, 847K parameters
+  - Feature Importance chart (top-8 features)
+  - Training History loss graph (Chart.js)
+  - CPP Logic profitable patterns (+64.3% ROI)
+  - Live inference stats
