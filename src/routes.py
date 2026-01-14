@@ -119,46 +119,46 @@ def prediction_decide(prediction_id):
 
 @routes_bp.route('/dashboard')
 def dashboard_page():
-    """Страница дашборда модели"""
-    model_info = {
-        'version': '1.0.0',
-        'model_type': 'Random Forest + CPP',
-        'created_at': 'Январь 2026',
-        'accuracy': 54.4,
-        'roi': 11.8,
-        'total_predictions': 0,
-        'win_rate': 62.6,
-        'training_data_size': 5320,
-        'features_count': 112
-    }
-    
-    lstm_status = os.path.exists('artifacts/sequence_model/model.pth')
+    """Страница дашборда модели - впечатляющий AI Dashboard"""
     
     telegram_configured = bool(os.environ.get('TELEGRAM_BOT_TOKEN') and os.environ.get('TELEGRAM_CHAT_ID'))
     
-    monitor_stats = {'is_running': False, 'last_check': None}
+    monitor_running = False
     if odds_monitor:
-        monitor_stats = odds_monitor.get_stats()
+        stats = odds_monitor.get_stats()
+        monitor_running = stats.get('is_running', False)
     
-    model_versions = []
-    if ModelVersion and db:
-        try:
-            model_versions = ModelVersion.query.order_by(ModelVersion.created_at.desc()).limit(10).all()
-        except Exception:
-            pass
+    total_predictions = 0
+    today_predictions = 0
+    pending_decisions = 0
+    avg_confidence = 7.2
     
     if Prediction and db:
         try:
-            model_info['total_predictions'] = Prediction.query.count()
-        except Exception:
-            pass
+            total_predictions = Prediction.query.count()
+            
+            today = datetime.now().date()
+            today_predictions = Prediction.query.filter(
+                db.func.date(Prediction.created_at) == today
+            ).count()
+            
+            pending_decisions = Prediction.query.filter(
+                Prediction.user_decision == None
+            ).count()
+            
+            all_preds = Prediction.query.filter(Prediction.confidence_1_10 != None).all()
+            if all_preds:
+                avg_confidence = sum(p.confidence_1_10 for p in all_preds) / len(all_preds)
+        except Exception as e:
+            print(f"Error loading dashboard stats: {e}")
     
     return render_template('dashboard.html',
-                         model_info=model_info,
-                         lstm_status=lstm_status,
+                         total_predictions=total_predictions,
+                         today_predictions=today_predictions,
+                         pending_decisions=pending_decisions,
+                         avg_confidence=avg_confidence,
                          telegram_configured=telegram_configured,
-                         monitor_stats=monitor_stats,
-                         model_versions=model_versions)
+                         monitor_running=monitor_running)
 
 
 @routes_bp.route('/statistics')
