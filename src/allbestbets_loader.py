@@ -49,31 +49,22 @@ class AllBestBetsLoader:
             return []
         
         try:
-            headers = {
-                'Authorization': f'Bearer {self.api_token}',
-                'Content-Type': 'application/json'
+            data = {
+                'access_token': self.api_token,
+                'search_filter': int(self.filter_id)
             }
             
-            params = {
-                'filter_id': self.filter_id,
-                'sport': 'hockey'
-            }
-            
-            if league and league in self.HOCKEY_LEAGUES:
-                league_info = self.HOCKEY_LEAGUES[league]
-                params['country'] = league_info['country']
-                params['league'] = league_info['league']
-            
-            response = requests.get(
-                f"{self.BASE_URL_PREMATCH}/api/v1/valuebets",
-                headers=headers,
-                params=params,
+            response = requests.post(
+                f"{self.BASE_URL_PREMATCH}/api/v1/valuebets/bot_pro_search",
+                data=data,
                 timeout=30
             )
             
             if response.status_code == 200:
-                data = response.json()
-                return self._parse_odds_response(data, league)
+                result = response.json()
+                matches = self._parse_odds_response(result, league)
+                logger.info(f"AllBestBets: получено {len(matches)} матчей")
+                return matches
             else:
                 logger.error(f"AllBestBets API error: {response.status_code} - {response.text}")
                 return []
