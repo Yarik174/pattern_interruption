@@ -198,7 +198,7 @@
             margin-top: 4px;
         }
         
-        /* Neural Network Visualization */
+        /* Section Styling */
         .nn-section {
             background: var(--bg-card);
             border-radius: 16px;
@@ -232,104 +232,229 @@
             color: var(--text-muted);
         }
         
-        .nn-container {
+        /* Pipeline Visualization */
+        .pipeline-container {
             background: linear-gradient(135deg, #1a1a2e 0%, #0f0f23 100%);
-            border-radius: 12px;
-            padding: 32px;
+            border-radius: 16px;
+            padding: 40px 32px;
             position: relative;
             overflow: hidden;
         }
         
-        .nn-grid {
+        .pipeline-steps {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            gap: 20px;
+            align-items: flex-start;
+            gap: 16px;
+            position: relative;
         }
         
-        .nn-layer {
+        .pipeline-step {
+            flex: 1;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 8px;
+            text-align: center;
+            position: relative;
+            z-index: 2;
         }
         
-        .nn-layer-title {
-            color: rgba(255,255,255,0.5);
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 8px;
-        }
-        
-        .nn-neurons {
+        .step-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 20px;
             display: flex;
-            flex-direction: column;
-            gap: 6px;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            margin-bottom: 16px;
+            position: relative;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            animation: stepPulse 3s ease-in-out infinite;
         }
         
-        .nn-neuron {
-            width: 32px;
-            height: 32px;
+        .step-icon.step-1 { background: linear-gradient(135deg, #3B82F6, #1D4ED8); animation-delay: 0s; }
+        .step-icon.step-2 { background: linear-gradient(135deg, #8B5CF6, #6D28D9); animation-delay: 0.5s; }
+        .step-icon.step-3 { background: linear-gradient(135deg, #F59E0B, #D97706); animation-delay: 1s; }
+        .step-icon.step-4 { background: linear-gradient(135deg, #EC4899, #BE185D); animation-delay: 1.5s; }
+        .step-icon.step-5 { background: linear-gradient(135deg, #22C55E, #16A34A); animation-delay: 2s; }
+        
+        @keyframes stepPulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+            50% { transform: scale(1.05); box-shadow: 0 12px 40px rgba(190,255,80,0.2); }
+        }
+        
+        .step-number {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 28px;
+            height: 28px;
+            background: var(--accent);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.65rem;
-            font-weight: 600;
+            font-size: 14px;
+            font-weight: 800;
+            color: #000;
+            border: 3px solid #1a1a2e;
+        }
+        
+        .step-title {
             color: #fff;
-            position: relative;
-            animation: glow 3s ease-in-out infinite;
+            font-weight: 700;
+            font-size: 1rem;
+            margin-bottom: 8px;
         }
         
-        .nn-neuron.input { background: linear-gradient(135deg, #3B82F6, #1D4ED8); }
-        .nn-neuron.hidden { background: linear-gradient(135deg, #8B5CF6, #6D28D9); }
-        .nn-neuron.lstm { background: linear-gradient(135deg, #EC4899, #BE185D); }
-        .nn-neuron.output { background: linear-gradient(135deg, var(--accent), #65A30D); }
-        
-        @keyframes glow {
-            0%, 100% { box-shadow: 0 0 10px rgba(255,255,255,0.2); }
-            50% { box-shadow: 0 0 20px rgba(255,255,255,0.4); }
+        .step-desc {
+            color: rgba(255,255,255,0.6);
+            font-size: 0.8rem;
+            line-height: 1.5;
+            max-width: 140px;
         }
         
-        .nn-connections {
-            flex: 1;
-            height: 200px;
-            position: relative;
-        }
-        
-        .nn-connection {
-            position: absolute;
-            height: 1px;
-            background: linear-gradient(90deg, rgba(255,255,255,0.1), rgba(190,255,80,0.3), rgba(255,255,255,0.1));
-            transform-origin: left center;
-            animation: flow 2s linear infinite;
-        }
-        
-        @keyframes flow {
-            0% { opacity: 0.3; }
-            50% { opacity: 0.8; }
-            100% { opacity: 0.3; }
-        }
-        
-        .nn-layer-info {
-            background: rgba(255,255,255,0.05);
-            border-radius: 8px;
-            padding: 12px 16px;
-            margin-top: 12px;
-            text-align: center;
-        }
-        
-        .nn-layer-info .name {
+        .step-highlight {
             color: var(--accent);
             font-weight: 600;
-            font-size: 0.875rem;
         }
         
-        .nn-layer-info .params {
+        /* Arrow between steps */
+        .pipeline-arrow {
+            position: absolute;
+            top: 40px;
+            display: flex;
+            align-items: center;
+            color: var(--accent);
+            z-index: 1;
+        }
+        
+        .arrow-line {
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            position: relative;
+        }
+        
+        .arrow-line::after {
+            content: "→";
+            position: absolute;
+            right: -12px;
+            top: -12px;
+            font-size: 24px;
+            color: var(--accent);
+            animation: arrowPulse 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes arrowPulse {
+            0%, 100% { opacity: 0.5; transform: translateX(0); }
+            50% { opacity: 1; transform: translateX(4px); }
+        }
+        
+        /* Data flow animation */
+        .data-particle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: var(--accent);
+            border-radius: 50%;
+            box-shadow: 0 0 12px var(--accent);
+            animation: dataFlow 4s linear infinite;
+        }
+        
+        @keyframes dataFlow {
+            0% { left: 0%; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { left: 100%; opacity: 0; }
+        }
+        
+        /* Example match card */
+        .pipeline-example {
+            margin-top: 32px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 20px 24px;
+            border: 1px solid rgba(190,255,80,0.2);
+        }
+        
+        .example-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .example-label {
+            color: var(--accent);
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .example-match {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+        
+        .example-team {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #fff;
+        }
+        
+        .team-logo {
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        
+        .team-name {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+        
+        .vs-text {
+            color: rgba(255,255,255,0.4);
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        
+        .example-arrow {
+            color: var(--accent);
+            font-size: 24px;
+            margin: 0 16px;
+        }
+        
+        .example-result {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .result-prediction {
+            background: var(--accent);
+            color: #000;
+            padding: 8px 20px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 1rem;
+        }
+        
+        .result-confidence {
             color: rgba(255,255,255,0.5);
             font-size: 0.75rem;
-            margin-top: 4px;
         }
         
         /* Metrics Grid */
@@ -670,6 +795,9 @@
             .cpp-grid { grid-template-columns: 1fr; }
             .params-grid { grid-template-columns: repeat(2, 1fr); }
             .inference-grid { grid-template-columns: repeat(2, 1fr); }
+            .pipeline-steps { flex-wrap: wrap; gap: 24px; justify-content: center; }
+            .pipeline-step { flex: 0 0 40%; }
+            .pipeline-container svg { display: none; }
         }
         
         @media (max-width: 768px) {
@@ -677,7 +805,11 @@
             .model-hero-content { flex-direction: column; gap: 24px; text-align: center; }
             .model-stats { justify-content: center; }
             .metrics-grid { grid-template-columns: repeat(2, 1fr); }
-            .nn-grid { flex-wrap: wrap; justify-content: center; }
+            .pipeline-steps { flex-direction: column; align-items: center; gap: 20px; }
+            .pipeline-step { flex: none; width: 100%; max-width: 280px; }
+            .step-desc { max-width: 200px; }
+            .example-match { flex-direction: column; gap: 12px; }
+            .example-arrow { transform: rotate(90deg); }
         }
     </style>
 </head>
@@ -766,94 +898,120 @@
             </div>
         </div>
         
-        <!-- Neural Network Architecture -->
+        <!-- How The System Works - Pipeline -->
         <div class="nn-section">
             <div class="section-header">
                 <h3 class="section-title">
-                    🧠 Архитектура нейросети
-                    <span class="section-badge">LSTM Sequence Model</span>
+                    🔄 Как работает система
+                    <span class="section-badge">5 простых шагов</span>
                 </h3>
             </div>
             
-            <div class="nn-container">
-                <div class="nn-grid">
-                    <!-- Input Layer -->
-                    <div class="nn-layer">
-                        <div class="nn-layer-title">Input</div>
-                        <div class="nn-neurons">
-                            <div class="nn-neuron input">G</div>
-                            <div class="nn-neuron input">S</div>
-                            <div class="nn-neuron input">H</div>
-                            <div class="nn-neuron input">O</div>
-                            <div class="nn-neuron input">...</div>
+            <div class="pipeline-container">
+                <div class="pipeline-steps">
+                    <!-- Step 1: Get Games -->
+                    <div class="pipeline-step">
+                        <div class="step-icon step-1">
+                            <span class="step-number">1</span>
+                            📅
                         </div>
-                        <div class="nn-layer-info">
-                            <div class="name">13 Features</div>
-                            <div class="params">goals, streaks, h2h, odds</div>
+                        <div class="step-title">Расписание</div>
+                        <div class="step-desc">
+                            Получаем <span class="step-highlight">матчи на сегодня</span> через API-Sports
                         </div>
                     </div>
                     
-                    <div class="nn-connections" id="conn1"></div>
-                    
-                    <!-- LSTM Layer 1 -->
-                    <div class="nn-layer">
-                        <div class="nn-layer-title">LSTM 1</div>
-                        <div class="nn-neurons">
-                            <div class="nn-neuron lstm">L</div>
-                            <div class="nn-neuron lstm">L</div>
-                            <div class="nn-neuron lstm">L</div>
-                            <div class="nn-neuron lstm">L</div>
+                    <!-- Step 2: Historical Data -->
+                    <div class="pipeline-step">
+                        <div class="step-icon step-2">
+                            <span class="step-number">2</span>
+                            📊
                         </div>
-                        <div class="nn-layer-info">
-                            <div class="name">128 Units</div>
-                            <div class="params">dropout: 0.3</div>
+                        <div class="step-title">История</div>
+                        <div class="step-desc">
+                            Загружаем <span class="step-highlight">7 сезонов NHL</span> — 5320 матчей
                         </div>
                     </div>
                     
-                    <div class="nn-connections" id="conn2"></div>
-                    
-                    <!-- LSTM Layer 2 -->
-                    <div class="nn-layer">
-                        <div class="nn-layer-title">LSTM 2</div>
-                        <div class="nn-neurons">
-                            <div class="nn-neuron lstm">L</div>
-                            <div class="nn-neuron lstm">L</div>
-                            <div class="nn-neuron lstm">L</div>
+                    <!-- Step 3: Feature Building -->
+                    <div class="pipeline-step">
+                        <div class="step-icon step-3">
+                            <span class="step-number">3</span>
+                            🔢
                         </div>
-                        <div class="nn-layer-info">
-                            <div class="name">64 Units</div>
-                            <div class="params">dropout: 0.2</div>
+                        <div class="step-title">Анализ</div>
+                        <div class="step-desc">
+                            Вычисляем <span class="step-highlight">112 факторов</span>: серии, H2H, форма
                         </div>
                     </div>
                     
-                    <div class="nn-connections" id="conn3"></div>
-                    
-                    <!-- Dense Layer -->
-                    <div class="nn-layer">
-                        <div class="nn-layer-title">Dense</div>
-                        <div class="nn-neurons">
-                            <div class="nn-neuron hidden">D</div>
-                            <div class="nn-neuron hidden">D</div>
+                    <!-- Step 4: AI Prediction -->
+                    <div class="pipeline-step">
+                        <div class="step-icon step-4">
+                            <span class="step-number">4</span>
+                            🧠
                         </div>
-                        <div class="nn-layer-info">
-                            <div class="name">32 Neurons</div>
-                            <div class="params">ReLU activation</div>
+                        <div class="step-title">Прогноз AI</div>
+                        <div class="step-desc">
+                            Модель анализирует данные за <span class="step-highlight">23 мс</span>
                         </div>
                     </div>
                     
-                    <div class="nn-connections" id="conn4"></div>
-                    
-                    <!-- Output Layer -->
-                    <div class="nn-layer">
-                        <div class="nn-layer-title">Output</div>
-                        <div class="nn-neurons">
-                            <div class="nn-neuron output">H</div>
-                            <div class="nn-neuron output">A</div>
-                            <div class="nn-neuron output">D</div>
+                    <!-- Step 5: Recommendation -->
+                    <div class="pipeline-step">
+                        <div class="step-icon step-5">
+                            <span class="step-number">5</span>
+                            ✅
                         </div>
-                        <div class="nn-layer-info">
-                            <div class="name">3 Classes</div>
-                            <div class="params">Home / Away / Draw</div>
+                        <div class="step-title">Рекомендация</div>
+                        <div class="step-desc">
+                            Вы решаете: <span class="step-highlight">принять</span> или пропустить
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Animated arrows between steps -->
+                <svg style="position: absolute; top: 76px; left: 0; right: 0; height: 8px; z-index: 1;" preserveAspectRatio="none">
+                    <defs>
+                        <linearGradient id="arrowGradient">
+                            <stop offset="0%" stop-color="transparent"/>
+                            <stop offset="50%" stop-color="#BEFF50"/>
+                            <stop offset="100%" stop-color="transparent"/>
+                        </linearGradient>
+                    </defs>
+                    <line x1="18%" y1="4" x2="22%" y2="4" stroke="url(#arrowGradient)" stroke-width="3" stroke-linecap="round">
+                        <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite"/>
+                    </line>
+                    <line x1="38%" y1="4" x2="42%" y2="4" stroke="url(#arrowGradient)" stroke-width="3" stroke-linecap="round">
+                        <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" begin="0.5s" repeatCount="indefinite"/>
+                    </line>
+                    <line x1="58%" y1="4" x2="62%" y2="4" stroke="url(#arrowGradient)" stroke-width="3" stroke-linecap="round">
+                        <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" begin="1s" repeatCount="indefinite"/>
+                    </line>
+                    <line x1="78%" y1="4" x2="82%" y2="4" stroke="url(#arrowGradient)" stroke-width="3" stroke-linecap="round">
+                        <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" begin="1.5s" repeatCount="indefinite"/>
+                    </line>
+                </svg>
+                
+                <!-- Example Match -->
+                <div class="pipeline-example">
+                    <div class="example-header">
+                        <span class="example-label">💡 Пример работы</span>
+                    </div>
+                    <div class="example-match">
+                        <div class="example-team">
+                            <div class="team-logo">🐻</div>
+                            <div class="team-name">Boston Bruins</div>
+                        </div>
+                        <div class="vs-text">VS</div>
+                        <div class="example-team">
+                            <div class="team-logo">🍁</div>
+                            <div class="team-name">Toronto Maple Leafs</div>
+                        </div>
+                        <div class="example-arrow">→</div>
+                        <div class="example-result">
+                            <div class="result-prediction">Boston Win</div>
+                            <div class="result-confidence">Уверенность: 7.8 / 10</div>
                         </div>
                     </div>
                 </div>
