@@ -34,6 +34,9 @@ class OddsLoader:
             self.odds_df = self.odds_df.drop_duplicates(subset=['date', 'home_team', 'away_team'])
             self.odds_df['date'] = pd.to_datetime(self.odds_df['date'])
             self.odds_df = self.odds_df.sort_values('date').reset_index(drop=True)
+            
+            self._add_regulation_result()
+            
             print(f"✅ Всего {len(self.odds_df)} матчей с коэффициентами")
             return self.odds_df
         else:
@@ -49,6 +52,11 @@ class OddsLoader:
         result['away_score'] = df['a__goals_total']
         result['home_score'] = df['h__goals_total']
         result['home_win'] = (df['h__goals_total'] > df['a__goals_total']).astype(int)
+        
+        if 'a__goals_ot' in df.columns and 'h__goals_ot' in df.columns:
+            result['overtime'] = ((df['a__goals_ot'] > 0) | (df['h__goals_ot'] > 0)).astype(int)
+        else:
+            result['overtime'] = 0
         
         result['home_odds'], result['away_odds'] = zip(*df.apply(
             lambda row: self._convert_moneyline(row['moneyline'], row['fav']), axis=1
@@ -78,6 +86,29 @@ class OddsLoader:
         underdog_prob = 1 - fav_prob + margin
         underdog_prob = max(0.05, min(0.95, underdog_prob))
         return round(1 / underdog_prob, 3)
+    
+    def _add_regulation_result(self):
+        """
+        Добавить regulation_result к данным
+        regulation_result: 0=home, 1=away, 2=draw (overtime)
+        """
+        if 'overtime' not in self.odds_df.columns:
+            self.odds_df['overtime'] = 0
+        
+        self.odds_df['overtime'] = self.odds_df['overtime'].fillna(0).astype(int)
+        
+        def calc_regulation(row):
+            if row.get('overtime', 0) == 1:
+                return 2
+            elif row['home_win'] == 1:
+                return 0
+            else:
+                return 1
+        
+        self.odds_df['regulation_result'] = self.odds_df.apply(calc_regulation, axis=1)
+        
+        ot_count = (self.odds_df['overtime'] == 1).sum()
+        print(f"  📊 Матчи с овертаймом: {ot_count} ({ot_count/len(self.odds_df):.1%})")
     
     def calculate_ev(self, probability, odds):
         """Расчёт Expected Value"""
