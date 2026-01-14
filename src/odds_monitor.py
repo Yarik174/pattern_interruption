@@ -154,5 +154,5 @@ class MockOddsLoader:
         return True
     
     def get_upcoming_matches(self, hours_ahead=48):
-        from src.allbestbets_loader import get_demo_odds
+        from src.apisports_odds_loader import get_demo_odds
         return get_demo_odds()

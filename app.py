@@ -51,11 +51,11 @@ init_routes(db, {
 app.register_blueprint(routes_bp)
 
 from src.telegram_bot import TelegramNotifier
-from src.allbestbets_loader import AllBestBetsLoader, get_demo_odds
+from src.apisports_odds_loader import APISportsOddsLoader, get_demo_odds
 from src.odds_monitor import OddsMonitor
 
 telegram_notifier = TelegramNotifier()
-odds_loader = AllBestBetsLoader()
+odds_loader = APISportsOddsLoader()
 set_telegram(telegram_notifier)
 
 @app.after_request
