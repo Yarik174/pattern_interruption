@@ -923,7 +923,186 @@
             </div>
         </div>
         
-        <!-- How The System Finds Value - Storytelling -->
+        <!-- 2. Live Inference Stats -->
+        <div class="inference-section">
+            <div class="section-header" style="margin-bottom: 24px;">
+                <h3 class="section-title" style="color: #fff;">⚡ Live Inference Stats</h3>
+            </div>
+            <div class="inference-grid">
+                <div class="inference-stat">
+                    <div class="value">{{ total_predictions or 0 }}</div>
+                    <div class="label">Прогнозов выдано</div>
+                    <div class="sub">За всё время</div>
+                </div>
+                <div class="inference-stat">
+                    <div class="value">{{ today_predictions or 0 }}</div>
+                    <div class="label">Сегодня</div>
+                    <div class="sub">Новых прогнозов</div>
+                </div>
+                <div class="inference-stat">
+                    <div class="value">{{ '%.1f'|format(avg_confidence or 7.2) }}</div>
+                    <div class="label">Avg Confidence</div>
+                    <div class="sub">Из 10</div>
+                </div>
+                <div class="inference-stat">
+                    <div class="value">{{ pending_decisions or 0 }}</div>
+                    <div class="label">Ожидают решения</div>
+                    <div class="sub">Требуют внимания</div>
+                </div>
+            </div>
+            
+            <div class="monitor-section">
+                <div class="monitor-card">
+                    <div class="monitor-info">
+                        <div class="monitor-icon" style="background: var(--warning);">⚡</div>
+                        <div class="monitor-text">
+                            <div class="title">API-Sports Лимит</div>
+                            <div class="status" id="api-remaining">Загрузка...</div>
+                        </div>
+                    </div>
+                    <span id="api-status" style="font-size: 0.8rem; color: rgba(255,255,255,0.5);">100/день</span>
+                </div>
+                <div class="monitor-card">
+                    <div class="monitor-info">
+                        <div class="monitor-icon telegram">📱</div>
+                        <div class="monitor-text">
+                            <div class="title">Telegram Bot</div>
+                            <div class="status">{{ 'Подключён' if telegram_configured else 'Не настроен' }}</div>
+                        </div>
+                    </div>
+                    {% if telegram_configured %}
+                    <span style="color: var(--accent);">● Active</span>
+                    {% else %}
+                    <a href="/settings/telegram" class="control-btn secondary">Настроить</a>
+                    {% endif %}
+                </div>
+                <div class="monitor-card">
+                    <div class="monitor-info">
+                        <div class="monitor-icon api">🔄</div>
+                        <div class="monitor-text">
+                            <div class="title">Odds Monitor</div>
+                            <div class="status">{{ 'Активен (2ч интервал)' if monitor_running else 'Остановлен' }}</div>
+                        </div>
+                    </div>
+                    <button class="control-btn primary" onclick="checkNow()">Проверить сейчас</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 3. CPP Logic — Прибыльные паттерны -->
+        <div class="nn-section">
+            <div class="section-header">
+                <h3 class="section-title">🎯 CPP Logic — Прибыльные паттерны</h3>
+                <span class="section-badge">Critical Pattern Prediction</span>
+            </div>
+            <div class="cpp-grid">
+                <div class="cpp-card profitable">
+                    <div class="cpp-title">Лучшая комбинация</div>
+                    <div class="cpp-pattern">AwayLoss→Break + HomeWin→Break + Overall→Break</div>
+                    <div class="cpp-stats">
+                        <div class="cpp-stat">
+                            <div class="value success">+64.3%</div>
+                            <div class="label">ROI ML</div>
+                        </div>
+                        <div class="cpp-stat">
+                            <div class="value">17</div>
+                            <div class="label">Ставок</div>
+                        </div>
+                        <div class="cpp-stat">
+                            <div class="value">76%</div>
+                            <div class="label">Win Rate</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="cpp-card profitable">
+                    <div class="cpp-title">Синергия 2+</div>
+                    <div class="cpp-pattern">H2H_Away→Break + HomeLoss→Break</div>
+                    <div class="cpp-stats">
+                        <div class="cpp-stat">
+                            <div class="value success">+27.4%</div>
+                            <div class="label">ROI ML</div>
+                        </div>
+                        <div class="cpp-stat">
+                            <div class="value">21</div>
+                            <div class="label">Ставок</div>
+                        </div>
+                        <div class="cpp-stat">
+                            <div class="value">71%</div>
+                            <div class="label">Win Rate</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="cpp-card">
+                    <div class="cpp-title">Базовая синергия</div>
+                    <div class="cpp-pattern">AwayLoss→Break + HomeWin→Break</div>
+                    <div class="cpp-stats">
+                        <div class="cpp-stat">
+                            <div class="value success">+11.8%</div>
+                            <div class="label">ROI ML</div>
+                        </div>
+                        <div class="cpp-stat">
+                            <div class="value">54</div>
+                            <div class="label">Ставок</div>
+                        </div>
+                        <div class="cpp-stat">
+                            <div class="value">63%</div>
+                            <div class="label">Win Rate</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 4. Параметры обучения -->
+        <div class="nn-section">
+            <div class="section-header">
+                <h3 class="section-title">⚙️ Параметры обучения</h3>
+            </div>
+            <div class="params-grid">
+                <div class="param-item">
+                    <div class="icon">🔢</div>
+                    <div class="value">32</div>
+                    <div class="label">Batch Size</div>
+                </div>
+                <div class="param-item">
+                    <div class="icon">📉</div>
+                    <div class="value">0.001</div>
+                    <div class="label">Learning Rate</div>
+                </div>
+                <div class="param-item">
+                    <div class="icon">🎲</div>
+                    <div class="value">0.3</div>
+                    <div class="label">Dropout</div>
+                </div>
+                <div class="param-item">
+                    <div class="icon">📊</div>
+                    <div class="value">10</div>
+                    <div class="label">Sequence Length</div>
+                </div>
+                <div class="param-item">
+                    <div class="icon">⚖️</div>
+                    <div class="value">Adam</div>
+                    <div class="label">Optimizer</div>
+                </div>
+                <div class="param-item">
+                    <div class="icon">📏</div>
+                    <div class="value">CE</div>
+                    <div class="label">Loss Function</div>
+                </div>
+                <div class="param-item">
+                    <div class="icon">🔄</div>
+                    <div class="value">7</div>
+                    <div class="label">Seasons</div>
+                </div>
+                <div class="param-item">
+                    <div class="icon">🏆</div>
+                    <div class="value">5</div>
+                    <div class="label">Leagues</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 5. Как система находит выгодные ставки - Storytelling -->
         <div class="nn-section">
             <div class="section-header">
                 <h3 class="section-title">
@@ -1024,7 +1203,7 @@
             </div>
         </div>
         
-        <!-- Two Column: Feature Importance & Training -->
+        <!-- 6. Two Column: Feature Importance & Training -->
         <div class="two-cols">
             <div class="nn-section">
                 <div class="section-header">
@@ -1122,185 +1301,6 @@
                 </div>
                 <div class="chart-container">
                     <canvas id="trainingChart"></canvas>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Training Parameters -->
-        <div class="nn-section">
-            <div class="section-header">
-                <h3 class="section-title">⚙️ Параметры обучения</h3>
-            </div>
-            <div class="params-grid">
-                <div class="param-item">
-                    <div class="icon">🔢</div>
-                    <div class="value">32</div>
-                    <div class="label">Batch Size</div>
-                </div>
-                <div class="param-item">
-                    <div class="icon">📉</div>
-                    <div class="value">0.001</div>
-                    <div class="label">Learning Rate</div>
-                </div>
-                <div class="param-item">
-                    <div class="icon">🎲</div>
-                    <div class="value">0.3</div>
-                    <div class="label">Dropout</div>
-                </div>
-                <div class="param-item">
-                    <div class="icon">📊</div>
-                    <div class="value">10</div>
-                    <div class="label">Sequence Length</div>
-                </div>
-                <div class="param-item">
-                    <div class="icon">⚖️</div>
-                    <div class="value">Adam</div>
-                    <div class="label">Optimizer</div>
-                </div>
-                <div class="param-item">
-                    <div class="icon">📏</div>
-                    <div class="value">CE</div>
-                    <div class="label">Loss Function</div>
-                </div>
-                <div class="param-item">
-                    <div class="icon">🔄</div>
-                    <div class="value">7</div>
-                    <div class="label">Seasons</div>
-                </div>
-                <div class="param-item">
-                    <div class="icon">🏆</div>
-                    <div class="value">5</div>
-                    <div class="label">Leagues</div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- CPP Logic -->
-        <div class="nn-section">
-            <div class="section-header">
-                <h3 class="section-title">🎯 CPP Logic — Прибыльные паттерны</h3>
-                <span class="section-badge">Critical Pattern Prediction</span>
-            </div>
-            <div class="cpp-grid">
-                <div class="cpp-card profitable">
-                    <div class="cpp-title">Лучшая комбинация</div>
-                    <div class="cpp-pattern">AwayLoss→Break + HomeWin→Break + Overall→Break</div>
-                    <div class="cpp-stats">
-                        <div class="cpp-stat">
-                            <div class="value success">+64.3%</div>
-                            <div class="label">ROI ML</div>
-                        </div>
-                        <div class="cpp-stat">
-                            <div class="value">17</div>
-                            <div class="label">Ставок</div>
-                        </div>
-                        <div class="cpp-stat">
-                            <div class="value">76%</div>
-                            <div class="label">Win Rate</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="cpp-card profitable">
-                    <div class="cpp-title">Синергия 2+</div>
-                    <div class="cpp-pattern">H2H_Away→Break + HomeLoss→Break</div>
-                    <div class="cpp-stats">
-                        <div class="cpp-stat">
-                            <div class="value success">+27.4%</div>
-                            <div class="label">ROI ML</div>
-                        </div>
-                        <div class="cpp-stat">
-                            <div class="value">21</div>
-                            <div class="label">Ставок</div>
-                        </div>
-                        <div class="cpp-stat">
-                            <div class="value">71%</div>
-                            <div class="label">Win Rate</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="cpp-card">
-                    <div class="cpp-title">Базовая синергия</div>
-                    <div class="cpp-pattern">AwayLoss→Break + HomeWin→Break</div>
-                    <div class="cpp-stats">
-                        <div class="cpp-stat">
-                            <div class="value success">+11.8%</div>
-                            <div class="label">ROI ML</div>
-                        </div>
-                        <div class="cpp-stat">
-                            <div class="value">54</div>
-                            <div class="label">Ставок</div>
-                        </div>
-                        <div class="cpp-stat">
-                            <div class="value">63%</div>
-                            <div class="label">Win Rate</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Live Inference Stats -->
-        <div class="inference-section">
-            <div class="section-header" style="margin-bottom: 24px;">
-                <h3 class="section-title" style="color: #fff;">⚡ Live Inference Stats</h3>
-            </div>
-            <div class="inference-grid">
-                <div class="inference-stat">
-                    <div class="value">{{ total_predictions or 0 }}</div>
-                    <div class="label">Прогнозов выдано</div>
-                    <div class="sub">За всё время</div>
-                </div>
-                <div class="inference-stat">
-                    <div class="value">{{ today_predictions or 0 }}</div>
-                    <div class="label">Сегодня</div>
-                    <div class="sub">Новых прогнозов</div>
-                </div>
-                <div class="inference-stat">
-                    <div class="value">{{ '%.1f'|format(avg_confidence or 7.2) }}</div>
-                    <div class="label">Avg Confidence</div>
-                    <div class="sub">Из 10</div>
-                </div>
-                <div class="inference-stat">
-                    <div class="value">{{ pending_decisions or 0 }}</div>
-                    <div class="label">Ожидают решения</div>
-                    <div class="sub">Требуют внимания</div>
-                </div>
-            </div>
-            
-            <div class="monitor-section">
-                <div class="monitor-card">
-                    <div class="monitor-info">
-                        <div class="monitor-icon" style="background: var(--warning);">⚡</div>
-                        <div class="monitor-text">
-                            <div class="title">API-Sports Лимит</div>
-                            <div class="status" id="api-remaining">Загрузка...</div>
-                        </div>
-                    </div>
-                    <span id="api-status" style="font-size: 0.8rem; color: rgba(255,255,255,0.5);">100/день</span>
-                </div>
-                <div class="monitor-card">
-                    <div class="monitor-info">
-                        <div class="monitor-icon telegram">📱</div>
-                        <div class="monitor-text">
-                            <div class="title">Telegram Bot</div>
-                            <div class="status">{{ 'Подключён' if telegram_configured else 'Не настроен' }}</div>
-                        </div>
-                    </div>
-                    {% if telegram_configured %}
-                    <span style="color: var(--accent);">● Active</span>
-                    {% else %}
-                    <a href="/settings/telegram" class="control-btn secondary">Настроить</a>
-                    {% endif %}
-                </div>
-                <div class="monitor-card">
-                    <div class="monitor-info">
-                        <div class="monitor-icon api">🔄</div>
-                        <div class="monitor-text">
-                            <div class="title">Odds Monitor</div>
-                            <div class="status">{{ 'Активен (2ч интервал)' if monitor_running else 'Остановлен' }}</div>
-                        </div>
-                    </div>
-                    <button class="control-btn primary" onclick="checkNow()">Проверить сейчас</button>
                 </div>
             </div>
         </div>
