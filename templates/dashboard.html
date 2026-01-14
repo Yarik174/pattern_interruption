@@ -1106,6 +1106,16 @@
             <div class="monitor-section">
                 <div class="monitor-card">
                     <div class="monitor-info">
+                        <div class="monitor-icon" style="background: var(--warning);">⚡</div>
+                        <div class="monitor-text">
+                            <div class="title">API-Sports Лимит</div>
+                            <div class="status" id="api-remaining">Загрузка...</div>
+                        </div>
+                    </div>
+                    <span id="api-status" style="font-size: 0.8rem; color: rgba(255,255,255,0.5);">100/день</span>
+                </div>
+                <div class="monitor-card">
+                    <div class="monitor-info">
                         <div class="monitor-icon telegram">📱</div>
                         <div class="monitor-text">
                             <div class="title">Telegram Bot</div>
@@ -1123,7 +1133,7 @@
                         <div class="monitor-icon api">🔄</div>
                         <div class="monitor-text">
                             <div class="title">Odds Monitor</div>
-                            <div class="status">{{ 'Активен' if monitor_running else 'Остановлен' }}</div>
+                            <div class="status">{{ 'Активен (2ч интервал)' if monitor_running else 'Остановлен' }}</div>
                         </div>
                     </div>
                     <button class="control-btn primary" onclick="checkNow()">Проверить сейчас</button>
@@ -1195,9 +1205,32 @@
                 .then(r => r.json())
                 .then(data => {
                     alert('Проверено: ' + (data.matches_found || 0) + ' матчей, ' + (data.new_predictions || 0) + ' новых прогнозов');
-                    location.reload();
+                    updateApiStatus();
                 });
         }
+        
+        function updateApiStatus() {
+            fetch('/api/monitor/stats')
+                .then(r => r.json())
+                .then(data => {
+                    const remaining = data.api_requests_remaining || 0;
+                    const limit = data.api_daily_limit || 100;
+                    document.getElementById('api-remaining').textContent = remaining + ' запросов осталось';
+                    document.getElementById('api-status').textContent = remaining + '/' + limit + ' сегодня';
+                    
+                    const el = document.getElementById('api-remaining');
+                    if (remaining < 10) {
+                        el.style.color = '#EF4444';
+                    } else if (remaining < 30) {
+                        el.style.color = '#F59E0B';
+                    } else {
+                        el.style.color = 'rgba(255,255,255,0.5)';
+                    }
+                });
+        }
+        
+        // Загружаем статус при старте
+        updateApiStatus();
     </script>
 </body>
 </html>

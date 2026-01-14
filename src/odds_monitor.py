@@ -13,13 +13,19 @@ logger = logging.getLogger(__name__)
 
 
 class OddsMonitor:
-    """Фоновый мониторинг коэффициентов"""
+    """Фоновый мониторинг коэффициентов
+    
+    ОПТИМИЗАЦИЯ для 100 запросов/день:
+    - Интервал 2 часа вместо 5 минут
+    - Кэширование в odds_loader
+    - Не запускается автоматически
+    """
     
     def __init__(self, 
                  odds_loader,
                  prediction_callback: Callable,
                  notification_callback: Optional[Callable] = None,
-                 check_interval: int = 300):
+                 check_interval: int = 7200):  # 2 часа вместо 5 минут
         """
         Args:
             odds_loader: Загрузчик коэффициентов (APISportsOddsLoader)

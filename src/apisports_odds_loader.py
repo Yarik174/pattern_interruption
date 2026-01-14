@@ -26,23 +26,52 @@ LEAGUES = {
 
 
 class APISportsOddsLoader:
-    """Загрузчик коэффициентов из API-Sports"""
+    """Загрузчик коэффициентов из API-Sports
+    
+    ВАЖНО: Бесплатный план = 100 запросов/день!
+    Оптимизации:
+    - Кэширование на 2 часа
+    - Один запрос на лигу (только сегодня)
+    - Счётчик запросов для контроля
+    """
     
     def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key or API_SPORTS_KEY
         self._games_cache = {}
         self._odds_cache = {}
         self._cache_time = None
-        self._cache_ttl = 300
+        self._cache_ttl = 7200  # 2 часа кэш (было 300 сек)
+        self._daily_requests = 0
+        self._daily_limit = 95  # Оставляем 5 запросов на ручные проверки
+        self._last_reset_date = None
         
     def is_configured(self) -> bool:
         """Проверка настроен ли API"""
         return bool(self.api_key)
     
+    def _check_daily_limit(self):
+        """Проверить и сбросить дневной счётчик"""
+        today = datetime.utcnow().date()
+        if self._last_reset_date != today:
+            self._daily_requests = 0
+            self._last_reset_date = today
+            logger.info("API-Sports: дневной счётчик сброшен")
+    
+    def get_requests_remaining(self) -> int:
+        """Сколько запросов осталось на сегодня"""
+        self._check_daily_limit()
+        return max(0, self._daily_limit - self._daily_requests)
+    
     def _make_request(self, endpoint: str, params: Optional[dict] = None) -> Optional[dict]:
-        """Выполнить запрос к API"""
+        """Выполнить запрос к API с проверкой лимитов"""
         if not self.api_key:
             logger.warning("API_SPORTS_KEY не установлен")
+            return None
+        
+        # Проверка дневного лимита
+        self._check_daily_limit()
+        if self._daily_requests >= self._daily_limit:
+            logger.warning(f"API-Sports: дневной лимит исчерпан ({self._daily_limit} запросов)")
             return None
             
         headers = {'x-apisports-key': self.api_key}
@@ -50,10 +79,12 @@ class APISportsOddsLoader:
         
         try:
             response = requests.get(url, headers=headers, params=params, timeout=30)
+            self._daily_requests += 1
+            
             if response.status_code == 200:
                 data = response.json()
                 remaining = response.headers.get('x-ratelimit-requests-remaining', 'N/A')
-                logger.info(f"API-Sports: {endpoint} - осталось запросов: {remaining}")
+                logger.info(f"API-Sports: {endpoint} - осталось API: {remaining}, локальный лимит: {self._daily_limit - self._daily_requests}")
                 return data
             else:
                 logger.error(f"API-Sports error: {response.status_code} - {response.text[:200]}")
@@ -62,33 +93,52 @@ class APISportsOddsLoader:
             logger.error(f"API-Sports request error: {e}")
             return None
     
-    def get_upcoming_games(self, leagues: Optional[List[str]] = None, hours_ahead: int = 48) -> List[Dict]:
+    def get_upcoming_games(self, leagues: Optional[List[str]] = None, hours_ahead: int = 24) -> List[Dict]:
         """
-        Получить предстоящие матчи
+        Получить предстоящие матчи (с кэшированием 2 часа)
+        
+        ОПТИМИЗАЦИЯ: При 100 запросах/день и 5 лигах:
+        - Проверка раз в 2 часа = 12 проверок × 5 лиг = 60 запросов
+        - Остаётся 40 запросов на odds и ручные проверки
         
         Args:
-            leagues: Список лиг (по умолчанию все)
-            hours_ahead: Сколько часов вперёд смотреть
+            leagues: Список лиг (по умолчанию NHL только - экономия)
+            hours_ahead: Сколько часов вперёд смотреть (24 = только сегодня)
             
         Returns:
-            Список матчей
+            Список матчей (из кэша или API)
         """
+        # По умолчанию только NHL для экономии запросов
         if leagues is None:
-            leagues = ['NHL', 'KHL', 'SHL', 'Liiga', 'DEL']
+            leagues = ['NHL']  # Было ['NHL', 'KHL', 'SHL', 'Liiga', 'DEL']
         
+        # Проверяем кэш
+        cache_key = f"games_{'-'.join(sorted(leagues))}"
         now = datetime.utcnow()
+        
+        if cache_key in self._games_cache:
+            cache_data, cache_time = self._games_cache[cache_key]
+            if (now - cache_time).total_seconds() < self._cache_ttl:
+                logger.info(f"API-Sports: используем кэш ({len(cache_data)} матчей, возраст {int((now - cache_time).total_seconds())}с)")
+                return cache_data
+        
         date_from = now.strftime('%Y-%m-%d')
-        date_to = (now + timedelta(hours=hours_ahead)).strftime('%Y-%m-%d')
         
         all_games = []
         
         for league_code in leagues:
             if league_code not in LEAGUES:
                 continue
+            
+            # Проверка лимита перед запросом
+            if self.get_requests_remaining() <= 0:
+                logger.warning("API-Sports: лимит исчерпан, используем частичные данные")
+                break
                 
             league_info = LEAGUES[league_code]
             league_id = league_info['id']
             
+            # ОДИН запрос на лигу (только сегодня)
             data = self._make_request('games', {
                 'league': league_id,
                 'date': date_from,
@@ -102,24 +152,12 @@ class APISportsOddsLoader:
                         game_info = self._parse_game(game, league_code)
                         if game_info:
                             all_games.append(game_info)
-            
-            if date_from != date_to:
-                data = self._make_request('games', {
-                    'league': league_id,
-                    'date': date_to,
-                    'timezone': 'UTC'
-                })
-                
-                if data and 'response' in data:
-                    for game in data['response']:
-                        status = game.get('status', {}).get('short', '')
-                        if status in ['NS', 'TBD', 'SUSP']:
-                            game_info = self._parse_game(game, league_code)
-                            if game_info:
-                                all_games.append(game_info)
         
         all_games.sort(key=lambda x: x.get('match_date') or datetime.max)
-        logger.info(f"API-Sports: найдено {len(all_games)} предстоящих матчей")
+        
+        # Сохраняем в кэш
+        self._games_cache[cache_key] = (all_games, now)
+        logger.info(f"API-Sports: найдено {len(all_games)} матчей, кэшировано на {self._cache_ttl}с")
         
         return all_games
     

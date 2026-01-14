@@ -41,7 +41,7 @@ db.init_app(app)
 with app.app_context():
     db.create_all()
     
-from src.routes import routes_bp, init_routes, set_monitor, set_telegram
+from src.routes import routes_bp, init_routes, set_monitor, set_telegram, set_odds_loader
 init_routes(db, {
     'Prediction': Prediction,
     'UserDecision': UserDecision,
@@ -57,6 +57,7 @@ from src.odds_monitor import OddsMonitor
 telegram_notifier = TelegramNotifier()
 odds_loader = APISportsOddsLoader()
 set_telegram(telegram_notifier)
+set_odds_loader(odds_loader)
 
 @app.after_request
 def add_header(response):
@@ -1348,11 +1349,12 @@ def init_odds_monitor():
         odds_loader=odds_loader,
         prediction_callback=prediction_callback,
         notification_callback=notification_callback,
-        check_interval=300
+        check_interval=7200  # 2 часа вместо 5 минут для экономии API запросов
     )
     
     set_monitor(monitor)
-    monitor.start()
+    # НЕ запускаем автоматически - пользователь должен включить вручную
+    # monitor.start()
     return monitor
 
 
@@ -1370,9 +1372,10 @@ def startup_initialization():
     
     if odds_loader.is_configured():
         threading.Thread(target=init_odds_monitor, daemon=True).start()
-        print("✅ Odds monitor initialized")
+        print("✅ Odds monitor initialized (not auto-started - manual control only)")
+        print(f"ℹ️ API-Sports: {odds_loader.get_requests_remaining()} запросов осталось на сегодня")
     else:
-        print("⚠️ AllBestBets API not configured, odds monitor disabled")
+        print("⚠️ API-Sports not configured, odds monitor disabled")
 
 
 startup_initialization()

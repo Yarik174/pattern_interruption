@@ -15,6 +15,13 @@ TelegramSettings = None
 
 odds_monitor = None
 telegram_notifier = None
+odds_loader = None
+
+
+def set_odds_loader(loader):
+    """Установить загрузчик коэффициентов"""
+    global odds_loader
+    odds_loader = loader
 
 
 def init_routes(database, models):
@@ -288,9 +295,13 @@ def api_monitor_check():
 @routes_bp.route('/api/monitor/stats')
 def api_monitor_stats():
     """API: Статистика мониторинга"""
+    stats = {'is_running': False}
     if odds_monitor:
-        return jsonify(odds_monitor.get_stats())
-    return jsonify({'is_running': False})
+        stats = odds_monitor.get_stats()
+    if odds_loader:
+        stats['api_requests_remaining'] = odds_loader.get_requests_remaining()
+        stats['api_daily_limit'] = odds_loader._daily_limit
+    return jsonify(stats)
 
 
 @routes_bp.route('/api/predictions')
