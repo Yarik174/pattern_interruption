@@ -43,21 +43,25 @@ goals_scored, goals_conceded, won, home_game, overtime, goal_diff, total_goals, 
 | Money Line | 265 | 62.6% | -3.24% |
 | 1X2 | 9 | 77.8% | -14.15% |
 
-## CPP Backtest (5320 матчей, 2016-2023)
+## CPP Backtest (5320 матчей NHL, 2016-2023)
 
-### Прибыльные КОМБИНАЦИИ паттернов (синергия)
+### Поддержка двух типов ставок
+- **Money Line (Final)** — с овертаймом, всегда победитель
+- **1X2 (Regulation)** — основное время, ничья возможна (~22%)
 
-| Комбинация | n | WR | ROI |
-|------------|---|-----|-----|
-| **HomeWin + AwayLoss + HomeWin6+→Break** | 54 | 48.1% | **+38.1%** |
-| **H2H_Home + HomeLoss→Break** | 18 | 66.7% | **+12.1%** |
-| **H2H_Home + HomeWin6+→Break** | 16 | 75.0% | **+9.1%** |
-| **H2H_Away + HomeLoss→Break** | 39 | 59.0% | **+5.4%** |
-| H2H_Away (одиночный) | 400 | 55.5% | +3.2% |
-| HomeWin + AwayLoss | 61 | 65.6% | +3.2% |
+### Прибыльные комбинации паттернов (синергия ≥2)
+
+| Комбинация | ML ROI | 1X2 ROI | n |
+|------------|--------|---------|---|
+| AwayLoss→Break + HomeWin→Break + Overall→Break | **+64.3%** | +12.2% | 17 |
+| H2H_Away→Break + HomeLoss→Break | **+27.4%** | +20.8% | 21 |
+| AwayLoss→Break + HomeWin→Break | **+11.8%** | +5.8% | 54 |
 
 ### Вывод
-**CPP паттерны дают +3-38% ROI** на проверенных комбинациях. LSTM модель пока не прибыльна (-3% ROI).
+- **Money Line лучше 1X2** — ничья в 1X2 = проигрыш
+- **CPP паттерны дают +11-64% ROI** на проверенных комбинациях
+- LSTM модель пока не прибыльна (-3% ROI)
+- **Переход к реальным прогнозам** для дообучения на живых данных
 
 ## External Dependencies
 - **NHL API:** For NHL match data.
