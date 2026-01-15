@@ -615,11 +615,28 @@
             text-align: right;
         }
         
-        /* Training History Chart */
-        .chart-container {
-            height: 250px;
-            position: relative;
+        /* Pattern Visualization */
+        .pattern-squares {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 4px;
         }
+        
+        .pattern-square {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #fff;
+        }
+        
+        .pattern-square.win { background: #22C55E; }
+        .pattern-square.loss { background: #EF4444; }
+        .pattern-square.neutral { background: #94A3B8; }
         
         /* CPP Logic Section */
         .cpp-grid {
@@ -1214,167 +1231,115 @@
             </div>
         </div>
         
-        <!-- 6. Two Column: Feature Importance & Training -->
-        <div class="two-cols">
-            <div class="nn-section">
-                <div class="section-header">
-                    <h3 class="section-title">📊 Feature Importance</h3>
-                    <span class="section-badge">Random Forest</span>
-                </div>
-                <div class="feature-list">
-                    <div class="feature-item">
-                        <div class="feature-rank top">1</div>
-                        <div class="feature-info">
-                            <div class="feature-name">home_win_streak</div>
-                            <div class="feature-bar-container">
-                                <div class="feature-bar" style="width: 100%"></div>
-                            </div>
-                        </div>
-                        <div class="feature-value">0.142</div>
-                    </div>
-                    <div class="feature-item">
-                        <div class="feature-rank top">2</div>
-                        <div class="feature-info">
-                            <div class="feature-name">h2h_recent_form</div>
-                            <div class="feature-bar-container">
-                                <div class="feature-bar" style="width: 89%"></div>
-                            </div>
-                        </div>
-                        <div class="feature-value">0.126</div>
-                    </div>
-                    <div class="feature-item">
-                        <div class="feature-rank top">3</div>
-                        <div class="feature-info">
-                            <div class="feature-name">away_loss_streak</div>
-                            <div class="feature-bar-container">
-                                <div class="feature-bar" style="width: 81%"></div>
-                            </div>
-                        </div>
-                        <div class="feature-value">0.115</div>
-                    </div>
-                    <div class="feature-item">
-                        <div class="feature-rank">4</div>
-                        <div class="feature-info">
-                            <div class="feature-name">goals_scored_ma5</div>
-                            <div class="feature-bar-container">
-                                <div class="feature-bar" style="width: 68%"></div>
-                            </div>
-                        </div>
-                        <div class="feature-value">0.096</div>
-                    </div>
-                    <div class="feature-item">
-                        <div class="feature-rank">5</div>
-                        <div class="feature-info">
-                            <div class="feature-name">odds_implied_prob</div>
-                            <div class="feature-bar-container">
-                                <div class="feature-bar" style="width: 62%"></div>
-                            </div>
-                        </div>
-                        <div class="feature-value">0.088</div>
-                    </div>
-                    <div class="feature-item">
-                        <div class="feature-rank">6</div>
-                        <div class="feature-info">
-                            <div class="feature-name">synergy_count</div>
-                            <div class="feature-bar-container">
-                                <div class="feature-bar" style="width: 55%"></div>
-                            </div>
-                        </div>
-                        <div class="feature-value">0.078</div>
-                    </div>
-                    <div class="feature-item">
-                        <div class="feature-rank">7</div>
-                        <div class="feature-info">
-                            <div class="feature-name">rest_days</div>
-                            <div class="feature-bar-container">
-                                <div class="feature-bar" style="width: 48%"></div>
-                            </div>
-                        </div>
-                        <div class="feature-value">0.068</div>
-                    </div>
-                    <div class="feature-item">
-                        <div class="feature-rank">8</div>
-                        <div class="feature-info">
-                            <div class="feature-name">overtime_tendency</div>
-                            <div class="feature-bar-container">
-                                <div class="feature-bar" style="width: 41%"></div>
-                            </div>
-                        </div>
-                        <div class="feature-value">0.058</div>
-                    </div>
-                </div>
+        <!-- 6. Feature Importance with Pattern Visualization -->
+        <div class="nn-section" style="max-width: 600px;">
+            <div class="section-header">
+                <h3 class="section-title">📊 Вес признаков</h3>
+                <span class="section-badge">Random Forest</span>
             </div>
-            
-            <div class="nn-section">
-                <div class="section-header">
-                    <h3 class="section-title">📈 Training History</h3>
-                    <span class="section-badge">50 Epochs</span>
+            <div class="feature-list">
+                <div class="feature-item">
+                    <div class="feature-rank top">1</div>
+                    <div class="feature-info">
+                        <div class="feature-name">Домашние серии</div>
+                        <div class="pattern-squares">
+                            <div class="pattern-square win">W</div>
+                            <div class="pattern-square win">W</div>
+                            <div class="pattern-square win">W</div>
+                            <div class="pattern-square win">W</div>
+                            <div class="pattern-square win">W</div>
+                        </div>
+                    </div>
+                    <div class="feature-value">0.142</div>
                 </div>
-                <div class="chart-container">
-                    <canvas id="trainingChart"></canvas>
+                <div class="feature-item">
+                    <div class="feature-rank top">2</div>
+                    <div class="feature-info">
+                        <div class="feature-name">История H2H</div>
+                        <div class="pattern-squares">
+                            <div class="pattern-square win">W</div>
+                            <div class="pattern-square loss">L</div>
+                            <div class="pattern-square win">W</div>
+                            <div class="pattern-square loss">L</div>
+                            <div class="pattern-square win">W</div>
+                        </div>
+                    </div>
+                    <div class="feature-value">0.126</div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-rank top">3</div>
+                    <div class="feature-info">
+                        <div class="feature-name">Гостевые серии</div>
+                        <div class="pattern-squares">
+                            <div class="pattern-square loss">L</div>
+                            <div class="pattern-square loss">L</div>
+                            <div class="pattern-square loss">L</div>
+                            <div class="pattern-square loss">L</div>
+                            <div class="pattern-square loss">L</div>
+                        </div>
+                    </div>
+                    <div class="feature-value">0.115</div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-rank">4</div>
+                    <div class="feature-info">
+                        <div class="feature-name">Голы (среднее за 5 игр)</div>
+                        <div class="pattern-squares">
+                            <div class="pattern-square neutral">⚽</div>
+                            <div class="pattern-square neutral">⚽</div>
+                            <div class="pattern-square neutral">⚽</div>
+                        </div>
+                    </div>
+                    <div class="feature-value">0.096</div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-rank">5</div>
+                    <div class="feature-info">
+                        <div class="feature-name">Коэффициенты</div>
+                        <div class="pattern-squares">
+                            <div class="pattern-square neutral">💰</div>
+                        </div>
+                    </div>
+                    <div class="feature-value">0.088</div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-rank">6</div>
+                    <div class="feature-info">
+                        <div class="feature-name">Синергия паттернов</div>
+                        <div class="pattern-squares">
+                            <div class="pattern-square win">W</div>
+                            <div class="pattern-square win">W</div>
+                            <div class="pattern-square neutral">+</div>
+                            <div class="pattern-square win">W</div>
+                        </div>
+                    </div>
+                    <div class="feature-value">0.078</div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-rank">7</div>
+                    <div class="feature-info">
+                        <div class="feature-name">Дни отдыха</div>
+                        <div class="pattern-squares">
+                            <div class="pattern-square neutral">📅</div>
+                        </div>
+                    </div>
+                    <div class="feature-value">0.068</div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-rank">8</div>
+                    <div class="feature-info">
+                        <div class="feature-name">Овертаймы</div>
+                        <div class="pattern-squares">
+                            <div class="pattern-square neutral">OT</div>
+                        </div>
+                    </div>
+                    <div class="feature-value">0.058</div>
                 </div>
             </div>
         </div>
     </div>
     
     <script>
-        // Training History Chart
-        const ctx = document.getElementById('trainingChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: Array.from({length: 50}, (_, i) => i + 1),
-                datasets: [
-                    {
-                        label: 'Training Loss',
-                        data: [0.95, 0.82, 0.74, 0.68, 0.62, 0.58, 0.54, 0.51, 0.48, 0.46,
-                               0.44, 0.42, 0.41, 0.39, 0.38, 0.37, 0.36, 0.35, 0.34, 0.34,
-                               0.33, 0.32, 0.32, 0.31, 0.31, 0.30, 0.30, 0.29, 0.29, 0.29,
-                               0.28, 0.28, 0.28, 0.27, 0.27, 0.27, 0.27, 0.26, 0.26, 0.26,
-                               0.26, 0.26, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.24, 0.24],
-                        borderColor: '#BEFF50',
-                        backgroundColor: 'rgba(190, 255, 80, 0.1)',
-                        fill: true,
-                        tension: 0.4
-                    },
-                    {
-                        label: 'Validation Loss',
-                        data: [0.98, 0.88, 0.79, 0.73, 0.69, 0.66, 0.63, 0.61, 0.59, 0.58,
-                               0.57, 0.56, 0.55, 0.55, 0.54, 0.54, 0.53, 0.53, 0.53, 0.52,
-                               0.52, 0.52, 0.52, 0.51, 0.51, 0.51, 0.51, 0.51, 0.50, 0.50,
-                               0.50, 0.50, 0.50, 0.50, 0.50, 0.49, 0.49, 0.49, 0.49, 0.49,
-                               0.49, 0.49, 0.49, 0.49, 0.49, 0.49, 0.49, 0.49, 0.49, 0.49],
-                        borderColor: '#8B5CF6',
-                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                        fill: true,
-                        tension: 0.4
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'top',
-                        labels: { usePointStyle: true }
-                    }
-                },
-                scales: {
-                    x: {
-                        title: { display: true, text: 'Epoch' },
-                        grid: { color: 'rgba(0,0,0,0.05)' }
-                    },
-                    y: {
-                        title: { display: true, text: 'Loss' },
-                        grid: { color: 'rgba(0,0,0,0.05)' },
-                        min: 0,
-                        max: 1
-                    }
-                }
-            }
-        });
-        
         function checkNow() {
             fetch('/api/monitor/check', { method: 'POST' })
                 .then(r => r.json())
