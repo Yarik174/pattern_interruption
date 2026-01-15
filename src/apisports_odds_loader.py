@@ -74,7 +74,7 @@ class APISportsOddsLoader:
             logger.warning(f"API-Sports: дневной лимит исчерпан ({self._daily_limit} запросов)")
             return None
             
-        headers = {'x-apisports-key': self.api_key}
+        headers = {'x-apisports-key': self.api_key.strip()}
         url = f"{BASE_URL}/{endpoint}"
         
         try:
@@ -146,12 +146,18 @@ class APISportsOddsLoader:
             })
             
             if data and 'response' in data:
+                games_count = len(data['response'])
+                statuses = {}
                 for game in data['response']:
                     status = game.get('status', {}).get('short', '')
-                    if status in ['NS', 'TBD', 'SUSP']:
+                    statuses[status] = statuses.get(status, 0) + 1
+                    # Расширенный фильтр: NS (Not Started), TBD, SUSP, POST (Postponed), CANC, PST
+                    # Также включаем пустой статус и любые "scheduled" варианты
+                    if status in ['NS', 'TBD', 'SUSP', 'POST', 'PST', 'CANC', ''] or status is None:
                         game_info = self._parse_game(game, league_code)
                         if game_info:
                             all_games.append(game_info)
+                logger.info(f"API-Sports {league_code}: {games_count} матчей, статусы: {statuses}")
         
         all_games.sort(key=lambda x: x.get('match_date') or datetime.max)
         
