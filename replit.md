@@ -141,6 +141,22 @@ gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app
 - `/statistics` - Model vs manual selection comparison
 - `/settings/telegram` - Telegram bot setup
 
+## CPP Betting Strategy (Critical Pattern Prediction)
+
+**Ключевой принцип:** Система ставит на ПРЕРЫВАНИЕ серии, а не на её продолжение.
+
+**Когда делаем ставку:**
+- Паттерн достиг критической длины (домашняя серия ≥4, гостевая ≥3, общая ≥5)
+- Синергия ≥2 (минимум 2 паттерна указывают на одну команду)
+- Ставим на команду, которая ПРЕРВЁТ эти серии
+
+**Пример логики:**
+- Calgary: 5 домашних побед подряд → серия достигла критической длины
+- Calgary: 4 победы в H2H дома → серия достигла критической длины  
+- **Вывод:** Ставим на Edmonton (прерывание серий Calgary)
+
+**Подробная документация:** [docs/theory.md](docs/theory.md)
+
 ## UI Design (2026-01-14)
 - **Theme:** Perk.com inspired light theme
 - **Colors:** #BEFF50 accent, #F5F5EB background, #14140F text
