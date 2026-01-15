@@ -1701,108 +1701,11 @@
                 </div>
             </div>
             
-            <!-- Section 8: Пример -->
+            <!-- Section 8: Реальный пример -->
             <div class="edu-section">
                 <div class="edu-block">
-                    <h4>🎬 Как система находит выгодные ставки</h4>
-                    <p>Разберём как система анализирует матч <strong>Edmonton Oilers @ Calgary Flames</strong>:</p>
-                    
-                    <div class="edu-diagram" style="margin-bottom: 16px;">
-                        <h5 style="color: rgba(255,255,255,0.7); margin-bottom: 16px; font-size: 0.85rem;">ШАГ 1: Сбор данных</h5>
-                        <div class="edu-pipeline">
-                            <div class="edu-pipeline-step">
-                                <div class="icon">🏠</div>
-                                <div class="name">Calgary</div>
-                                <div class="desc">5 побед дома</div>
-                            </div>
-                            <div class="edu-pipeline-step">
-                                <div class="icon">✈️</div>
-                                <div class="name">Edmonton</div>
-                                <div class="desc">4 поражения away</div>
-                            </div>
-                            <div class="edu-pipeline-step">
-                                <div class="icon">⚔️</div>
-                                <div class="name">H2H</div>
-                                <div class="desc">Calgary 4-1</div>
-                            </div>
-                            <div class="edu-pipeline-step">
-                                <div class="icon">💰</div>
-                                <div class="name">Odds</div>
-                                <div class="desc">CGY 1.85 / EDM 2.15</div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="edu-diagram" style="margin-bottom: 16px;">
-                        <h5 style="color: rgba(255,255,255,0.7); margin-bottom: 16px; font-size: 0.85rem;">ШАГ 2: Анализ паттернов (CPP)</h5>
-                        <div class="edu-pipeline">
-                            <div class="edu-pipeline-step" style="border-color: #EF4444;">
-                                <div class="icon">🔴</div>
-                                <div class="name">Home серия</div>
-                                <div class="desc">5 ≥ 4 → CRITICAL</div>
-                            </div>
-                            <div class="edu-pipeline-step" style="border-color: #EF4444;">
-                                <div class="icon">🔴</div>
-                                <div class="name">Away серия</div>
-                                <div class="desc">4 ≥ 3 → CRITICAL</div>
-                            </div>
-                            <div class="edu-pipeline-step" style="border-color: #EF4444;">
-                                <div class="icon">🔴</div>
-                                <div class="name">H2H серия</div>
-                                <div class="desc">4 ≥ 4 → CRITICAL</div>
-                            </div>
-                            <div class="edu-pipeline-step active">
-                                <div class="icon">⚡</div>
-                                <div class="name">Синергия</div>
-                                <div class="desc">3 паттерна!</div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="edu-diagram">
-                        <h5 style="color: rgba(255,255,255,0.7); margin-bottom: 16px; font-size: 0.85rem;">ШАГ 3: Консенсус моделей</h5>
-                        <div class="edu-pipeline">
-                            <div class="edu-pipeline-step">
-                                <div class="icon">🌲</div>
-                                <div class="name">Random Forest</div>
-                                <div class="desc">Edmonton 58%</div>
-                            </div>
-                            <div class="edu-pipeline-step">
-                                <div class="icon">🧠</div>
-                                <div class="name">LSTM</div>
-                                <div class="desc">Edmonton 61%</div>
-                            </div>
-                            <div class="edu-pipeline-step">
-                                <div class="icon">📋</div>
-                                <div class="name">CPP</div>
-                                <div class="desc">Edmonton (синергия 3)</div>
-                            </div>
-                            <div class="edu-arrow">→</div>
-                            <div class="edu-pipeline-step active" style="border-color: #22C55E;">
-                                <div class="icon">✅</div>
-                                <div class="name">Прогноз</div>
-                                <div class="desc">EDMONTON @ 2.15</div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="edu-highlight" style="margin-top: 20px;">
-                        <p><strong>Результат:</strong> Все три модели указывают на Edmonton. CPP даёт синергию 3 (высокая уверенность). 
-                        Коэффициент 2.15 находится в оптимальном диапазоне [2.0-3.5]. Система рекомендует ставку на Edmonton с ROI +27% 
-                        на исторических данных для таких ситуаций.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Как система находит выгодные ставки - Storytelling -->
-        <div class="nn-section">
-            <div class="section-header">
-                <h3 class="section-title">
-                    🎯 Как система находит выгодные ставки
-                    <span class="section-badge">Реальный пример</span>
-                </h3>
-            </div>
+                    <h4>🎯 Как система находит выгодные ставки</h4>
+                    <p class="edu-subtitle" style="margin-bottom: 24px;">Разберём реальный пример: <strong>Edmonton Oilers @ Calgary Flames</strong></p>
             
             <div class="story-container">
                 <!-- Match Header -->
@@ -1896,6 +1799,8 @@
                         <span>Уверенность модели</span>
                         <span>76%</span>
                     </div>
+                </div>
+            </div>
                 </div>
             </div>
         </div>
