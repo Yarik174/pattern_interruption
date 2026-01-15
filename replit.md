@@ -41,7 +41,7 @@ Ensure all generated code is well-commented and follows standard Python best pra
 The system is built around a core pattern recognition engine that identifies various types of patterns, including home series, away series, head-to-head records, and alternating win/loss sequences. It utilizes both a Random Forest model for general predictions and a Critical Pattern Prediction (CPP) logic for identifying high-confidence pattern breaks.
 
 **Technical Implementations:**
-- **Data Loading:** `data_loader.py` handles NHL data via an API with caching. `multi_league_loader.py` fetches data for European leagues using API-Sports.
+- **Data Loading:** `data_loader.py` handles NHL data via an API with caching. `flashlive_loader.py` fetches live match data for all leagues via FlashLive API (RapidAPI). `multi_league_loader.py` used for historical European leagues data.
 - **Pattern Engine:** `pattern_engine.py` is central to identifying and analyzing patterns, including calculating their "weights" or reliability.
 - **Feature Engineering:** `feature_builder.py` creates features for machine learning models, incorporating series lengths, alternations, synergies, and deep H2H statistics.
 - **Prediction Models:**
