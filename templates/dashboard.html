@@ -758,6 +758,333 @@
             margin-top: 4px;
         }
         
+        /* ML Education Section */
+        .ml-education {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 28px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border-light);
+            box-shadow: var(--shadow);
+        }
+        
+        .edu-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-light);
+        }
+        
+        .edu-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .edu-subtitle {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+        
+        .edu-nav {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+        }
+        
+        .edu-nav-btn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .edu-nav-btn:hover {
+            background: var(--bg-card);
+            border-color: var(--accent);
+        }
+        
+        .edu-nav-btn.active {
+            background: var(--accent);
+            color: #000;
+            border-color: var(--accent);
+            font-weight: 600;
+        }
+        
+        .edu-content {
+            display: none;
+        }
+        
+        .edu-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .edu-block {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 16px;
+        }
+        
+        .edu-block:last-child {
+            margin-bottom: 0;
+        }
+        
+        .edu-block h4 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .edu-block p {
+            color: var(--text-secondary);
+            line-height: 1.7;
+            margin-bottom: 12px;
+        }
+        
+        .edu-block p:last-child {
+            margin-bottom: 0;
+        }
+        
+        .edu-highlight {
+            background: rgba(190, 255, 80, 0.15);
+            border-left: 3px solid var(--accent);
+            padding: 12px 16px;
+            border-radius: 0 8px 8px 0;
+            margin: 16px 0;
+        }
+        
+        .edu-highlight p {
+            margin: 0;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+        
+        .edu-stats-row {
+            display: flex;
+            gap: 16px;
+            margin-top: 16px;
+        }
+        
+        .edu-stat {
+            background: var(--bg-card);
+            border-radius: 10px;
+            padding: 16px 20px;
+            text-align: center;
+            flex: 1;
+            border: 1px solid var(--border-light);
+        }
+        
+        .edu-stat .value {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--accent-dark);
+        }
+        
+        .edu-stat .label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+        
+        .edu-code {
+            background: #1a1a2e;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 0.85rem;
+            color: #e0e0e0;
+            overflow-x: auto;
+        }
+        
+        .edu-code .comment { color: #6b7280; }
+        .edu-code .keyword { color: var(--accent); }
+        .edu-code .number { color: #f59e0b; }
+        .edu-code .string { color: #22c55e; }
+        
+        .edu-diagram {
+            background: linear-gradient(135deg, #1a1a2e 0%, #0f0f23 100%);
+            border-radius: 12px;
+            padding: 24px;
+            margin: 16px 0;
+            color: #fff;
+        }
+        
+        .edu-pipeline {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .edu-pipeline-step {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 16px 20px;
+            text-align: center;
+            flex: 1;
+            min-width: 120px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .edu-pipeline-step.active {
+            border-color: var(--accent);
+            background: rgba(190, 255, 80, 0.1);
+        }
+        
+        .edu-pipeline-step .icon {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+        }
+        
+        .edu-pipeline-step .name {
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .edu-pipeline-step .desc {
+            font-size: 0.7rem;
+            color: rgba(255,255,255,0.5);
+        }
+        
+        .edu-arrow {
+            font-size: 1.25rem;
+            color: rgba(255,255,255,0.3);
+        }
+        
+        .edu-features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+        
+        .edu-feature-card {
+            background: var(--bg-card);
+            border-radius: 10px;
+            padding: 16px;
+            border: 1px solid var(--border-light);
+        }
+        
+        .edu-feature-card h5 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .edu-feature-card p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin: 0;
+            line-height: 1.5;
+        }
+        
+        .edu-feature-card .count {
+            display: inline-block;
+            background: var(--accent);
+            color: #000;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            margin-left: auto;
+        }
+        
+        .edu-tree {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border-light);
+            margin: 16px 0;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 0.85rem;
+            line-height: 1.8;
+        }
+        
+        .edu-tree .node { color: var(--text-primary); }
+        .edu-tree .question { color: var(--purple); }
+        .edu-tree .yes { color: var(--success); }
+        .edu-tree .no { color: var(--danger); }
+        .edu-tree .result { color: var(--accent-dark); font-weight: 700; }
+        
+        .edu-models-compare {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-top: 16px;
+        }
+        
+        .edu-model-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 20px;
+            border: 2px solid var(--border-light);
+            text-align: center;
+        }
+        
+        .edu-model-card.highlight {
+            border-color: var(--accent);
+        }
+        
+        .edu-model-card .icon {
+            font-size: 2rem;
+            margin-bottom: 12px;
+        }
+        
+        .edu-model-card h5 {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        
+        .edu-model-card .desc {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+        
+        .edu-model-card .metric {
+            font-size: 1.25rem;
+            font-weight: 800;
+        }
+        
+        .edu-model-card .metric.success { color: var(--success); }
+        .edu-model-card .metric.purple { color: var(--purple); }
+        .edu-model-card .metric.cyan { color: var(--cyan); }
+        
+        .edu-model-card .metric-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+        
         .inference-stat .sub {
             font-size: 0.7rem;
             color: rgba(255,255,255,0.4);
@@ -913,6 +1240,508 @@
                     <div class="model-stat">
                         <div class="value">847K</div>
                         <div class="label">Параметров</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ML Education Section -->
+        <div class="ml-education">
+            <div class="edu-header">
+                <div>
+                    <h2 class="edu-title">📚 Как работает AI</h2>
+                    <p class="edu-subtitle">Ликбез по машинному обучению на примере нашей системы</p>
+                </div>
+            </div>
+            
+            <div class="edu-nav">
+                <button class="edu-nav-btn active" onclick="showEduTab('intro', this)">Зачем ML?</button>
+                <button class="edu-nav-btn" onclick="showEduTab('data', this)">Данные</button>
+                <button class="edu-nav-btn" onclick="showEduTab('features', this)">Признаки</button>
+                <button class="edu-nav-btn" onclick="showEduTab('training', this)">Обучение</button>
+                <button class="edu-nav-btn" onclick="showEduTab('rf', this)">Random Forest</button>
+                <button class="edu-nav-btn" onclick="showEduTab('lstm', this)">LSTM</button>
+                <button class="edu-nav-btn" onclick="showEduTab('cpp', this)">CPP Правила</button>
+                <button class="edu-nav-btn" onclick="showEduTab('example', this)">Пример</button>
+            </div>
+            
+            <!-- Tab 1: Зачем ML -->
+            <div id="edu-intro" class="edu-content active">
+                <div class="edu-block">
+                    <h4>🎯 Зачем нужно машинное обучение?</h4>
+                    <p>
+                        Человек физически не способен запомнить и проанализировать 5320 хоккейных матчей, найти в них закономерности, 
+                        учесть сотни факторов одновременно и вычислить вероятности исходов. Компьютер может.
+                    </p>
+                    <p>
+                        Машинное обучение — это способ научить компьютер находить паттерны в данных, которые человек не видит. 
+                        Модель анализирует тысячи прошлых матчей и выявляет: "когда сходятся такие-то условия, 
+                        в 63% случаев побеждает гостевая команда".
+                    </p>
+                    
+                    <div class="edu-highlight">
+                        <p><strong>Цель нашей системы:</strong> превратить историю матчей в прибыльные прогнозы, 
+                        находя ситуации, где вероятность исхода выше, чем думают букмекеры.</p>
+                    </div>
+                    
+                    <div class="edu-stats-row">
+                        <div class="edu-stat">
+                            <div class="value">5,320</div>
+                            <div class="label">Матчей проанализировано</div>
+                        </div>
+                        <div class="edu-stat">
+                            <div class="value">112</div>
+                            <div class="label">Факторов учтено</div>
+                        </div>
+                        <div class="edu-stat">
+                            <div class="value">7</div>
+                            <div class="label">Сезонов NHL</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tab 2: Данные -->
+            <div id="edu-data" class="edu-content">
+                <div class="edu-block">
+                    <h4>📊 Данные — топливо модели</h4>
+                    <p>
+                        Качество прогнозов напрямую зависит от качества данных. Мы используем официальную статистику NHL 
+                        за 7 сезонов (2016-2023), дополненную историческими коэффициентами букмекеров.
+                    </p>
+                    
+                    <p><strong>Что записывается по каждому матчу:</strong></p>
+                    <div class="edu-features-grid">
+                        <div class="edu-feature-card">
+                            <h5>⚔️ Команды</h5>
+                            <p>Кто играл дома, кто в гостях</p>
+                        </div>
+                        <div class="edu-feature-card">
+                            <h5>🏆 Результат</h5>
+                            <p>Счёт, победитель, овертайм</p>
+                        </div>
+                        <div class="edu-feature-card">
+                            <h5>📅 Дата и время</h5>
+                            <p>Когда играли, день недели</p>
+                        </div>
+                        <div class="edu-feature-card">
+                            <h5>💰 Коэффициенты</h5>
+                            <p>Odds на победу каждой команды</p>
+                        </div>
+                    </div>
+                    
+                    <div class="edu-highlight">
+                        <p><strong>Важно:</strong> Коэффициенты букмекеров — ценный источник информации. 
+                        Они отражают коллективное мнение рынка о вероятности исхода. 
+                        Коэффициент 2.0 означает, что букмекер оценивает шансы команды в 50%.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tab 3: Признаки -->
+            <div id="edu-features" class="edu-content">
+                <div class="edu-block">
+                    <h4>🔢 Признаки — язык модели</h4>
+                    <p>
+                        Модель не понимает человеческий язык. Она не знает что "Calgary хорошо играет дома". 
+                        Но она понимает числа: <code>home_win_streak = 5</code>, <code>goals_per_game = 3.2</code>.
+                    </p>
+                    <p>
+                        <strong>Признак (feature)</strong> — это численная характеристика, которую модель может "увидеть" и использовать 
+                        для предсказания. Мы преобразуем сырые данные матчей в 112 признаков.
+                    </p>
+                    
+                    <div class="edu-features-grid">
+                        <div class="edu-feature-card">
+                            <h5>📈 Серии <span class="count">24</span></h5>
+                            <p>Победы/поражения подряд дома и в гостях, длина серий, достижение критических порогов</p>
+                        </div>
+                        <div class="edu-feature-card">
+                            <h5>⚔️ H2H История <span class="count">18</span></h5>
+                            <p>Результаты личных встреч команд: кто побеждал, когда, с каким счётом</p>
+                        </div>
+                        <div class="edu-feature-card">
+                            <h5>⚽ Форма <span class="count">32</span></h5>
+                            <p>Голы забитые/пропущенные, % побед за последние 5/10 игр, тренды</p>
+                        </div>
+                        <div class="edu-feature-card">
+                            <h5>💰 Коэффициенты <span class="count">12</span></h5>
+                            <p>Odds обеих команд, implied probability, разница коэффициентов, статус андердога</p>
+                        </div>
+                        <div class="edu-feature-card">
+                            <h5>📅 Календарь <span class="count">16</span></h5>
+                            <p>Дни отдыха, back-to-back игры, домашние/гостевые серии</p>
+                        </div>
+                        <div class="edu-feature-card">
+                            <h5>🔗 Синергия <span class="count">10</span></h5>
+                            <p>Комбинации паттернов, количество совпадающих сигналов</p>
+                        </div>
+                    </div>
+                    
+                    <div class="edu-code">
+                        <span class="comment"># Пример: как матч превращается в признаки</span><br>
+                        <span class="keyword">match</span> = <span class="string">"Calgary vs Edmonton"</span><br><br>
+                        <span class="keyword">features</span> = {<br>
+                        &nbsp;&nbsp;<span class="string">"home_win_streak"</span>: <span class="number">5</span>,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment"># Calgary выиграла 5 дома подряд</span><br>
+                        &nbsp;&nbsp;<span class="string">"away_loss_streak"</span>: <span class="number">4</span>,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment"># Edmonton проиграла 4 на выезде</span><br>
+                        &nbsp;&nbsp;<span class="string">"h2h_home_wins"</span>: <span class="number">4</span>,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment"># Calgary выиграла 4 из 5 H2H</span><br>
+                        &nbsp;&nbsp;<span class="string">"home_odds"</span>: <span class="number">1.85</span>,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment"># Коэффициент на Calgary</span><br>
+                        &nbsp;&nbsp;<span class="string">"synergy_count"</span>: <span class="number">3</span>,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment"># 3 паттерна указывают на Edmonton</span><br>
+                        &nbsp;&nbsp;... <span class="comment"># ещё 107 признаков</span><br>
+                        }
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tab 4: Обучение -->
+            <div id="edu-training" class="edu-content">
+                <div class="edu-block">
+                    <h4>🎓 Обучение — поиск закономерностей</h4>
+                    <p>
+                        Обучение модели — это процесс, в котором алгоритм анализирует тысячи примеров и находит правила, 
+                        которые позволяют предсказывать результат. Модель ищет зависимости вида: 
+                        "когда домашняя серия > 4 И коэффициент гостей < 2.5, гости побеждают в 63% случаев".
+                    </p>
+                    
+                    <div class="edu-diagram">
+                        <div class="edu-pipeline">
+                            <div class="edu-pipeline-step">
+                                <div class="icon">📊</div>
+                                <div class="name">Данные</div>
+                                <div class="desc">5320 матчей</div>
+                            </div>
+                            <div class="edu-arrow">→</div>
+                            <div class="edu-pipeline-step">
+                                <div class="icon">✂️</div>
+                                <div class="name">Разделение</div>
+                                <div class="desc">80% / 20%</div>
+                            </div>
+                            <div class="edu-arrow">→</div>
+                            <div class="edu-pipeline-step active">
+                                <div class="icon">🧠</div>
+                                <div class="name">Обучение</div>
+                                <div class="desc">Поиск правил</div>
+                            </div>
+                            <div class="edu-arrow">→</div>
+                            <div class="edu-pipeline-step">
+                                <div class="icon">✅</div>
+                                <div class="name">Проверка</div>
+                                <div class="desc">Тест на 20%</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <p><strong>Почему делим на 80% и 20%?</strong></p>
+                    <p>
+                        Если проверять модель на тех же данных, на которых она училась — она покажет отличный результат, 
+                        но на новых матчах провалится. Это называется <strong>переобучение</strong> (overfitting).
+                    </p>
+                    <p>
+                        Представьте студента, который выучил ответы на все задачи из учебника, но не понял принцип решения. 
+                        На экзамене с новыми задачами он провалится. Поэтому мы учим модель на 80% матчей, 
+                        а проверяем на 20%, которые она никогда не видела.
+                    </p>
+                    
+                    <div class="edu-highlight">
+                        <p><strong>Метрики успеха:</strong> Accuracy (% правильных прогнозов) показывает общую точность. 
+                        Но для ставок важнее ROI — возврат инвестиций. Модель с 52% accuracy может быть прибыльной, 
+                        если правильно выбирает матчи с высокими коэффициентами.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tab 5: Random Forest -->
+            <div id="edu-rf" class="edu-content">
+                <div class="edu-block">
+                    <h4>🌲 Random Forest — ансамбль деревьев решений</h4>
+                    <p>
+                        Random Forest (случайный лес) — это 100 деревьев решений, каждое из которых обучено 
+                        на случайной выборке данных. Каждое дерево "голосует" за исход, и побеждает большинство.
+                    </p>
+                    
+                    <p><strong>Дерево решений</strong> — это цепочка вопросов "да/нет":</p>
+                    
+                    <div class="edu-tree">
+                        <span class="question">Домашняя серия > 4?</span><br>
+                        ├─ <span class="yes">Да</span> → <span class="question">H2H серия > 3?</span><br>
+                        │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├─ <span class="yes">Да</span> → <span class="question">Синергия ≥ 2?</span><br>
+                        │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├─ <span class="yes">Да</span> → <span class="result">Гости победят (85%)</span><br>
+                        │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└─ <span class="no">Нет</span> → <span class="node">Неопределённо (52%)</span><br>
+                        │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└─ <span class="no">Нет</span> → <span class="question">Коэффициент гостей < 2.5?</span><br>
+                        │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├─ <span class="yes">Да</span> → <span class="node">Хозяева (58%)</span><br>
+                        │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└─ <span class="no">Нет</span> → <span class="result">Гости (61%)</span><br>
+                        └─ <span class="no">Нет</span> → <span class="node">...</span>
+                    </div>
+                    
+                    <p><strong>Почему "случайный лес" работает лучше одного дерева?</strong></p>
+                    <p>
+                        Одно дерево может ошибиться — оно переобучится на своих данных. Но когда 100 деревьев, 
+                        каждое обученное на разных примерах, голосуют вместе — их ошибки компенсируются, 
+                        а правильные ответы усиливаются. Это называется "мудрость толпы".
+                    </p>
+                    
+                    <div class="edu-stats-row">
+                        <div class="edu-stat">
+                            <div class="value">100</div>
+                            <div class="label">Деревьев в лесу</div>
+                        </div>
+                        <div class="edu-stat">
+                            <div class="value">112</div>
+                            <div class="label">Признаков</div>
+                        </div>
+                        <div class="edu-stat">
+                            <div class="value">54.4%</div>
+                            <div class="label">Accuracy</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tab 6: LSTM -->
+            <div id="edu-lstm" class="edu-content">
+                <div class="edu-block">
+                    <h4>🧠 LSTM — нейросеть с памятью</h4>
+                    <p>
+                        LSTM (Long Short-Term Memory) — это тип нейронной сети, который умеет работать с последовательностями. 
+                        В отличие от Random Forest, который видит только текущий матч, LSTM анализирует последние 10 матчей 
+                        каждой команды как единую историю.
+                    </p>
+                    
+                    <div class="edu-diagram">
+                        <div class="edu-pipeline">
+                            <div class="edu-pipeline-step">
+                                <div class="icon">🏒</div>
+                                <div class="name">Матч -10</div>
+                                <div class="desc">16 признаков</div>
+                            </div>
+                            <div class="edu-arrow">→</div>
+                            <div class="edu-pipeline-step">
+                                <div class="icon">🏒</div>
+                                <div class="name">Матч -9</div>
+                                <div class="desc">16 признаков</div>
+                            </div>
+                            <div class="edu-arrow">→</div>
+                            <div class="edu-pipeline-step">
+                                <div class="icon">...</div>
+                                <div class="name">...</div>
+                                <div class="desc"></div>
+                            </div>
+                            <div class="edu-arrow">→</div>
+                            <div class="edu-pipeline-step active">
+                                <div class="icon">🏒</div>
+                                <div class="name">Сегодня</div>
+                                <div class="desc">16 признаков</div>
+                            </div>
+                            <div class="edu-arrow">→</div>
+                            <div class="edu-pipeline-step">
+                                <div class="icon">🎯</div>
+                                <div class="name">Прогноз</div>
+                                <div class="desc">Win/Loss</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <p><strong>Что видит LSTM в каждом матче (16 признаков):</strong></p>
+                    <div class="edu-features-grid">
+                        <div class="edu-feature-card">
+                            <h5>⚽ Голы</h5>
+                            <p>Забито и пропущено</p>
+                        </div>
+                        <div class="edu-feature-card">
+                            <h5>🏠 Площадка</h5>
+                            <p>Дома или в гостях</p>
+                        </div>
+                        <div class="edu-feature-card">
+                            <h5>🏆 Результат</h5>
+                            <p>Победа/поражение, OT</p>
+                        </div>
+                        <div class="edu-feature-card">
+                            <h5>💰 Odds</h5>
+                            <p>Коэффициенты, андердог</p>
+                        </div>
+                    </div>
+                    
+                    <p style="margin-top: 16px;">
+                        <strong>Преимущество LSTM:</strong> сеть видит контекст. После 5 побед подряд команда может быть 
+                        уставшей или наоборот — "в потоке". LSTM учитывает такие динамические паттерны, 
+                        которые Random Forest не видит.
+                    </p>
+                    
+                    <div class="edu-stats-row">
+                        <div class="edu-stat">
+                            <div class="value">10</div>
+                            <div class="label">Матчей в памяти</div>
+                        </div>
+                        <div class="edu-stat">
+                            <div class="value">16</div>
+                            <div class="label">Признаков на матч</div>
+                        </div>
+                        <div class="edu-stat">
+                            <div class="value">56.2%</div>
+                            <div class="label">Accuracy</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tab 7: CPP -->
+            <div id="edu-cpp" class="edu-content">
+                <div class="edu-block">
+                    <h4>📋 CPP — экспертные правила</h4>
+                    <p>
+                        CPP (Critical Pattern Prediction) — это набор правил, основанных на экспертном анализе хоккея. 
+                        Машинное обучение не всегда находит очевидные закономерности. Иногда человеческий опыт 
+                        даёт лучшие результаты.
+                    </p>
+                    
+                    <p><strong>Ключевой принцип CPP: "Серии ломаются"</strong></p>
+                    <p>
+                        Когда команда выигрывает слишком много матчей подряд — вероятность поражения растёт. 
+                        Это не магия, а статистика: усталость, завышенные ожидания, расслабленность. 
+                        Мы определили критические длины серий на основе анализа 5320 матчей:
+                    </p>
+                    
+                    <div class="edu-features-grid">
+                        <div class="edu-feature-card">
+                            <h5>🏠 Домашняя серия</h5>
+                            <p>Критическая длина: <strong>4+ побед</strong></p>
+                        </div>
+                        <div class="edu-feature-card">
+                            <h5>✈️ Гостевая серия</h5>
+                            <p>Критическая длина: <strong>3+ побед</strong></p>
+                        </div>
+                        <div class="edu-feature-card">
+                            <h5>📊 Общая серия</h5>
+                            <p>Критическая длина: <strong>5+ побед</strong></p>
+                        </div>
+                        <div class="edu-feature-card">
+                            <h5>⚔️ H2H серия</h5>
+                            <p>Критическая длина: <strong>4+ побед</strong></p>
+                        </div>
+                    </div>
+                    
+                    <div class="edu-highlight">
+                        <p><strong>Синергия</strong> — когда несколько паттернов указывают на одну команду одновременно. 
+                        Если домашняя серия Calgary = 5 И H2H серия Calgary = 4 И гостевая серия Edmonton = 4 поражения — 
+                        это синергия 3, и мы ставим на Edmonton (прерывание всех серий).</p>
+                    </div>
+                    
+                    <p><strong>Результаты бэктеста CPP:</strong></p>
+                    <div class="edu-models-compare">
+                        <div class="edu-model-card highlight">
+                            <div class="icon">🏆</div>
+                            <h5>Лучшая комбинация</h5>
+                            <div class="desc">AwayLoss + HomeWin + Overall → Break</div>
+                            <div class="metric success">+64.3%</div>
+                            <div class="metric-label">ROI</div>
+                        </div>
+                        <div class="edu-model-card">
+                            <div class="icon">🎯</div>
+                            <h5>H2H + HomeLoss</h5>
+                            <div class="desc">Синергия 2+</div>
+                            <div class="metric success">+27.4%</div>
+                            <div class="metric-label">ROI</div>
+                        </div>
+                        <div class="edu-model-card">
+                            <div class="icon">📊</div>
+                            <h5>Базовая синергия</h5>
+                            <div class="desc">AwayLoss + HomeWin</div>
+                            <div class="metric success">+11.8%</div>
+                            <div class="metric-label">ROI</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tab 8: Пример -->
+            <div id="edu-example" class="edu-content">
+                <div class="edu-block">
+                    <h4>🎬 От матча к прогнозу: реальный пример</h4>
+                    <p>Разберём как система анализирует матч <strong>Edmonton Oilers @ Calgary Flames</strong>:</p>
+                    
+                    <div class="edu-diagram" style="margin-bottom: 16px;">
+                        <h5 style="color: rgba(255,255,255,0.7); margin-bottom: 16px; font-size: 0.85rem;">ШАГ 1: Сбор данных</h5>
+                        <div class="edu-pipeline">
+                            <div class="edu-pipeline-step">
+                                <div class="icon">🏠</div>
+                                <div class="name">Calgary</div>
+                                <div class="desc">5 побед дома</div>
+                            </div>
+                            <div class="edu-pipeline-step">
+                                <div class="icon">✈️</div>
+                                <div class="name">Edmonton</div>
+                                <div class="desc">4 поражения away</div>
+                            </div>
+                            <div class="edu-pipeline-step">
+                                <div class="icon">⚔️</div>
+                                <div class="name">H2H</div>
+                                <div class="desc">Calgary 4-1</div>
+                            </div>
+                            <div class="edu-pipeline-step">
+                                <div class="icon">💰</div>
+                                <div class="name">Odds</div>
+                                <div class="desc">CGY 1.85 / EDM 2.15</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="edu-diagram" style="margin-bottom: 16px;">
+                        <h5 style="color: rgba(255,255,255,0.7); margin-bottom: 16px; font-size: 0.85rem;">ШАГ 2: Анализ паттернов (CPP)</h5>
+                        <div class="edu-pipeline">
+                            <div class="edu-pipeline-step" style="border-color: #EF4444;">
+                                <div class="icon">🔴</div>
+                                <div class="name">Home серия</div>
+                                <div class="desc">5 ≥ 4 → CRITICAL</div>
+                            </div>
+                            <div class="edu-pipeline-step" style="border-color: #EF4444;">
+                                <div class="icon">🔴</div>
+                                <div class="name">Away серия</div>
+                                <div class="desc">4 ≥ 3 → CRITICAL</div>
+                            </div>
+                            <div class="edu-pipeline-step" style="border-color: #EF4444;">
+                                <div class="icon">🔴</div>
+                                <div class="name">H2H серия</div>
+                                <div class="desc">4 ≥ 4 → CRITICAL</div>
+                            </div>
+                            <div class="edu-pipeline-step active">
+                                <div class="icon">⚡</div>
+                                <div class="name">Синергия</div>
+                                <div class="desc">3 паттерна!</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="edu-diagram">
+                        <h5 style="color: rgba(255,255,255,0.7); margin-bottom: 16px; font-size: 0.85rem;">ШАГ 3: Консенсус моделей</h5>
+                        <div class="edu-pipeline">
+                            <div class="edu-pipeline-step">
+                                <div class="icon">🌲</div>
+                                <div class="name">Random Forest</div>
+                                <div class="desc">Edmonton 58%</div>
+                            </div>
+                            <div class="edu-pipeline-step">
+                                <div class="icon">🧠</div>
+                                <div class="name">LSTM</div>
+                                <div class="desc">Edmonton 61%</div>
+                            </div>
+                            <div class="edu-pipeline-step">
+                                <div class="icon">📋</div>
+                                <div class="name">CPP</div>
+                                <div class="desc">Edmonton (синергия 3)</div>
+                            </div>
+                            <div class="edu-arrow">→</div>
+                            <div class="edu-pipeline-step active" style="border-color: #22C55E;">
+                                <div class="icon">✅</div>
+                                <div class="name">Прогноз</div>
+                                <div class="desc">EDMONTON @ 2.15</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="edu-highlight" style="margin-top: 20px;">
+                        <p><strong>Результат:</strong> Все три модели указывают на Edmonton. CPP даёт синергию 3 (высокая уверенность). 
+                        Коэффициент 2.15 находится в оптимальном диапазоне [2.0-3.5]. Система рекомендует ставку на Edmonton с ROI +27% 
+                        на исторических данных для таких ситуаций.</p>
                     </div>
                 </div>
             </div>
@@ -1340,6 +2169,14 @@
     </div>
     
     <script>
+        function showEduTab(tabId, btn) {
+            document.querySelectorAll('.edu-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.edu-nav-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById('edu-' + tabId).classList.add('active');
+            btn.classList.add('active');
+        }
+        
         function checkNow() {
             fetch('/api/monitor/check', { method: 'POST' })
                 .then(r => r.json())
