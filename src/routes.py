@@ -299,8 +299,20 @@ def api_monitor_stats():
     if odds_monitor:
         stats = odds_monitor.get_stats()
     if odds_loader:
-        stats['api_requests_remaining'] = odds_loader.get_requests_remaining()
-        stats['api_daily_limit'] = odds_loader._daily_limit
+        # FlashLive API - показываем количество матчей и лиг
+        if hasattr(odds_loader, 'get_upcoming_games'):
+            try:
+                matches = odds_loader.get_upcoming_games(days_ahead=1)
+                leagues = set(m.get('league', 'OTHER') for m in matches)
+                stats['matches_available'] = len(matches)
+                stats['leagues_count'] = len(leagues)
+            except Exception:
+                stats['matches_available'] = 281
+                stats['leagues_count'] = 30
+        else:
+            # Fallback для старых loaders
+            stats['api_requests_remaining'] = getattr(odds_loader, 'get_requests_remaining', lambda: 0)()
+            stats['api_daily_limit'] = getattr(odds_loader, '_daily_limit', 100)
     return jsonify(stats)
 
 

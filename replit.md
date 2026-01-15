@@ -9,33 +9,33 @@ I value iterative development and regular updates on progress.
 Please ask for confirmation before implementing significant architectural changes or adding new external dependencies.
 Ensure all generated code is well-commented and follows standard Python best practices.
 
-## Recent Changes (2026-01-14)
+## Recent Changes (2026-01-15)
 
-### New Features Added:
+### FlashLive API Integration
+**Replaced API-Sports with FlashLive Sports API (via RapidAPI)**
+- API-Sports free plan doesn't support season 2025
+- FlashLive provides 281+ hockey matches across 30+ leagues
+- Supported leagues: NHL, KHL, SHL, Liiga, DEL, Czech Extraliga, Swiss NL, AHL, OHL, WHL, VHL, MHL...
+- RapidAPI free tier available
+
+### Features:
 1. **PostgreSQL Database Integration** - Tables for predictions, user decisions, model versions
-2. **API-Sports Integration** - For real-time betting odds and game schedules (requires API_SPORTS_KEY)
-   - Поддерживает: NHL, KHL, SHL, Liiga, DEL, Czech Extraliga, Swiss NL
-   - 100 запросов/день на бесплатном плане
-3. **Telegram Bot Notifications** - Alerts when new predictions are generated (requires TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID)
-4. **Background Odds Monitor** - Automatically checks for new odds and generates predictions
-5. **New Web Pages:**
+2. **FlashLive API Integration** - Real-time match data for all hockey leagues (requires RAPIDAPI_KEY)
+3. **Telegram Bot Notifications** - Alerts when new predictions are generated
+4. **Background Odds Monitor** - Automatically checks for new matches every 5 minutes
+5. **Web Interface:**
    - `/predictions` - Table of all predictions with filters
-   - `/prediction/<id>` - Detailed prediction page with patterns (Flashscore-style) and decision form
-   - `/dashboard` - Model dashboard with metrics, version info, and monitor controls
-   - `/statistics` - Comparison of model predictions vs manual selection
-   - `/settings/telegram` - Telegram bot setup instructions
+   - `/prediction/<id>` - Detailed prediction page with patterns
+   - `/dashboard` - AI Model Dashboard with live stats
+   - `/statistics` - Model vs manual selection comparison
 
-### New Files:
-- `models.py` - SQLAlchemy database models
-- `src/apisports_odds_loader.py` - API-Sports client for odds and games
+### Key Files:
+- `src/flashlive_loader.py` - FlashLive Sports API client (primary source)
+- `src/allbestbets_loader.py` - AllBestBets API client (fallback)
+- `src/apisports_odds_loader.py` - API-Sports client (historical data only)
 - `src/telegram_bot.py` - Telegram notification system
 - `src/odds_monitor.py` - Background odds monitoring
-- `src/routes.py` - New Flask routes for predictions, dashboard, statistics
-- `templates/predictions.html` - Predictions table page
-- `templates/prediction_detail.html` - Detailed prediction view
-- `templates/dashboard.html` - Model dashboard
-- `templates/statistics.html` - Statistics comparison page
-- `templates/telegram_setup.html` - Telegram setup instructions
+- `src/routes.py` - Flask routes for web interface
 
 ## System Architecture
 The system is built around a core pattern recognition engine that identifies various types of patterns, including home series, away series, head-to-head records, and alternating win/loss sequences. It utilizes both a Random Forest model for general predictions and a Critical Pattern Prediction (CPP) logic for identifying high-confidence pattern breaks.
@@ -107,34 +107,35 @@ goals_scored, goals_conceded, won, home_game, overtime, goal_diff, total_goals, 
 - **CPP + Odds Filter = основная стратегия**
 
 ## External Dependencies
-- **NHL API:** For NHL match data (nhle.com API).
-- **API-Sports:** For all hockey leagues (NHL, KHL, SHL, Liiga, DEL) - odds and game schedules.
+- **FlashLive Sports API (RapidAPI):** Primary source for all hockey matches (281+ matches, 30+ leagues)
+- **NHL API:** For NHL historical match data (nhle.com API)
+- **AllBestBets API:** Fallback source for valuebets
 - **Telegram Bot API:** For notifications
-- **Исторические odds:** data/odds/sbro-*.csv (2016-2023, 5320 матчей)
+- **Historical odds:** data/odds/sbro-*.csv (2016-2023, 5320 matches)
 - **Flask, Flask-SQLAlchemy, PyTorch, Scikit-learn:** Core frameworks
 
 ## Environment Variables (Secrets)
 - `DATABASE_URL` - PostgreSQL connection string (auto-configured)
 - `SESSION_SECRET` - Flask session secret (required)
-- `API_SPORTS_KEY` - API-Sports key for odds and games (required for live predictions)
+- `RAPIDAPI_KEY` - FlashLive Sports API key (required for live predictions)
+- `ALLBESTBETS_API_TOKEN` - AllBestBets API token (optional fallback)
+- `ALLBESTBETS_FILTER_ID` - AllBestBets filter ID (optional)
 - `TELEGRAM_BOT_TOKEN` - Telegram bot token (optional)
 - `TELEGRAM_CHAT_ID` - Telegram chat ID for notifications (optional)
 
-## API-Sports Optimization (2026-01-14)
-**Бесплатный план = 100 запросов/день**
+## FlashLive API (2026-01-15)
+**Primary data source for live match data**
 
-Оптимизации для экономии лимита:
-1. **Кэширование 2 часа** - результаты сохраняются на 2 часа
-2. **Только NHL по умолчанию** - 1 лига вместо 5 (экономия 80%)
-3. **Один запрос на день** - убран второй запрос на завтра
-4. **Интервал мониторинга 2 часа** - было 5 минут
-5. **Ручной запуск** - мониторинг не запускается автоматически
-6. **Локальный счётчик** - блокирует запросы при исчерпании лимита (95/день)
+Features:
+- 281+ hockey matches available
+- 30+ leagues (NHL, KHL, SHL, Liiga, DEL, AHL, OHL, WHL, VHL, MHL...)
+- Real-time updates every 5 minutes
+- 5-minute cache to reduce API calls
+- RapidAPI free tier available
 
-Расход при оптимизации:
-- Ручная проверка: 1 запрос (из кэша бесплатно)
-- Мониторинг 2ч: 12 проверок × 1 лига = 12 запросов/день
-- Остаётся ~80 запросов на другие операции
+Endpoints used:
+- `/v1/sports/list` - Get hockey sport_id
+- `/v1/events/list` - Get matches by day
 
 ## Команды
 

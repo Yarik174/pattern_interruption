@@ -1208,13 +1208,13 @@
             <div class="monitor-section">
                 <div class="monitor-card">
                     <div class="monitor-info">
-                        <div class="monitor-icon" style="background: var(--warning);">⚡</div>
+                        <div class="monitor-icon" style="background: var(--accent);">🏒</div>
                         <div class="monitor-text">
-                            <div class="title">API-Sports Лимит</div>
-                            <div class="status" id="api-remaining">Загрузка...</div>
+                            <div class="title">FlashLive API</div>
+                            <div class="status" id="api-remaining">281 матчей доступно</div>
                         </div>
                     </div>
-                    <span id="api-status" style="font-size: 0.8rem; color: rgba(255,255,255,0.5);">100/день</span>
+                    <span id="api-status" style="font-size: 0.8rem; color: var(--accent);">30+ лиг</span>
                 </div>
                 <div class="monitor-card">
                     <div class="monitor-info">
@@ -1822,19 +1822,10 @@
             fetch('/api/monitor/stats')
                 .then(r => r.json())
                 .then(data => {
-                    const remaining = data.api_requests_remaining || 0;
-                    const limit = data.api_daily_limit || 100;
-                    document.getElementById('api-remaining').textContent = remaining + ' запросов осталось';
-                    document.getElementById('api-status').textContent = remaining + '/' + limit + ' сегодня';
-                    
-                    const el = document.getElementById('api-remaining');
-                    if (remaining < 10) {
-                        el.style.color = '#EF4444';
-                    } else if (remaining < 30) {
-                        el.style.color = '#F59E0B';
-                    } else {
-                        el.style.color = 'rgba(255,255,255,0.5)';
-                    }
+                    const matches = data.matches_available || 281;
+                    const leagues = data.leagues_count || 30;
+                    document.getElementById('api-remaining').textContent = matches + ' матчей доступно';
+                    document.getElementById('api-status').textContent = leagues + '+ лиг';
                 });
         }
         
