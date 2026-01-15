@@ -626,7 +626,7 @@ def init_multi_league():
         from src.multi_league_predictor import MultiLeaguePatternEngine
         print("🌍 Инициализация мульти-лигового движка...")
         multi_league_engine = MultiLeaguePatternEngine(critical_length=5)
-        multi_league_engine.load_leagues(['KHL', 'SHL', 'Liiga', 'DEL'], n_seasons=7)
+        multi_league_engine.load_leagues(['KHL', 'SHL', 'Liiga', 'DEL'], n_seasons=4)
         print("✅ Мульти-лиговый движок готов!")
     
     return multi_league_engine
@@ -733,7 +733,7 @@ def init_euro_leagues():
         print("🏒 Инициализация европейских лиг...")
         
         loader = EuroLeagueLoader()
-        euro_league_data = loader.load_all_european_leagues(n_seasons=7)
+        euro_league_data = loader.load_all_european_leagues(n_seasons=4)
         
         euro_league_engine = PatternEngine()
         
