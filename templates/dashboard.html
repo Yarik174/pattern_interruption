@@ -790,49 +790,12 @@
             font-size: 0.9rem;
         }
         
-        .edu-nav {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
+        .edu-section {
             margin-bottom: 24px;
         }
         
-        .edu-nav-btn {
-            padding: 8px 16px;
-            border-radius: 20px;
-            border: 1px solid var(--border);
-            background: var(--bg-secondary);
-            color: var(--text-secondary);
-            font-size: 0.85rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .edu-nav-btn:hover {
-            background: var(--bg-card);
-            border-color: var(--accent);
-        }
-        
-        .edu-nav-btn.active {
-            background: var(--accent);
-            color: #000;
-            border-color: var(--accent);
-            font-weight: 600;
-        }
-        
-        .edu-content {
-            display: none;
-        }
-        
-        .edu-content.active {
-            display: block;
-            animation: fadeIn 0.3s ease;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+        .edu-section:last-child {
+            margin-bottom: 0;
         }
         
         .edu-block {
@@ -1254,19 +1217,8 @@
                 </div>
             </div>
             
-            <div class="edu-nav">
-                <button class="edu-nav-btn active" onclick="showEduTab('intro', this)">Зачем ML?</button>
-                <button class="edu-nav-btn" onclick="showEduTab('data', this)">Данные</button>
-                <button class="edu-nav-btn" onclick="showEduTab('features', this)">Признаки</button>
-                <button class="edu-nav-btn" onclick="showEduTab('training', this)">Обучение</button>
-                <button class="edu-nav-btn" onclick="showEduTab('rf', this)">Random Forest</button>
-                <button class="edu-nav-btn" onclick="showEduTab('lstm', this)">LSTM</button>
-                <button class="edu-nav-btn" onclick="showEduTab('cpp', this)">CPP Правила</button>
-                <button class="edu-nav-btn" onclick="showEduTab('example', this)">Пример</button>
-            </div>
-            
-            <!-- Tab 1: Зачем ML -->
-            <div id="edu-intro" class="edu-content active">
+            <!-- Section 1: Зачем ML -->
+            <div class="edu-section">
                 <div class="edu-block">
                     <h4>🎯 Зачем нужно машинное обучение?</h4>
                     <p>
@@ -1301,8 +1253,8 @@
                 </div>
             </div>
             
-            <!-- Tab 2: Данные -->
-            <div id="edu-data" class="edu-content">
+            <!-- Section 2: Данные -->
+            <div class="edu-section">
                 <div class="edu-block">
                     <h4>📊 Данные — топливо модели</h4>
                     <p>
@@ -1338,8 +1290,8 @@
                 </div>
             </div>
             
-            <!-- Tab 3: Признаки -->
-            <div id="edu-features" class="edu-content">
+            <!-- Section 3: Признаки -->
+            <div class="edu-section">
                 <div class="edu-block">
                     <h4>🔢 Признаки — язык модели</h4>
                     <p>
@@ -1393,8 +1345,8 @@
                 </div>
             </div>
             
-            <!-- Tab 4: Обучение -->
-            <div id="edu-training" class="edu-content">
+            <!-- Section 4: Обучение -->
+            <div class="edu-section">
                 <div class="edu-block">
                     <h4>🎓 Обучение — поиск закономерностей</h4>
                     <p>
@@ -1450,8 +1402,8 @@
                 </div>
             </div>
             
-            <!-- Tab 5: Random Forest -->
-            <div id="edu-rf" class="edu-content">
+            <!-- Section 5: Random Forest -->
+            <div class="edu-section">
                 <div class="edu-block">
                     <h4>🌲 Random Forest — ансамбль деревьев решений</h4>
                     <p>
@@ -1497,8 +1449,8 @@
                 </div>
             </div>
             
-            <!-- Tab 6: LSTM -->
-            <div id="edu-lstm" class="edu-content">
+            <!-- Section 6: LSTM -->
+            <div class="edu-section">
                 <div class="edu-block">
                     <h4>🧠 LSTM — нейросеть с памятью</h4>
                     <p>
@@ -1584,8 +1536,8 @@
                 </div>
             </div>
             
-            <!-- Tab 7: CPP -->
-            <div id="edu-cpp" class="edu-content">
+            <!-- Section 7: CPP -->
+            <div class="edu-section">
                 <div class="edu-block">
                     <h4>📋 CPP — экспертные правила</h4>
                     <p>
@@ -1654,8 +1606,8 @@
                 </div>
             </div>
             
-            <!-- Tab 8: Пример -->
-            <div id="edu-example" class="edu-content">
+            <!-- Section 8: Пример -->
+            <div class="edu-section">
                 <div class="edu-block">
                     <h4>🎬 От матча к прогнозу: реальный пример</h4>
                     <p>Разберём как система анализирует матч <strong>Edmonton Oilers @ Calgary Flames</strong>:</p>
@@ -2170,13 +2122,6 @@
     </div>
     
     <script>
-        function showEduTab(tabId, btn) {
-            document.querySelectorAll('.edu-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.edu-nav-btn').forEach(el => el.classList.remove('active'));
-            
-            document.getElementById('edu-' + tabId).classList.add('active');
-            btn.classList.add('active');
-        }
         
         function checkNow() {
             fetch('/api/monitor/check', { method: 'POST' })
