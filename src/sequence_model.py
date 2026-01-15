@@ -322,9 +322,14 @@ class SequenceDataPreparer:
             }
             
             if self.with_odds:
-                match_features['home_odds'] = row.get('home_odds', self.DEFAULT_HOME_ODDS)
-                match_features['away_odds'] = row.get('away_odds', self.DEFAULT_AWAY_ODDS)
+                home_odds = row.get('home_odds', self.DEFAULT_HOME_ODDS)
+                away_odds = row.get('away_odds', self.DEFAULT_AWAY_ODDS)
+                match_features['home_odds'] = home_odds
+                match_features['away_odds'] = away_odds
                 match_features['implied_prob'] = row.get('implied_prob', self.DEFAULT_IMPLIED_PROB)
+                match_features['is_underdog'] = 1 if home_odds > away_odds else 0
+                match_features['won_as_underdog'] = 1 if (home_odds > away_odds and home_won_final == 1) else 0
+                match_features['odds_diff'] = (home_odds - away_odds) / max(home_odds, away_odds)
             
             if home not in team_history:
                 team_history[home] = []
@@ -349,9 +354,14 @@ class SequenceDataPreparer:
             }
             
             if self.with_odds:
-                away_features['home_odds'] = row.get('home_odds', self.DEFAULT_HOME_ODDS)
-                away_features['away_odds'] = row.get('away_odds', self.DEFAULT_AWAY_ODDS)
-                away_features['implied_prob'] = row.get('implied_prob', self.DEFAULT_IMPLIED_PROB)
+                home_odds = row.get('home_odds', self.DEFAULT_HOME_ODDS)
+                away_odds = row.get('away_odds', self.DEFAULT_AWAY_ODDS)
+                away_features['home_odds'] = home_odds
+                away_features['away_odds'] = away_odds
+                away_features['implied_prob'] = 1 - row.get('implied_prob', self.DEFAULT_IMPLIED_PROB)
+                away_features['is_underdog'] = 1 if away_odds > home_odds else 0
+                away_features['won_as_underdog'] = 1 if (away_odds > home_odds and away_won_final == 1) else 0
+                away_features['odds_diff'] = (away_odds - home_odds) / max(home_odds, away_odds)
             
             if away not in team_history:
                 team_history[away] = []
@@ -369,7 +379,10 @@ class SequenceDataPreparer:
                 'won_regulation', 'won_overtime', 'draw_regulation'
             ]
             if self.with_odds:
-                self.feature_columns.extend(['home_odds', 'away_odds', 'implied_prob'])
+                self.feature_columns.extend([
+                    'home_odds', 'away_odds', 'implied_prob',
+                    'is_underdog', 'won_as_underdog', 'odds_diff'
+                ])
         
         team_history = self.build_team_history(df)
         
