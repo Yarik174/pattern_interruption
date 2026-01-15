@@ -138,9 +138,9 @@ class FlashLiveLoader:
                 headers=self._get_headers(),
                 params={
                     'sport_id': sport_id,
-                    'day': day_offset,
+                    'indent_days': day_offset,  # FlashLive uses indent_days, not day
                     'locale': 'en_INT',
-                    'timezone': 'Etc/UTC'
+                    'timezone': 0  # UTC offset as integer
                 },
                 timeout=30
             )
