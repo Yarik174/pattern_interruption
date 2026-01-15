@@ -53,13 +53,15 @@ app.register_blueprint(routes_bp)
 from src.telegram_bot import TelegramNotifier
 from src.apisports_odds_loader import APISportsOddsLoader, get_demo_odds
 from src.allbestbets_loader import AllBestBetsLoader, get_demo_matches
+from src.flashlive_loader import FlashLiveLoader
 from src.odds_monitor import OddsMonitor
 
 telegram_notifier = TelegramNotifier()
 odds_loader = APISportsOddsLoader()
 allbestbets_loader = AllBestBetsLoader()
+flashlive_loader = FlashLiveLoader()
 set_telegram(telegram_notifier)
-set_odds_loader(odds_loader)
+set_odds_loader(flashlive_loader)  # FlashLive as primary source (281 matches vs 1 from AllBestBets)
 
 @app.after_request
 def add_header(response):
@@ -1337,7 +1339,7 @@ def create_prediction_from_match(match_data):
 
 def init_odds_monitor():
     """Инициализация монитора коэффициентов"""
-    global allbestbets_loader
+    global flashlive_loader
     
     def prediction_callback(match_data):
         return create_prediction_from_match(match_data)
@@ -1347,12 +1349,12 @@ def init_odds_monitor():
             return telegram_notifier.send_prediction_alert(prediction.to_dict())
         return False
     
-    # Используем AllBestBets вместо API-Sports (бесплатный план API-Sports не даёт доступ к сезону 2025)
+    # FlashLive API - 281 матчей, все лиги, бесплатный план RapidAPI
     monitor = OddsMonitor(
-        odds_loader=allbestbets_loader,
+        odds_loader=flashlive_loader,
         prediction_callback=prediction_callback,
         notification_callback=notification_callback,
-        check_interval=300  # 5 минут (AllBestBets не имеет таких строгих лимитов)
+        check_interval=300  # 5 минут
     )
     
     set_monitor(monitor)
@@ -1371,14 +1373,14 @@ def startup_initialization():
     import threading
     threading.Thread(target=warmup_multi_league, daemon=True).start()
     
-    if allbestbets_loader.is_configured():
+    if flashlive_loader.is_configured():
         threading.Thread(target=init_odds_monitor, daemon=True).start()
-        print("✅ Odds monitor initialized with AllBestBets API")
-    elif odds_loader.is_configured():
-        print("⚠️ API-Sports free plan doesn't support current season (2025)")
-        print(f"ℹ️ API-Sports: {odds_loader.get_requests_remaining()} запросов осталось (only historical data)")
+        print("✅ Odds monitor initialized with FlashLive API (RapidAPI)")
+    elif allbestbets_loader.is_configured():
+        threading.Thread(target=init_odds_monitor, daemon=True).start()
+        print("✅ Odds monitor initialized with AllBestBets API (fallback)")
     else:
-        print("⚠️ No odds API configured")
+        print("⚠️ No odds API configured (need RAPIDAPI_KEY or ALLBESTBETS_API_TOKEN)")
 
 
 startup_initialization()
