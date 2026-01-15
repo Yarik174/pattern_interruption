@@ -139,8 +139,10 @@ class APISportsOddsLoader:
             league_id = league_info['id']
             
             # ОДИН запрос на лигу (только сегодня)
+            # ВАЖНО: API требует указать season для текущего сезона
             data = self._make_request('games', {
                 'league': league_id,
+                'season': 2025,
                 'date': date_from,
                 'timezone': 'UTC'
             })
