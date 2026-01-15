@@ -109,7 +109,7 @@ class OddsMonitor:
         }
         
         try:
-            matches = self.odds_loader.get_upcoming_games(leagues=['NHL', 'KHL', 'SHL', 'Liiga', 'DEL'], hours_ahead=48)
+            matches = self.odds_loader.get_upcoming_games(days_ahead=2)
             result['matches_found'] = len(matches)
             self._stats['matches_found'] += len(matches)
             
@@ -159,6 +159,6 @@ class MockOddsLoader:
     def is_configured(self):
         return True
     
-    def get_upcoming_games(self, leagues=None, hours_ahead=48):
+    def get_upcoming_games(self, days_ahead=2):
         from src.apisports_odds_loader import get_demo_odds
         return get_demo_odds()
