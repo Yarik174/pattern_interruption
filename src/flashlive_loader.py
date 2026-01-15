@@ -21,11 +21,11 @@ HOCKEY_SPORT_ID = 4  # Hockey sport_id в FlashLive API
 SUPPORTED_LEAGUES = ['NHL', 'KHL', 'SHL', 'Liiga', 'DEL']
 
 HOCKEY_LEAGUES = {
-    'NHL': ['nhl', 'usa. nhl', 'usa-nhl', 'national hockey league'],
-    'KHL': ['khl', 'russia. khl', 'russia-khl', 'kontinental hockey league'],
-    'SHL': ['shl', 'sweden. shl', 'sweden-shl', 'swedish hockey league'],
-    'Liiga': ['liiga', 'finland. liiga', 'finland-liiga', 'finnish liiga'],
-    'DEL': ['del', 'germany. del', 'germany-del', 'deutsche eishockey liga'],
+    'NHL': ['usa: nhl', 'usa. nhl', 'usa-nhl', 'national hockey league', 'nhl '],
+    'KHL': ['russia: khl', 'russia. khl', 'russia-khl', 'kontinental hockey league', 'khl '],
+    'SHL': ['sweden: shl', 'sweden. shl', 'sweden-shl', 'swedish hockey league', ' shl'],
+    'Liiga': ['finland: liiga', 'finland. liiga', 'finland-liiga', 'finnish liiga', 'liiga'],
+    'DEL': ['germany: del', 'germany. del', 'germany-del', 'deutsche eishockey liga', ' del'],
 }
 
 

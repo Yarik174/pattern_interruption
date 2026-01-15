@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+    <title>Логи системы | Hockey Predictor</title>
+    <style>
+        :root {
+            --bg-primary: #F5F5EB;
+            --bg-secondary: #EBEBDF;
+            --bg-card: #FFFFFF;
+            --accent: #BEFF50;
+            --accent-dark: #9FDF00;
+            --link: #216BA5;
+            --success: #22C55E;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --text-primary: #14140F;
+            --text-secondary: #5A5A52;
+            --text-muted: #8A8A7A;
+            --border: #D4D4C8;
+            --border-light: #E8E8DC;
+            --shadow: 0 2px 8px rgba(0,0,0,0.06);
+            --shadow-lg: 0 8px 24px rgba(0,0,0,0.1);
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        
+        .app { max-width: 1400px; margin: 0 auto; padding: 24px; }
+        
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 0 24px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+        .logo-icon {
+            width: 40px; height: 40px;
+            background: var(--accent);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px;
+            box-shadow: var(--shadow);
+        }
+        .logo h1 { font-size: 1.25rem; font-weight: 700; color: var(--text-primary); }
+        
+        nav { display: flex; gap: 4px; }
+        nav a {
+            padding: 10px 18px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        nav a:hover { background: var(--bg-card); color: var(--text-primary); }
+        nav a.active { background: var(--accent); color: var(--text-primary); font-weight: 600; }
+        
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+        
+        .page-subtitle {
+            color: var(--text-muted);
+            margin-bottom: 24px;
+        }
+        
+        .status-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .status-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-light);
+        }
+        
+        .status-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        
+        .status-card-title {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        
+        .status-indicator.running { color: var(--success); }
+        .status-indicator.stopped { color: var(--danger); }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-dot.running { background: var(--success); }
+        .status-dot.stopped { background: var(--danger); }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .status-card-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 8px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+        }
+        
+        .stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+        
+        .filters {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-light);
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .filter-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        
+        select {
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--bg-primary);
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            cursor: pointer;
+        }
+        
+        select:focus {
+            outline: none;
+            border-color: var(--accent-dark);
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: var(--accent);
+            color: var(--text-primary);
+        }
+        
+        .btn-primary:hover {
+            background: var(--accent-dark);
+        }
+        
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+        
+        .btn-outline:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+        
+        .logs-container {
+            background: var(--bg-card);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-light);
+            overflow: hidden;
+        }
+        
+        .logs-header {
+            padding: 16px 20px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logs-title {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .logs-count {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+        
+        .logs-list {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        
+        .log-item {
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border-light);
+            display: grid;
+            grid-template-columns: 150px 100px 80px 1fr;
+            gap: 16px;
+            align-items: start;
+            transition: background 0.2s;
+        }
+        
+        .log-item:hover {
+            background: var(--bg-secondary);
+        }
+        
+        .log-item:last-child {
+            border-bottom: none;
+        }
+        
+        .log-timestamp {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+        
+        .log-type {
+            font-size: 0.8rem;
+            font-weight: 500;
+            padding: 2px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+        
+        .log-type.data_update { background: #E0F2FE; color: #0369A1; }
+        .log-type.monitoring { background: #DCFCE7; color: #166534; }
+        .log-type.prediction { background: #FEF3C7; color: #92400E; }
+        .log-type.error { background: #FEE2E2; color: #DC2626; }
+        .log-type.system { background: #F3E8FF; color: #7C3AED; }
+        
+        .log-level {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        
+        .log-level.INFO { background: #DCFCE7; color: #166534; }
+        .log-level.WARNING { background: #FEF3C7; color: #92400E; }
+        .log-level.ERROR { background: #FEE2E2; color: #DC2626; }
+        .log-level.CRITICAL { background: #FEE2E2; color: #991B1B; font-weight: 700; }
+        
+        .log-message {
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            word-break: break-word;
+        }
+        
+        .log-details {
+            margin-top: 6px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-family: 'SF Mono', Monaco, monospace;
+            background: var(--bg-secondary);
+            padding: 6px 10px;
+            border-radius: 4px;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+        
+        .empty-state {
+            padding: 60px 20px;
+            text-align: center;
+            color: var(--text-muted);
+        }
+        
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        
+        .empty-state-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+        
+        .refresh-btn {
+            margin-left: auto;
+        }
+        
+        @media (max-width: 768px) {
+            .log-item {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+            
+            .filters {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .filter-group {
+                justify-content: space-between;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <header>
+            <a href="/predictions" class="logo">
+                <div class="logo-icon">H</div>
+                <h1>Hockey Predictor</h1>
+            </a>
+            <nav>
+                <a href="/predictions">Прогнозы</a>
+                <a href="/dashboard">Dashboard</a>
+                <a href="/statistics">Статистика</a>
+                <a href="/logs" class="active">Логи</a>
+            </nav>
+        </header>
+        
+        <h2 class="page-title">Логи системы</h2>
+        <p class="page-subtitle">Мониторинг работы системы и отслеживание обновлений</p>
+        
+        <div class="status-cards">
+            <div class="status-card">
+                <div class="status-card-header">
+                    <span class="status-card-title">Автомониторинг</span>
+                    <div class="status-indicator {% if monitor_stats.get('is_running') %}running{% else %}stopped{% endif %}">
+                        <span class="status-dot {% if monitor_stats.get('is_running') %}running{% else %}stopped{% endif %}"></span>
+                        {% if monitor_stats.get('is_running') %}Активен{% else %}Остановлен{% endif %}
+                    </div>
+                </div>
+                <div class="status-card-stats">
+                    <div class="stat-item">
+                        <div class="stat-value">{{ monitor_stats.get('total_checks', 0) }}</div>
+                        <div class="stat-label">Проверок</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ monitor_stats.get('predictions_created', 0) }}</div>
+                        <div class="stat-label">Прогнозов</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ monitor_stats.get('check_interval_hours', 4) }}ч</div>
+                        <div class="stat-label">Интервал</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ monitor_stats.get('errors', 0) }}</div>
+                        <div class="stat-label">Ошибок</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="status-card">
+                <div class="status-card-header">
+                    <span class="status-card-title">Обновление данных</span>
+                </div>
+                <div class="status-card-stats">
+                    <div class="stat-item">
+                        <div class="stat-value">{{ monitor_stats.get('data_refreshes', 0) }}</div>
+                        <div class="stat-label">Обновлений</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ monitor_stats.get('matches_found', 0) }}</div>
+                        <div class="stat-label">Матчей найдено</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">{{ monitor_stats.get('notifications_sent', 0) }}</div>
+                        <div class="stat-label">Уведомлений</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">5</div>
+                        <div class="stat-label">Лиг</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <form class="filters" method="GET" action="/logs">
+            <div class="filter-group">
+                <span class="filter-label">Тип:</span>
+                <select name="type" onchange="this.form.submit()">
+                    <option value="">Все типы</option>
+                    {% for t in log_types %}
+                    <option value="{{ t }}" {% if selected_type == t %}selected{% endif %}>{{ t }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <span class="filter-label">Уровень:</span>
+                <select name="level" onchange="this.form.submit()">
+                    <option value="">Все уровни</option>
+                    {% for l in levels %}
+                    <option value="{{ l }}" {% if selected_level == l %}selected{% endif %}>{{ l }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <span class="filter-label">Показать:</span>
+                <select name="limit" onchange="this.form.submit()">
+                    <option value="20" {% if limit == 20 %}selected{% endif %}>20</option>
+                    <option value="50" {% if limit == 50 %}selected{% endif %}>50</option>
+                    <option value="100" {% if limit == 100 %}selected{% endif %}>100</option>
+                    <option value="200" {% if limit == 200 %}selected{% endif %}>200</option>
+                </select>
+            </div>
+            
+            <button type="button" class="btn btn-primary refresh-btn" onclick="checkNow()">
+                Проверить сейчас
+            </button>
+        </form>
+        
+        <div class="logs-container">
+            <div class="logs-header">
+                <span class="logs-title">История событий</span>
+                <span class="logs-count">{{ logs|length }} записей</span>
+            </div>
+            
+            <div class="logs-list">
+                {% if logs %}
+                    {% for log in logs %}
+                    <div class="log-item">
+                        <span class="log-timestamp">{{ log.timestamp.strftime('%d.%m %H:%M:%S') if log.timestamp else '-' }}</span>
+                        <span class="log-type {{ log.log_type }}">{{ log.log_type }}</span>
+                        <span class="log-level {{ log.level }}">{{ log.level }}</span>
+                        <div>
+                            <div class="log-message">{{ log.message }}</div>
+                            {% if log.details %}
+                            <div class="log-details">{{ log.details | tojson }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📋</div>
+                        <div class="empty-state-title">Нет логов</div>
+                        <p>Логи появятся после первой проверки мониторинга</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function checkNow() {
+            fetch('/api/auto-monitor/check', { method: 'POST' })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.ok) {
+                        alert('Проверка выполнена! Найдено матчей: ' + (data.result?.matches_found || 0) + ', создано прогнозов: ' + (data.result?.predictions_created || 0));
+                        location.reload();
+                    } else {
+                        alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
+                    }
+                })
+                .catch(err => alert('Ошибка: ' + err));
+        }
+    </script>
+</body>
+</html>

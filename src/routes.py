@@ -362,3 +362,91 @@ def api_prediction_detail(prediction_id):
             return jsonify({'error': str(e)}), 404
     
     return jsonify({'error': 'Not found'}), 404
+
+
+@routes_bp.route('/logs')
+def logs_page():
+    """Страница логов системы"""
+    from models import SystemLog
+    from src.odds_monitor import get_auto_monitor
+    from src.data_refresh import get_last_refresh_info
+    
+    log_type = request.args.get('type', '')
+    level = request.args.get('level', '')
+    limit = request.args.get('limit', 50, type=int)
+    
+    query = SystemLog.query.order_by(SystemLog.timestamp.desc())
+    
+    if log_type:
+        query = query.filter(SystemLog.log_type == log_type)
+    if level:
+        query = query.filter(SystemLog.level == level)
+    
+    logs = query.limit(limit).all()
+    
+    monitor = get_auto_monitor()
+    monitor_stats = monitor.get_stats() if monitor else {}
+    
+    refresh_info = get_last_refresh_info() or {}
+    
+    log_types = ['data_update', 'monitoring', 'prediction', 'error', 'system']
+    levels = ['INFO', 'WARNING', 'ERROR', 'CRITICAL']
+    
+    return render_template('logs.html',
+                          logs=logs,
+                          log_types=log_types,
+                          levels=levels,
+                          selected_type=log_type,
+                          selected_level=level,
+                          limit=limit,
+                          monitor_stats=monitor_stats,
+                          refresh_info=refresh_info)
+
+
+@routes_bp.route('/api/logs')
+def api_logs():
+    """API: Получить логи"""
+    from models import SystemLog
+    
+    log_type = request.args.get('type', '')
+    level = request.args.get('level', '')
+    limit = request.args.get('limit', 50, type=int)
+    
+    query = SystemLog.query.order_by(SystemLog.timestamp.desc())
+    
+    if log_type:
+        query = query.filter(SystemLog.log_type == log_type)
+    if level:
+        query = query.filter(SystemLog.level == level)
+    
+    logs = [log.to_dict() for log in query.limit(limit).all()]
+    
+    return jsonify({'logs': logs})
+
+
+@routes_bp.route('/api/auto-monitor/stats')
+def api_auto_monitor_stats():
+    """API: Статистика автомониторинга"""
+    from src.odds_monitor import get_auto_monitor
+    from src.data_refresh import get_last_refresh_info
+    
+    monitor = get_auto_monitor()
+    stats = monitor.get_stats() if monitor else {'is_running': False}
+    
+    refresh_info = get_last_refresh_info()
+    if refresh_info:
+        stats['last_data_refresh_info'] = refresh_info
+    
+    return jsonify(stats)
+
+
+@routes_bp.route('/api/auto-monitor/check', methods=['POST'])
+def api_auto_monitor_check():
+    """API: Выполнить проверку автомониторинга сейчас"""
+    from src.odds_monitor import get_auto_monitor
+    
+    monitor = get_auto_monitor()
+    if monitor:
+        result = monitor.check_now()
+        return jsonify({'ok': True, 'result': result})
+    return jsonify({'ok': False, 'error': 'AutoMonitor not available'})

@@ -1,0 +1,148 @@
+"""
+Сервис создания прогнозов для AutoMonitor
+"""
+import logging
+from datetime import datetime
+from typing import Optional, Dict
+
+logger = logging.getLogger(__name__)
+
+
+def create_prediction_from_match(match: dict, bet_on: str, target_odds: float) -> Optional[dict]:
+    """
+    Создать прогноз в БД на основе матча
+    
+    Args:
+        match: Данные матча от FlashLive
+        bet_on: 'home' или 'away'
+        target_odds: Коэффициент на ставку
+        
+    Returns:
+        Словарь с данными прогноза или None
+    """
+    try:
+        from app import app, db
+        from models import Prediction
+        
+        league = match.get('league', 'Unknown')
+        if not is_target_league(league):
+            logger.debug(f"Skipping non-target league: {league}")
+            return None
+        
+        home_team = match.get('home_team', 'Unknown')
+        away_team = match.get('away_team', 'Unknown')
+        event_id = match.get('event_id')
+        
+        with app.app_context():
+            existing = Prediction.query.filter(
+                Prediction.home_team == home_team,
+                Prediction.away_team == away_team,
+                Prediction.match_date >= datetime.utcnow().replace(hour=0, minute=0, second=0)
+            ).first()
+            
+            if existing:
+                logger.debug(f"Prediction already exists: {home_team} vs {away_team}")
+                return None
+            
+            predicted_team = home_team if bet_on == 'home' else away_team
+            confidence = calculate_confidence(target_odds)
+            
+            prediction = Prediction(
+                created_at=datetime.utcnow(),
+                match_date=parse_match_date(match),
+                league=match.get('league', 'Unknown'),
+                home_team=home_team,
+                away_team=away_team,
+                prediction_type='Money Line',
+                predicted_outcome=predicted_team,
+                confidence=confidence,
+                confidence_1_10=int(confidence * 10),
+                home_odds=match.get('home_odds'),
+                away_odds=match.get('away_odds'),
+                draw_odds=match.get('draw_odds'),
+                bookmaker='FlashLive',
+                patterns_data={
+                    'event_id': event_id,
+                    'bet_on': bet_on,
+                    'target_odds': target_odds,
+                    'source': 'AutoMonitor',
+                    'odds_filter': '[2.0-3.5]'
+                },
+                model_version='AutoMonitor_v1'
+            )
+            
+            db.session.add(prediction)
+            db.session.commit()
+            
+            logger.info(f"Created prediction: {home_team} vs {away_team} -> {predicted_team}")
+            
+            return {
+                'id': prediction.id,
+                'home_team': home_team,
+                'away_team': away_team,
+                'predicted_outcome': predicted_team,
+                'confidence': confidence,
+                'odds': target_odds,
+                'league': prediction.league,
+                'match_date': prediction.match_date.isoformat() if prediction.match_date else None
+            }
+            
+    except Exception as e:
+        logger.error(f"Error creating prediction: {e}")
+        return None
+
+
+def calculate_confidence(odds: float) -> float:
+    """
+    Рассчитать уверенность на основе коэффициента
+    
+    Фильтр [2.0-3.5] — это зона "небольшого аутсайдера":
+    - 2.0 = 50% implied probability -> 0.7 confidence
+    - 2.5 = 40% implied probability -> 0.6 confidence
+    - 3.0 = 33% implied probability -> 0.5 confidence
+    - 3.5 = 29% implied probability -> 0.4 confidence
+    """
+    if not odds or odds < 1.0:
+        return 0.5
+    
+    implied_prob = 1.0 / odds
+    
+    if 2.0 <= odds <= 2.5:
+        confidence = 0.65 + (2.5 - odds) * 0.1
+    elif 2.5 < odds <= 3.0:
+        confidence = 0.55 + (3.0 - odds) * 0.2
+    elif 3.0 < odds <= 3.5:
+        confidence = 0.45 + (3.5 - odds) * 0.2
+    else:
+        confidence = implied_prob
+    
+    return min(max(confidence, 0.3), 0.8)
+
+
+def parse_match_date(match: dict) -> datetime:
+    """Парсинг даты матча"""
+    date_val = match.get('match_date') or match.get('date') or match.get('start_time')
+    
+    if not date_val:
+        return datetime.utcnow()
+    
+    if isinstance(date_val, datetime):
+        return date_val
+    
+    try:
+        if 'T' in str(date_val):
+            return datetime.fromisoformat(str(date_val).replace('Z', '+00:00').replace('+00:00', ''))
+        else:
+            return datetime.strptime(str(date_val)[:10], '%Y-%m-%d')
+    except:
+        return datetime.utcnow()
+
+
+TARGET_LEAGUES = {'NHL', 'KHL', 'SHL', 'Liiga', 'DEL'}
+
+
+def is_target_league(league: str) -> bool:
+    """Проверка что лига входит в список целевых"""
+    if not league:
+        return False
+    return league.upper() in {l.upper() for l in TARGET_LEAGUES}

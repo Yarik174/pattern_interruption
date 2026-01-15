@@ -35,7 +35,7 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 }
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-from models import db, Prediction, UserDecision, ModelVersion, TelegramSettings, OddsMonitorLog
+from models import db, Prediction, UserDecision, ModelVersion, TelegramSettings, OddsMonitorLog, SystemLog
 db.init_app(app)
 
 with app.app_context():
@@ -54,14 +54,16 @@ from src.telegram_bot import TelegramNotifier
 from src.apisports_odds_loader import APISportsOddsLoader, get_demo_odds
 from src.allbestbets_loader import AllBestBetsLoader, get_demo_matches
 from src.flashlive_loader import FlashLiveLoader
-from src.odds_monitor import OddsMonitor
+from src.odds_monitor import OddsMonitor, start_auto_monitoring, get_auto_monitor
 
 telegram_notifier = TelegramNotifier()
 odds_loader = APISportsOddsLoader()
 allbestbets_loader = AllBestBetsLoader()
 flashlive_loader = FlashLiveLoader()
 set_telegram(telegram_notifier)
-set_odds_loader(flashlive_loader)  # FlashLive as primary source (281 matches vs 1 from AllBestBets)
+set_odds_loader(flashlive_loader)
+
+start_auto_monitoring()
 
 @app.after_request
 def add_header(response):

@@ -19,15 +19,19 @@ Ensure all generated code is well-commented and follows standard Python best pra
 - RapidAPI free tier available
 
 ### Features:
-1. **PostgreSQL Database Integration** - Tables for predictions, user decisions, model versions
+1. **PostgreSQL Database Integration** - Tables for predictions, user decisions, model versions, system logs
 2. **FlashLive API Integration** - Real-time match data for all hockey leagues (requires RAPIDAPI_KEY)
 3. **Telegram Bot Notifications** - Alerts when new predictions are generated
-4. **Background Odds Monitor** - Automatically checks for new matches every 5 minutes
+4. **AutoMonitor** - Автоматический мониторинг каждые 4 часа:
+   - Проверка матчей через FlashLive API
+   - Обновление исторических данных раз в день
+   - Логирование всех операций в БД
 5. **Web Interface:**
    - `/predictions` - Table of all predictions with filters
    - `/prediction/<id>` - Detailed prediction page with patterns
    - `/dashboard` - AI Model Dashboard with live stats
    - `/statistics` - Model vs manual selection comparison
+   - `/logs` - System logs with filters (data_update, monitoring, error)
 
 ### Key Files:
 - `src/flashlive_loader.py` - FlashLive Sports API client (primary source)

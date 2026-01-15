@@ -141,3 +141,25 @@ class OddsMonitorLog(db.Model):
     predictions_created = db.Column(db.Integer)
     notifications_sent = db.Column(db.Integer)
     error_message = db.Column(db.Text)
+
+
+class SystemLog(db.Model):
+    """Универсальный лог системы"""
+    __tablename__ = 'system_logs'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    log_type = db.Column(db.String(50), nullable=False, index=True)
+    level = db.Column(db.String(20), default='INFO')
+    message = db.Column(db.Text, nullable=False)
+    details = db.Column(db.JSON)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'timestamp': self.timestamp.isoformat() if self.timestamp else None,
+            'log_type': self.log_type,
+            'level': self.level,
+            'message': self.message,
+            'details': self.details
+        }

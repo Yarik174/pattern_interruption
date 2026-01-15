@@ -1,0 +1,35 @@
+{
+  "last_refresh": "2026-01-15T18:58:33.791875",
+  "last_results": {
+    "NHL": {
+      "league": "NHL",
+      "success": true,
+      "matches": 779,
+      "error": null
+    },
+    "KHL": {
+      "league": "KHL",
+      "success": true,
+      "matches": 0,
+      "error": null
+    },
+    "SHL": {
+      "league": "SHL",
+      "success": true,
+      "matches": 0,
+      "error": null
+    },
+    "Liiga": {
+      "league": "Liiga",
+      "success": true,
+      "matches": 0,
+      "error": null
+    },
+    "DEL": {
+      "league": "DEL",
+      "success": true,
+      "matches": 0,
+      "error": null
+    }
+  }
+}

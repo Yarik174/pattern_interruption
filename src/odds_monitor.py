@@ -1,5 +1,6 @@
 """
 Фоновый мониторинг коэффициентов и генерация прогнозов
+С автозапуском и логированием в БД
 """
 import threading
 import time
@@ -10,6 +11,9 @@ import os
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+_global_monitor = None
+_monitor_thread_started = False
 
 
 class OddsMonitor:
@@ -151,6 +155,220 @@ class OddsMonitor:
         old_count = len(self._processed_events)
         self._processed_events.clear()
         logger.info(f"Cleared {old_count} processed events")
+
+
+class AutoMonitor:
+    """
+    Автоматический мониторинг с:
+    - Проверкой матчей каждые 4 часа
+    - Обновлением исторических данных раз в день
+    - Логированием в БД
+    """
+    
+    def __init__(self, check_interval: int = 14400):
+        self.check_interval = check_interval
+        self._running = False
+        self._thread: Optional[threading.Thread] = None
+        self._last_check = None
+        self._last_data_refresh = None
+        self._stats = {
+            'total_checks': 0,
+            'matches_found': 0,
+            'predictions_created': 0,
+            'notifications_sent': 0,
+            'data_refreshes': 0,
+            'errors': 0
+        }
+    
+    def start(self):
+        """Запустить автомониторинг"""
+        if self._running:
+            logger.warning("AutoMonitor already running")
+            return
+        
+        self._running = True
+        self._thread = threading.Thread(target=self._main_loop, daemon=True)
+        self._thread.start()
+        logger.info(f"AutoMonitor started (interval: {self.check_interval}s = {self.check_interval // 3600}h)")
+    
+    def stop(self):
+        """Остановить мониторинг"""
+        self._running = False
+        if self._thread:
+            self._thread.join(timeout=5)
+        logger.info("AutoMonitor stopped")
+    
+    def is_running(self) -> bool:
+        return self._running
+    
+    def get_stats(self) -> dict:
+        return {
+            **self._stats,
+            'is_running': self._running,
+            'last_check': self._last_check.isoformat() if self._last_check else None,
+            'last_data_refresh': self._last_data_refresh.isoformat() if self._last_data_refresh else None,
+            'check_interval_hours': self.check_interval // 3600
+        }
+    
+    def _main_loop(self):
+        """Основной цикл"""
+        time.sleep(10)
+        
+        while self._running:
+            try:
+                self._maybe_refresh_data()
+                self._check_matches()
+            except Exception as e:
+                logger.error(f"AutoMonitor error: {e}")
+                self._stats['errors'] += 1
+                self._log_error(str(e))
+            
+            time.sleep(self.check_interval)
+    
+    def _maybe_refresh_data(self):
+        """Обновить исторические данные если нужно"""
+        try:
+            from src.data_refresh import should_refresh, refresh_all_historical_data
+            
+            if should_refresh():
+                logger.info("AutoMonitor: refreshing historical data...")
+                result = refresh_all_historical_data()
+                if not result.get('skipped'):
+                    self._last_data_refresh = datetime.utcnow()
+                    self._stats['data_refreshes'] += 1
+        except ImportError as e:
+            logger.warning(f"Data refresh module not available: {e}")
+        except Exception as e:
+            logger.error(f"Data refresh error: {e}")
+    
+    def _check_matches(self):
+        """Проверить матчи и создать прогнозы"""
+        from src.system_logger import log_monitoring
+        
+        self._last_check = datetime.utcnow()
+        self._stats['total_checks'] += 1
+        
+        result = {
+            'matches_found': 0,
+            'predictions_created': 0,
+            'notifications_sent': 0
+        }
+        
+        try:
+            from src.flashlive_loader import FlashLiveLoader
+            
+            loader = FlashLiveLoader()
+            if not loader.is_configured():
+                logger.warning("FlashLive not configured, skipping check")
+                return result
+            
+            matches = loader.get_upcoming_games(days_ahead=2)
+            result['matches_found'] = len(matches)
+            self._stats['matches_found'] += len(matches)
+            
+            for match in matches:
+                try:
+                    prediction = self._process_match(match)
+                    if prediction:
+                        result['predictions_created'] += 1
+                        self._stats['predictions_created'] += 1
+                        
+                        if self._send_notification(prediction):
+                            result['notifications_sent'] += 1
+                            self._stats['notifications_sent'] += 1
+                except Exception as e:
+                    logger.error(f"Error processing match: {e}")
+            
+            log_monitoring(
+                result['matches_found'],
+                result['predictions_created'],
+                result['notifications_sent']
+            )
+            
+            logger.info(f"AutoMonitor check: {result['matches_found']} matches, "
+                       f"{result['predictions_created']} predictions")
+            
+        except Exception as e:
+            logger.error(f"AutoMonitor check error: {e}")
+            self._log_error(f"Check error: {e}")
+        
+        return result
+    
+    def _process_match(self, match: dict) -> Optional[dict]:
+        """Обработать матч и создать прогноз если нужно"""
+        home_odds = match.get('home_odds')
+        away_odds = match.get('away_odds')
+        
+        min_odds, max_odds = 2.0, 3.5
+        target_odds = None
+        bet_on = None
+        
+        if home_odds and min_odds <= home_odds <= max_odds:
+            target_odds = home_odds
+            bet_on = 'home'
+        elif away_odds and min_odds <= away_odds <= max_odds:
+            target_odds = away_odds
+            bet_on = 'away'
+        
+        if not target_odds:
+            if not home_odds and not away_odds:
+                bet_on = 'home'
+                target_odds = 2.0
+            else:
+                return None
+        
+        try:
+            from src.prediction_service import create_prediction_from_match
+            return create_prediction_from_match(match, bet_on, target_odds)
+        except ImportError:
+            return None
+        except Exception as e:
+            logger.error(f"Prediction creation error: {e}")
+            return None
+    
+    def _send_notification(self, prediction: dict) -> bool:
+        """Отправить уведомление в Telegram"""
+        try:
+            from src.telegram_bot import send_prediction_notification
+            return send_prediction_notification(prediction)
+        except ImportError:
+            return False
+        except Exception as e:
+            logger.error(f"Notification error: {e}")
+            return False
+    
+    def _log_error(self, message: str):
+        """Записать ошибку в лог"""
+        try:
+            from src.system_logger import log_error
+            log_error(message, {'source': 'AutoMonitor'})
+        except:
+            pass
+    
+    def check_now(self) -> dict:
+        """Выполнить проверку сейчас"""
+        return self._check_matches()
+
+
+def get_auto_monitor() -> AutoMonitor:
+    """Получить глобальный экземпляр AutoMonitor"""
+    global _global_monitor
+    if _global_monitor is None:
+        _global_monitor = AutoMonitor(check_interval=14400)
+    return _global_monitor
+
+
+def start_auto_monitoring():
+    """Запустить автомониторинг (вызывается при старте сервера)"""
+    global _monitor_thread_started
+    if _monitor_thread_started:
+        return
+    
+    monitor = get_auto_monitor()
+    if not monitor.is_running():
+        monitor.start()
+        _monitor_thread_started = True
+        logger.info("Auto monitoring started on server startup")
 
 
 class MockOddsLoader:
