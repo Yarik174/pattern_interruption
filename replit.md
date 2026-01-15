@@ -170,14 +170,22 @@ gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app
 
 **Подробная документация:** [docs/theory.md](docs/theory.md)
 
-## UI Design (2026-01-14)
+## UI Design (2026-01-15)
 - **Theme:** Perk.com inspired light theme
 - **Colors:** #BEFF50 accent, #F5F5EB background, #14140F text
 - **Navigation:** 3 pages (Predictions → Dashboard → Statistics)
 - **Dashboard:** Impressive AI visualization with:
   - LSTM + Random Forest architecture diagram
   - 112 features, 5320 matches, 847K parameters
-  - Feature Importance chart (top-8 features)
-  - Training History loss graph (Chart.js)
+  - Feature Importance chart (top-8 features with pattern visualization)
   - CPP Logic profitable patterns (+64.3% ROI)
   - Live inference stats
+  - **NEW: "Как работает AI" — ML Education Section** with 8 interactive tabs:
+    1. Зачем ML? — цель машинного обучения
+    2. Данные — 5320 матчей, что записываем
+    3. Признаки — 112 features, группы (серии, H2H, форма, odds, календарь)
+    4. Обучение — train/test split, переобучение
+    5. Random Forest — 100 деревьев, голосование
+    6. LSTM — нейросеть с памятью, 10 матчей
+    7. CPP Правила — экспертные правила, синергия
+    8. Пример — Edmonton @ Calgary от данных к прогнозу
