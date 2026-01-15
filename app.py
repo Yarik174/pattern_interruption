@@ -52,10 +52,12 @@ app.register_blueprint(routes_bp)
 
 from src.telegram_bot import TelegramNotifier
 from src.apisports_odds_loader import APISportsOddsLoader, get_demo_odds
+from src.allbestbets_loader import AllBestBetsLoader, get_demo_matches
 from src.odds_monitor import OddsMonitor
 
 telegram_notifier = TelegramNotifier()
 odds_loader = APISportsOddsLoader()
+allbestbets_loader = AllBestBetsLoader()
 set_telegram(telegram_notifier)
 set_odds_loader(odds_loader)
 
@@ -1335,7 +1337,7 @@ def create_prediction_from_match(match_data):
 
 def init_odds_monitor():
     """Инициализация монитора коэффициентов"""
-    global odds_loader
+    global allbestbets_loader
     
     def prediction_callback(match_data):
         return create_prediction_from_match(match_data)
@@ -1345,16 +1347,15 @@ def init_odds_monitor():
             return telegram_notifier.send_prediction_alert(prediction.to_dict())
         return False
     
+    # Используем AllBestBets вместо API-Sports (бесплатный план API-Sports не даёт доступ к сезону 2025)
     monitor = OddsMonitor(
-        odds_loader=odds_loader,
+        odds_loader=allbestbets_loader,
         prediction_callback=prediction_callback,
         notification_callback=notification_callback,
-        check_interval=7200  # 2 часа вместо 5 минут для экономии API запросов
+        check_interval=300  # 5 минут (AllBestBets не имеет таких строгих лимитов)
     )
     
     set_monitor(monitor)
-    # НЕ запускаем автоматически - пользователь должен включить вручную
-    # monitor.start()
     return monitor
 
 
@@ -1370,12 +1371,14 @@ def startup_initialization():
     import threading
     threading.Thread(target=warmup_multi_league, daemon=True).start()
     
-    if odds_loader.is_configured():
+    if allbestbets_loader.is_configured():
         threading.Thread(target=init_odds_monitor, daemon=True).start()
-        print("✅ Odds monitor initialized (not auto-started - manual control only)")
-        print(f"ℹ️ API-Sports: {odds_loader.get_requests_remaining()} запросов осталось на сегодня")
+        print("✅ Odds monitor initialized with AllBestBets API")
+    elif odds_loader.is_configured():
+        print("⚠️ API-Sports free plan doesn't support current season (2025)")
+        print(f"ℹ️ API-Sports: {odds_loader.get_requests_remaining()} запросов осталось (only historical data)")
     else:
-        print("⚠️ API-Sports not configured, odds monitor disabled")
+        print("⚠️ No odds API configured")
 
 
 startup_initialization()
