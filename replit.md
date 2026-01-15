@@ -51,27 +51,29 @@ The system is built around a core pattern recognition engine that identifies var
 - **Database:** PostgreSQL with SQLAlchemy ORM for storing predictions, user decisions, and model versions.
 - **Notifications:** Telegram bot for real-time alerts.
 
-## LSTM Sequence Model (обновлено 2026-01-14)
+## LSTM Sequence Model (обновлено 2026-01-15)
 
 ### Dual Prediction
 Модель предсказывает два типа результатов:
 1. **Regulation (1X2)** — основное время, ничья возможна
 2. **Final (Money Line)** — включая овертайм, всегда победитель
 
-### Признаки (13):
-goals_scored, goals_conceded, won, home_game, overtime, goal_diff, total_goals, won_regulation, won_overtime, draw_regulation, home_odds, away_odds, implied_prob
+### Признаки (16):
+goals_scored, goals_conceded, won, home_game, overtime, goal_diff, total_goals, won_regulation, won_overtime, draw_regulation, home_odds, away_odds, implied_prob, **is_underdog**, **won_as_underdog**, **odds_diff**
 
-### Результаты обучения:
+### Результаты обучения (v2 с odds features):
 | Тип прогноза | Accuracy | Распределение |
 |--------------|----------|---------------|
-| Regulation (1X2) | 44.51% | Home=42.8%, Away=35.1%, Draw=22.1% |
-| Final (Money Line) | 55.49% | Home=53.9%, Away=46.1% |
+| Regulation (1X2) | 44.68% | Home=42.8%, Away=35.1%, Draw=22.1% |
+| Final (Money Line) | **56.22%** | Home=53.9%, Away=46.1% |
 
 ### ROI на валидации:
 | Тип ставки | Ставок | Win Rate | ROI |
 |------------|--------|----------|-----|
-| Money Line | 265 | 62.6% | -3.24% |
-| 1X2 | 9 | 77.8% | -14.15% |
+| Money Line | 371 | **64.2%** | **-0.04%** |
+| 1X2 | 111 | 56.8% | -32.96% |
+
+**Улучшение:** Новые odds-based features улучшили Money Line ROI с -3.24% до **-0.04%** (почти безубыточно!)
 
 ## CPP Backtest (5320 матчей NHL, 2016-2023)
 
@@ -87,11 +89,22 @@ goals_scored, goals_conceded, won, home_game, overtime, goal_diff, total_goals, 
 | H2H_Away→Break + HomeLoss→Break | **+27.4%** | +20.8% | 21 |
 | AwayLoss→Break + HomeWin→Break | **+11.8%** | +5.8% | 54 |
 
+### CPP Odds Filter (2026-01-15)
+**Фильтр по коэффициентам улучшает ROI:**
+
+| Фильтр odds | Ставок | Win Rate | ROI |
+|-------------|--------|----------|-----|
+| Без фильтра | 135 | 44.4% | +20.1% |
+| **[2.0, 3.5]** | 92 | **47.8%** | **+25.1%** |
+| [1.7, ∞] | 132 | 44.7% | +21.8% |
+
+**Стратегия:** Ставить только когда коэффициент от 2.0 до 3.5 — "небольшой аутсайдер" (не слишком фаворит, не слишком рискованно).
+
 ### Вывод
 - **Money Line лучше 1X2** — ничья в 1X2 = проигрыш
-- **CPP паттерны дают +11-64% ROI** на проверенных комбинациях
-- LSTM модель пока не прибыльна (-3% ROI)
-- **Переход к реальным прогнозам** для дообучения на живых данных
+- **CPP паттерны дают +20-25% ROI** (с odds filter [2.0, 3.5])
+- LSTM модель почти безубыточна (-0.04% ROI)
+- **CPP + Odds Filter = основная стратегия**
 
 ## External Dependencies
 - **NHL API:** For NHL match data (nhle.com API).

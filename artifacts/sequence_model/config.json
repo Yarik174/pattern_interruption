@@ -13,9 +13,12 @@
     "draw_regulation",
     "home_odds",
     "away_odds",
-    "implied_prob"
+    "implied_prob",
+    "is_underdog",
+    "won_as_underdog",
+    "odds_diff"
   ],
-  "input_dim": 13,
+  "input_dim": 16,
   "hidden_dim": 64,
   "num_layers": 2,
   "with_odds": true,
