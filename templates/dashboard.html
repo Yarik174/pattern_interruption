@@ -1210,11 +1210,21 @@
                     <div class="monitor-info">
                         <div class="monitor-icon" style="background: var(--accent);">🏒</div>
                         <div class="monitor-text">
-                            <div class="title">FlashLive API</div>
-                            <div class="status" id="api-remaining">281 матчей доступно</div>
+                            <div class="title">Матчи сегодня</div>
+                            <div class="status" id="matches-count">Загрузка...</div>
                         </div>
                     </div>
-                    <span id="api-status" style="font-size: 0.8rem; color: var(--accent);">30+ лиг</span>
+                    <span id="leagues-info" style="font-size: 0.8rem; color: var(--accent);">5 лиг</span>
+                </div>
+                <div class="monitor-card">
+                    <div class="monitor-info">
+                        <div class="monitor-icon" style="background: var(--purple);">🎯</div>
+                        <div class="monitor-text">
+                            <div class="title">Предложено ставок</div>
+                            <div class="status" id="bets-suggested">{{ today_predictions or 0 }} ставок</div>
+                        </div>
+                    </div>
+                    <span style="font-size: 0.8rem; color: var(--purple);">CPP Logic</span>
                 </div>
                 <div class="monitor-card">
                     <div class="monitor-info">
@@ -1822,10 +1832,11 @@
             fetch('/api/monitor/stats')
                 .then(r => r.json())
                 .then(data => {
-                    const matches = data.matches_available || 281;
-                    const leagues = data.leagues_count || 30;
-                    document.getElementById('api-remaining').textContent = matches + ' матчей доступно';
-                    document.getElementById('api-status').textContent = leagues + '+ лиг';
+                    const matches = data.matches_available || 0;
+                    const bets = data.bets_suggested || 0;
+                    document.getElementById('matches-count').textContent = matches + ' матчей';
+                    document.getElementById('bets-suggested').textContent = bets + ' ставок';
+                    document.getElementById('leagues-info').textContent = 'NHL, KHL, SHL, Liiga, DEL';
                 });
         }
         

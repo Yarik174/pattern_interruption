@@ -17,14 +17,15 @@ BASE_URL = f'https://{RAPIDAPI_HOST}'
 
 HOCKEY_SPORT_ID = 4  # Hockey sport_id в FlashLive API
 
+# Только 5 основных лиг
+SUPPORTED_LEAGUES = ['NHL', 'KHL', 'SHL', 'Liiga', 'DEL']
+
 HOCKEY_LEAGUES = {
-    'NHL': ['nhl', 'usa-nhl', 'national hockey league'],
-    'KHL': ['khl', 'russia-khl', 'kontinental hockey league'],
-    'SHL': ['shl', 'sweden-shl', 'swedish hockey league'],
-    'Liiga': ['liiga', 'finland-liiga', 'finnish liiga'],
-    'DEL': ['del', 'germany-del', 'deutsche eishockey liga'],
-    'Czech': ['extraliga', 'czech-extraliga', 'tipsport extraliga'],
-    'Swiss': ['nl', 'switzerland-nl', 'national league'],
+    'NHL': ['nhl', 'usa. nhl', 'usa-nhl', 'national hockey league'],
+    'KHL': ['khl', 'russia. khl', 'russia-khl', 'kontinental hockey league'],
+    'SHL': ['shl', 'sweden. shl', 'sweden-shl', 'swedish hockey league'],
+    'Liiga': ['liiga', 'finland. liiga', 'finland-liiga', 'finnish liiga'],
+    'DEL': ['del', 'germany. del', 'germany-del', 'deutsche eishockey liga'],
 }
 
 
@@ -82,10 +83,10 @@ class FlashLiveLoader:
     
     def get_upcoming_games(self, leagues: Optional[List[str]] = None, days_ahead: int = 2) -> List[Dict]:
         """
-        Получить предстоящие матчи
+        Получить предстоящие матчи (только 5 основных лиг: NHL, KHL, SHL, Liiga, DEL)
         
         Args:
-            leagues: Список лиг для фильтрации (NHL, KHL, SHL, Liiga, DEL)
+            leagues: Список лиг для фильтрации (по умолчанию все 5)
             days_ahead: Сколько дней вперёд
             
         Returns:
@@ -95,6 +96,10 @@ class FlashLiveLoader:
             logger.warning("FlashLive API not configured (RAPIDAPI_KEY missing)")
             return []
         
+        # По умолчанию только 5 основных лиг
+        if leagues is None:
+            leagues = SUPPORTED_LEAGUES
+        
         # Проверяем кэш
         cache_key = f"events_{days_ahead}"
         now = datetime.utcnow()
@@ -102,8 +107,9 @@ class FlashLiveLoader:
         if cache_key in self._cache:
             cache_data, cache_time = self._cache[cache_key]
             if (now - cache_time).total_seconds() < self._cache_ttl:
-                logger.info(f"FlashLive: используем кэш ({len(cache_data)} матчей)")
-                return self._filter_by_leagues(cache_data, leagues)
+                filtered = self._filter_by_leagues(cache_data, leagues)
+                logger.info(f"FlashLive: из кэша {len(filtered)} матчей (5 лиг)")
+                return filtered
         
         all_matches = []
         sport_id = self._get_hockey_sport_id()
@@ -124,11 +130,14 @@ class FlashLiveLoader:
                 seen_ids.add(m['event_id'])
                 unique_matches.append(m)
         
-        # Кэшируем
+        # Кэшируем все матчи
         self._cache[cache_key] = (unique_matches, now)
-        logger.info(f"FlashLive: найдено {len(unique_matches)} хоккейных матчей")
         
-        return self._filter_by_leagues(unique_matches, leagues)
+        # Фильтруем только 5 основных лиг
+        filtered = self._filter_by_leagues(unique_matches, leagues)
+        logger.info(f"FlashLive: {len(filtered)} матчей в 5 лигах (всего {len(unique_matches)})")
+        
+        return filtered
     
     def _fetch_events_for_day(self, sport_id: int, day_offset: int) -> List[Dict]:
         """Получить матчи на конкретный день"""

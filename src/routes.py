@@ -295,24 +295,37 @@ def api_monitor_check():
 @routes_bp.route('/api/monitor/stats')
 def api_monitor_stats():
     """API: Статистика мониторинга"""
+    from datetime import datetime, timedelta
+    
     stats = {'is_running': False}
     if odds_monitor:
         stats = odds_monitor.get_stats()
+    
+    # Количество матчей (5 лиг)
     if odds_loader:
-        # FlashLive API - показываем количество матчей и лиг
         if hasattr(odds_loader, 'get_upcoming_games'):
             try:
                 matches = odds_loader.get_upcoming_games(days_ahead=1)
-                leagues = set(m.get('league', 'OTHER') for m in matches)
                 stats['matches_available'] = len(matches)
-                stats['leagues_count'] = len(leagues)
             except Exception:
-                stats['matches_available'] = 281
-                stats['leagues_count'] = 30
+                stats['matches_available'] = 0
         else:
-            # Fallback для старых loaders
-            stats['api_requests_remaining'] = getattr(odds_loader, 'get_requests_remaining', lambda: 0)()
-            stats['api_daily_limit'] = getattr(odds_loader, '_daily_limit', 100)
+            stats['matches_available'] = 0
+    
+    # Количество предложенных ставок сегодня
+    if Prediction and db:
+        try:
+            today = datetime.utcnow().date()
+            today_start = datetime.combine(today, datetime.min.time())
+            today_predictions = Prediction.query.filter(
+                Prediction.created_at >= today_start
+            ).count()
+            stats['bets_suggested'] = today_predictions
+        except Exception:
+            stats['bets_suggested'] = 0
+    else:
+        stats['bets_suggested'] = 0
+    
     return jsonify(stats)
 
 
