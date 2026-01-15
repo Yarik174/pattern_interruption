@@ -630,7 +630,7 @@ def main():
     engine = MultiLeaguePatternEngine(critical_length=5)
     
     leagues = ['KHL', 'SHL', 'Liiga', 'DEL']
-    engine.load_leagues(leagues, n_seasons=3)
+    engine.load_leagues(leagues, n_seasons=7)
     
     for league in leagues:
         engine.print_summary(league)
