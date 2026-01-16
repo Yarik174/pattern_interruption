@@ -245,11 +245,15 @@ class FlashLiveLoader:
         return [m for m in matches if m.get('league') in leagues]
     
     def get_event_odds(self, event_id: str) -> Optional[Dict]:
-        """Получить коэффициенты для конкретного матча"""
+        """Получить коэффициенты для конкретного матча
+        
+        Returns:
+            Dict с ключами home_odds, draw_odds, away_odds, bookmaker
+            или None если коэффициенты недоступны
+        """
         if not self.is_configured():
             return None
         
-        # Убираем префикс flash_
         raw_id = event_id.replace('flash_', '')
         
         try:
@@ -263,13 +267,71 @@ class FlashLiveLoader:
                 timeout=30
             )
             
-            if resp.status_code == 200:
-                return resp.json()
+            if resp.status_code != 200:
+                return None
+            
+            data = resp.json()
+            
+            for betting_type in data.get('DATA', []):
+                if betting_type.get('BETTING_TYPE') != '*1X2':
+                    continue
+                
+                for period in betting_type.get('PERIODS', []):
+                    if 'Full Time' not in period.get('ODDS_STAGE', ''):
+                        continue
+                    
+                    for group in period.get('GROUPS', []):
+                        markets = group.get('MARKETS', [])
+                        if not markets:
+                            continue
+                        
+                        market = markets[0]
+                        home = market.get('ODD_CELL_FIRST', {}).get('VALUE')
+                        draw = market.get('ODD_CELL_SECOND', {}).get('VALUE')
+                        away = market.get('ODD_CELL_THIRD', {}).get('VALUE')
+                        bookmaker = market.get('BOOKMAKER_NAME', 'Unknown')
+                        
+                        if home and away:
+                            return {
+                                'home_odds': float(home),
+                                'draw_odds': float(draw) if draw else None,
+                                'away_odds': float(away),
+                                'bookmaker': bookmaker
+                            }
+            
             return None
             
         except Exception as e:
             logger.error(f"FlashLive odds error: {e}")
             return None
+    
+    def get_matches_with_odds(self, days_ahead: int = 2, leagues: Optional[List[str]] = None) -> List[Dict]:
+        """Получить матчи с коэффициентами
+        
+        Сначала получает список матчей, затем загружает коэффициенты
+        для каждого матча из целевых лиг.
+        """
+        matches = self.get_upcoming_games(days_ahead=days_ahead, leagues=leagues)
+        
+        target_leagues = leagues or SUPPORTED_LEAGUES
+        filtered = [m for m in matches if m.get('league') in target_leagues]
+        
+        logger.info(f"Загрузка коэффициентов для {len(filtered)} матчей...")
+        
+        matches_with_odds = []
+        for match in filtered:
+            event_id = match.get('event_id', '')
+            odds = self.get_event_odds(event_id)
+            
+            if odds:
+                match['home_odds'] = odds['home_odds']
+                match['away_odds'] = odds['away_odds']
+                match['draw_odds'] = odds.get('draw_odds')
+                match['bookmaker'] = odds.get('bookmaker')
+                matches_with_odds.append(match)
+        
+        logger.info(f"Получено {len(matches_with_odds)} матчей с коэффициентами")
+        return matches_with_odds
 
 
 def get_demo_matches() -> List[Dict]:

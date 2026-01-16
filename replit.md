@@ -9,13 +9,19 @@ I value iterative development and regular updates on progress.
 Please ask for confirmation before implementing significant architectural changes or adding new external dependencies.
 Ensure all generated code is well-commented and follows standard Python best practices.
 
-## Recent Changes (2026-01-15)
+## Recent Changes (2026-01-16)
 
-### FlashLive API Integration
+### FlashLive API Integration (UPDATED)
+**ВАЖНО: FlashLive API Structure**
+- Список матчей: `GET /v1/events/list` (БЕЗ коэффициентов!)
+- Коэффициенты: `GET /v1/events/odds?event_id=XXX` (отдельный вызов для каждого матча)
+- Ответ odds содержит: `DATA[].PERIODS[].GROUPS[].MARKETS[].ODD_CELL_FIRST/SECOND/THIRD.VALUE`
+- Bookmaker: bet365, Unibet и другие
+
 **Replaced API-Sports with FlashLive Sports API (via RapidAPI)**
 - API-Sports free plan doesn't support season 2025
-- FlashLive provides 281+ hockey matches across 30+ leagues
-- Supported leagues: NHL, KHL, SHL, Liiga, DEL, Czech Extraliga, Swiss NL, AHL, OHL, WHL, VHL, MHL...
+- FlashLive provides hockey matches across 30+ leagues
+- **Поддерживаемые лиги (только 5):** NHL, KHL, SHL, Liiga, DEL
 - RapidAPI free tier available
 
 ### Features:

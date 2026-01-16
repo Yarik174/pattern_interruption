@@ -262,7 +262,7 @@ class AutoMonitor:
                 logger.warning("FlashLive not configured, skipping check")
                 return result
             
-            matches = loader.get_upcoming_games(days_ahead=2)
+            matches = loader.get_matches_with_odds(days_ahead=2)
             result['matches_found'] = len(matches)
             self._stats['matches_found'] += len(matches)
             
