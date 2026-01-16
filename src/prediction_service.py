@@ -47,6 +47,8 @@ def create_prediction_from_match(match: dict, bet_on: str, target_odds: float) -
             predicted_team = home_team if bet_on == 'home' else away_team
             confidence = calculate_confidence(target_odds)
             
+            flashlive_event_id = event_id.replace('flash_', '') if event_id else None
+            
             prediction = Prediction(
                 created_at=datetime.utcnow(),
                 match_date=parse_match_date(match),
@@ -68,7 +70,8 @@ def create_prediction_from_match(match: dict, bet_on: str, target_odds: float) -
                     'source': 'AutoMonitor',
                     'odds_filter': '[2.0-3.5]'
                 },
-                model_version='AutoMonitor_v1'
+                model_version='AutoMonitor_v1',
+                flashlive_event_id=flashlive_event_id
             )
             
             db.session.add(prediction)

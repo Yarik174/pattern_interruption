@@ -346,40 +346,49 @@
             </div>
         </div>
         
-        <div class="grid-2">
-            <div>
-                <div class="section">
-                    <h3 class="section-title">Последние матчи: {{ prediction.home_team }}</h3>
-                    <div class="match-history" id="home-history">
+        <div class="h2h-section section" style="margin-bottom: 24px;">
+            <h3 class="section-title" style="margin-bottom: 20px;">Последние матчи команд</h3>
+            <div class="h2h-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                <div class="team-history">
+                    <h4 style="color: var(--accent); font-size: 0.9rem; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px;">{{ prediction.home_team }}</h4>
+                    <div class="match-history">
                         {% for match in home_history[:5] %}
                         <div class="history-row">
                             <span class="history-date">{{ match.date }}</span>
-                            <span class="history-teams">{{ match.opponent }}</span>
+                            <span class="history-teams">vs {{ match.opponent }}</span>
                             <span class="history-score">{{ match.score }}</span>
-                            <span class="history-result result-{{ match.result }}">{{ match.result }}</span>
+                            <span class="history-result result-{{ 'W' if match.result == 'WIN' else ('L' if match.result == 'LOSS' else 'D') }}">
+                                {{ 'W' if match.result == 'WIN' else ('L' if match.result == 'LOSS' else 'D') }}
+                            </span>
                         </div>
                         {% else %}
-                        <div style="color: var(--text-muted); text-align: center; padding: 20px;">Загрузка...</div>
+                        <div style="color: var(--text-muted); text-align: center; padding: 20px;">Нет данных</div>
                         {% endfor %}
                     </div>
                 </div>
                 
-                <div class="section">
-                    <h3 class="section-title">Последние матчи: {{ prediction.away_team }}</h3>
-                    <div class="match-history" id="away-history">
+                <div class="team-history">
+                    <h4 style="color: var(--accent); font-size: 0.9rem; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px;">{{ prediction.away_team }}</h4>
+                    <div class="match-history">
                         {% for match in away_history[:5] %}
                         <div class="history-row">
                             <span class="history-date">{{ match.date }}</span>
-                            <span class="history-teams">{{ match.opponent }}</span>
+                            <span class="history-teams">vs {{ match.opponent }}</span>
                             <span class="history-score">{{ match.score }}</span>
-                            <span class="history-result result-{{ match.result }}">{{ match.result }}</span>
+                            <span class="history-result result-{{ 'W' if match.result == 'WIN' else ('L' if match.result == 'LOSS' else 'D') }}">
+                                {{ 'W' if match.result == 'WIN' else ('L' if match.result == 'LOSS' else 'D') }}
+                            </span>
                         </div>
                         {% else %}
-                        <div style="color: var(--text-muted); text-align: center; padding: 20px;">Загрузка...</div>
+                        <div style="color: var(--text-muted); text-align: center; padding: 20px;">Нет данных</div>
                         {% endfor %}
                     </div>
                 </div>
-                
+            </div>
+        </div>
+        
+        <div class="grid-2">
+            <div>
                 <div class="section">
                     <h3 class="section-title">Личные встречи (H2H)</h3>
                     <div class="match-history" id="h2h-history">
@@ -390,7 +399,7 @@
                             <span class="history-score">{{ match.score }}</span>
                         </div>
                         {% else %}
-                        <div style="color: var(--text-muted); text-align: center; padding: 20px;">Загрузка...</div>
+                        <div style="color: var(--text-muted); text-align: center; padding: 20px;">Нет данных</div>
                         {% endfor %}
                     </div>
                 </div>

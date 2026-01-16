@@ -31,6 +31,7 @@ class Prediction(db.Model):
     result_updated_at = db.Column(db.DateTime)
     is_win = db.Column(db.Boolean)
     notified_telegram = db.Column(db.Boolean, default=False)
+    flashlive_event_id = db.Column(db.String(50))
     
     user_decision = db.relationship('UserDecision', backref='prediction', uselist=False)
     

@@ -305,6 +305,102 @@ class FlashLiveLoader:
             logger.error(f"FlashLive odds error: {e}")
             return None
     
+    def get_h2h_data(self, event_id: str) -> Optional[Dict]:
+        """
+        Получить данные H2H (последние матчи команд) для события
+        
+        Args:
+            event_id: ID события (может содержать префикс 'flash_')
+            
+        Returns:
+            Dict с ключами home_team_matches и away_team_matches,
+            каждый содержит список последних 5 матчей
+        """
+        if not self.is_configured():
+            return None
+        
+        raw_id = event_id.replace('flash_', '')
+        
+        try:
+            resp = requests.get(
+                f'{BASE_URL}/v1/events/h2h',
+                headers=self._get_headers(),
+                params={
+                    'event_id': raw_id,
+                    'locale': 'en_GB'
+                },
+                timeout=30
+            )
+            
+            if resp.status_code != 200:
+                logger.error(f"FlashLive H2H error: {resp.status_code}")
+                return None
+            
+            data = resp.json()
+            
+            result = {
+                'home_team_matches': [],
+                'away_team_matches': []
+            }
+            
+            groups = data.get('DATA', [])
+            
+            for group in groups:
+                group_label = group.get('GROUP_LABEL', '')
+                items = group.get('ITEMS', [])
+                
+                matches = []
+                for item in items[:5]:
+                    start_time = item.get('START_TIME')
+                    date_str = ''
+                    if start_time:
+                        try:
+                            dt = datetime.fromtimestamp(start_time)
+                            date_str = dt.strftime('%d.%m')
+                        except:
+                            pass
+                    
+                    home_team = item.get('HOME_PARTICIPANT', '')
+                    away_team = item.get('AWAY_PARTICIPANT', '')
+                    current_result = item.get('CURRENT_RESULT', '')
+                    h_result = item.get('H_RESULT', '')
+                    
+                    if 'Last matches' in group_label:
+                        team_name = group_label.replace('Last matches:', '').strip()
+                        
+                        if team_name.lower() in home_team.lower():
+                            opponent = away_team
+                            is_home = True
+                        else:
+                            opponent = home_team
+                            is_home = False
+                        
+                        if h_result in ('WIN', '1'):
+                            result_str = 'WIN'
+                        elif h_result in ('LOSS', '2'):
+                            result_str = 'LOSS'
+                        else:
+                            result_str = 'DRAW'
+                        
+                        matches.append({
+                            'date': date_str,
+                            'opponent': opponent,
+                            'score': current_result,
+                            'result': result_str
+                        })
+                
+                if 'Last matches' in group_label:
+                    if not result['home_team_matches']:
+                        result['home_team_matches'] = matches
+                    else:
+                        result['away_team_matches'] = matches
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"FlashLive H2H error: {e}")
+            return None
+
     def get_matches_with_odds(self, days_ahead: int = 2, leagues: Optional[List[str]] = None) -> List[Dict]:
         """Получить матчи с коэффициентами
         

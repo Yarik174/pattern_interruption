@@ -82,10 +82,27 @@ def prediction_detail(prediction_id):
     home_history = []
     away_history = []
     h2h_history = []
+    h2h_data = None
     
     if Prediction and db:
         try:
             prediction = Prediction.query.get_or_404(prediction_id)
+            
+            event_id = prediction.flashlive_event_id
+            if not event_id and prediction.patterns_data:
+                event_id = prediction.patterns_data.get('event_id', '')
+                if event_id:
+                    event_id = event_id.replace('flash_', '')
+            
+            if event_id and odds_loader:
+                try:
+                    h2h_data = odds_loader.get_h2h_data(event_id)
+                    if h2h_data:
+                        home_history = h2h_data.get('home_team_matches', [])
+                        away_history = h2h_data.get('away_team_matches', [])
+                except Exception as e:
+                    print(f"Error loading H2H data: {e}")
+                    
         except Exception as e:
             print(f"Error loading prediction: {e}")
             return "Прогноз не найден", 404
@@ -94,7 +111,8 @@ def prediction_detail(prediction_id):
                          prediction=prediction,
                          home_history=home_history,
                          away_history=away_history,
-                         h2h_history=h2h_history)
+                         h2h_history=h2h_history,
+                         h2h_data=h2h_data)
 
 
 @routes_bp.route('/prediction/<int:prediction_id>/decide', methods=['POST'])

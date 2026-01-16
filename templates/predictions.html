@@ -378,19 +378,13 @@
                         </div>
                     </td>
                     <td>
-                        <span class="prediction-outcome outcome-{{ p.predicted_outcome }}">
-                            {% if p.predicted_outcome == 'home' %}
-                                {{ p.home_team }}
-                            {% elif p.predicted_outcome == 'away' %}
-                                {{ p.away_team }}
-                            {% else %}
-                                {{ p.predicted_outcome }}
-                            {% endif %}
+                        <span class="prediction-outcome outcome-{% if p.predicted_outcome == p.home_team %}home{% else %}away{% endif %}">
+                            {{ p.predicted_outcome }}
                         </span>
                     </td>
                     <td>
                         <span class="odds">
-                            {% if p.predicted_outcome == 'home' %}
+                            {% if p.predicted_outcome == p.home_team %}
                                 {{ '%.2f'|format(p.home_odds) if p.home_odds else '-' }}
                             {% else %}
                                 {{ '%.2f'|format(p.away_odds) if p.away_odds else '-' }}

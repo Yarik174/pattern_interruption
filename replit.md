@@ -38,6 +38,20 @@ Ensure all generated code is well-commented and follows standard Python best pra
 
 ## Recent Changes (2026-01-16)
 
+### [2026-01-16] Исправление коэффициентов и добавление истории матчей
+**Проблема:** Коэффициенты в таблице показывались неправильно (away_odds вместо home_odds когда ставим на домашнюю команду). На странице прогноза не было истории матчей.
+**Решение:** 
+1. Исправлена логика в templates/predictions.html — сравнение predicted_outcome с home_team вместо строки 'home'
+2. Добавлено поле flashlive_event_id в модель Prediction
+3. Добавлен метод get_h2h_data() в flashlive_loader.py для загрузки истории матчей
+4. Добавлена секция "Последние матчи команд" на страницу прогноза
+**Важно помнить:** 
+- predicted_outcome хранит НАЗВАНИЕ команды, не 'home'/'away'
+- FlashLive H2H endpoint: /v1/events/h2h?event_id=XXX
+- H_RESULT возвращает 'WIN'/'LOSS'/'DRAW', не '1'/'2'
+
+
+
 ### FlashLive API Integration (UPDATED)
 **ВАЖНО: FlashLive API Structure**
 - Список матчей: `GET /v1/events/list` (БЕЗ коэффициентов!)
