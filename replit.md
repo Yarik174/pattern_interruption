@@ -9,6 +9,29 @@ I value iterative development and regular updates on progress.
 Please ask for confirmation before implementing significant architectural changes or adding new external dependencies.
 Ensure all generated code is well-commented and follows standard Python best practices.
 
+## Agent Documentation Rules (ОБЯЗАТЕЛЬНО)
+При каждом значимом изменении обновляй этот файл:
+
+### Что фиксировать:
+1. **API Structure** — эндпоинты, формат ответа, обязательные параметры
+2. **Баги и решения** — что сломалось и как починили
+3. **Ограничения** — что НЕ работает, лимиты API
+4. **Важные выводы** — неочевидные факты (например: "FlashLive list НЕ даёт odds")
+
+### Формат записи:
+```
+### [Дата] Название
+**Проблема:** что было не так
+**Решение:** что сделали
+**Важно помнить:** ключевой вывод
+```
+
+### Когда обновлять:
+- После фикса бага
+- После интеграции нового API
+- После обнаружения ограничения
+- После изменения архитектуры
+
 ## Recent Changes (2026-01-16)
 
 ### FlashLive API Integration (UPDATED)
