@@ -299,6 +299,9 @@ class AutoMonitor:
         home_odds = match.get('home_odds')
         away_odds = match.get('away_odds')
         
+        if not home_odds and not away_odds:
+            return None
+        
         min_odds, max_odds = 2.0, 3.5
         target_odds = None
         bet_on = None
@@ -309,13 +312,8 @@ class AutoMonitor:
         elif away_odds and min_odds <= away_odds <= max_odds:
             target_odds = away_odds
             bet_on = 'away'
-        
-        if not target_odds:
-            if not home_odds and not away_odds:
-                bet_on = 'home'
-                target_odds = 2.0
-            else:
-                return None
+        else:
+            return None
         
         try:
             from src.prediction_service import create_prediction_from_match
