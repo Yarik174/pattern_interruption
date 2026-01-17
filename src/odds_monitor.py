@@ -288,6 +288,12 @@ class AutoMonitor:
             logger.info(f"AutoMonitor check: {result['matches_found']} matches, "
                        f"{result['predictions_created']} predictions")
             
+            # Также проверяем результаты прошедших матчей
+            try:
+                self.check_results()
+            except Exception as e:
+                logger.error(f"Results check error in _check_matches: {e}")
+            
         except Exception as e:
             logger.error(f"AutoMonitor check error: {e}")
             self._log_error(f"Check error: {e}")
@@ -346,6 +352,95 @@ class AutoMonitor:
     def check_now(self) -> dict:
         """Выполнить проверку сейчас"""
         return self._check_matches()
+    
+    def check_results(self) -> dict:
+        """Проверить результаты завершённых матчей и обновить is_win"""
+        result = {
+            'checked': 0,
+            'updated': 0,
+            'wins': 0,
+            'losses': 0,
+            'errors': 0
+        }
+        
+        try:
+            from app import app, db
+            from models import Prediction
+            from src.flashlive_loader import FlashLiveLoader
+            
+            loader = FlashLiveLoader()
+            if not loader.is_configured():
+                logger.warning("FlashLive not configured for result checking")
+                return result
+            
+            with app.app_context():
+                # Найти все прогнозы без результата, у которых матч уже должен был закончиться
+                pending = Prediction.query.filter(
+                    Prediction.is_win == None,
+                    Prediction.match_date < datetime.utcnow(),
+                    Prediction.flashlive_event_id != None
+                ).all()
+                
+                result['checked'] = len(pending)
+                logger.info(f"Checking results for {len(pending)} predictions")
+                
+                for pred in pending:
+                    try:
+                        event_id = pred.flashlive_event_id
+                        if not event_id:
+                            continue
+                        
+                        match_result = loader.get_match_result(event_id)
+                        
+                        if not match_result:
+                            continue
+                        
+                        if match_result['status'] != 'FINISHED':
+                            continue
+                        
+                        # Определить победителя
+                        winner = match_result.get('winner')
+                        if not winner:
+                            continue
+                        
+                        # Сохранить результат
+                        home_score = match_result.get('home_score', 0)
+                        away_score = match_result.get('away_score', 0)
+                        pred.actual_result = f"{home_score}:{away_score}"
+                        pred.result_updated_at = datetime.utcnow()
+                        
+                        # Определить выиграл ли прогноз
+                        # predicted_outcome содержит название команды
+                        predicted_team = pred.predicted_outcome
+                        
+                        if winner == 'home' and predicted_team == pred.home_team:
+                            pred.is_win = True
+                            result['wins'] += 1
+                        elif winner == 'away' and predicted_team == pred.away_team:
+                            pred.is_win = True
+                            result['wins'] += 1
+                        else:
+                            pred.is_win = False
+                            result['losses'] += 1
+                        
+                        result['updated'] += 1
+                        
+                    except Exception as e:
+                        logger.error(f"Error checking result for prediction {pred.id}: {e}")
+                        result['errors'] += 1
+                
+                db.session.commit()
+            
+            self._stats['results_checked'] = self._stats.get('results_checked', 0) + result['checked']
+            self._stats['results_updated'] = self._stats.get('results_updated', 0) + result['updated']
+            
+            logger.info(f"Results check: {result['updated']} updated ({result['wins']} wins, {result['losses']} losses)")
+            
+        except Exception as e:
+            logger.error(f"Results check error: {e}")
+            result['errors'] += 1
+        
+        return result
 
 
 def get_auto_monitor() -> AutoMonitor:

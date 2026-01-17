@@ -59,7 +59,20 @@ The system is built around a core pattern recognition engine that identifies var
 - Список матчей: `GET /v1/events/list` (БЕЗ коэффициентов!)
 - Коэффициенты: `GET /v1/events/odds?event_id=XXX` (отдельный запрос)
 - H2H история: `GET /v1/events/h2h?event_id=XXX`
+- Результат матча: `GET /v1/events/data?event_id=XXX` (STAGE_TYPE='FINISHED', HOME_SCORE_CURRENT, AWAY_SCORE_CURRENT)
 - Только 5 лиг: NHL, KHL, SHL, Liiga, DEL
+
+### [2026-01-17] Автоматическая проверка результатов
+- Добавлен метод `get_match_result()` в FlashLiveLoader
+- AutoMonitor теперь автоматически проверяет результаты завершённых матчей
+- Обновляет поля: `actual_result`, `is_win`, `result_updated_at`
+
+### Расчёт API запросов (Ultra план: 75,000/месяц)
+- Список матчей (5 спортов): 5 × 2/день × 30 = 300
+- Коэффициенты (~50 матчей): 250 × 2/день × 30 = 15,000
+- Проверка результатов (~30 прогнозов): 30 × 1/день × 30 = 900
+- H2H при просмотре: ~100/месяц
+- **ИТОГО: ~16,300 запросов/месяц** (запас ~58,700)
 
 ## External Dependencies
 - **FlashLive Sports API (RapidAPI):** Primary source for live hockey match data across 30+ leagues.

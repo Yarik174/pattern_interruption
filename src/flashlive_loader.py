@@ -415,6 +415,82 @@ class FlashLiveLoader:
             logger.error(f"FlashLive H2H error: {e}")
             return None
 
+    def get_match_result(self, event_id: str) -> Optional[Dict]:
+        """
+        Получить результат матча по event_id
+        
+        Args:
+            event_id: ID события (может содержать префикс 'flash_')
+            
+        Returns:
+            Dict с ключами:
+                - status: 'FINISHED', 'NOT_STARTED', 'LIVE', etc.
+                - home_score: int (если матч завершён)
+                - away_score: int (если матч завершён)
+                - winner: 'home', 'away', или 'draw'
+            или None если ошибка
+        """
+        if not self.is_configured():
+            return None
+        
+        raw_id = event_id.replace('flash_', '')
+        
+        try:
+            resp = requests.get(
+                f'{BASE_URL}/v1/events/data',
+                headers=self._get_headers(),
+                params={
+                    'event_id': raw_id,
+                    'locale': 'en_INT'
+                },
+                timeout=30
+            )
+            
+            if resp.status_code == 429:
+                logger.warning("FlashLive: Rate limit exceeded")
+                return None
+            
+            if resp.status_code != 200:
+                logger.error(f"FlashLive match result error: {resp.status_code}")
+                return None
+            
+            data = resp.json()
+            event_data = data.get('DATA', {})
+            
+            stage_type = event_data.get('STAGE_TYPE', '')
+            
+            result = {
+                'status': stage_type,
+                'home_team': event_data.get('HOME_NAME', ''),
+                'away_team': event_data.get('AWAY_NAME', ''),
+                'home_score': None,
+                'away_score': None,
+                'winner': None
+            }
+            
+            if stage_type == 'FINISHED':
+                home_score_str = event_data.get('HOME_SCORE_CURRENT', '')
+                away_score_str = event_data.get('AWAY_SCORE_CURRENT', '')
+                
+                try:
+                    result['home_score'] = int(home_score_str) if home_score_str else 0
+                    result['away_score'] = int(away_score_str) if away_score_str else 0
+                    
+                    if result['home_score'] > result['away_score']:
+                        result['winner'] = 'home'
+                    elif result['away_score'] > result['home_score']:
+                        result['winner'] = 'away'
+                    else:
+                        result['winner'] = 'draw'
+                except (ValueError, TypeError):
+                    pass
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"FlashLive match result error: {e}")
+            return None
+
     def get_matches_with_odds(self, days_ahead: int = 2, leagues: Optional[List[str]] = None) -> List[Dict]:
         """Получить матчи с коэффициентами
         
