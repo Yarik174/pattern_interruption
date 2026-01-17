@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
     <title>Статистика | Hockey Predictor</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --bg-primary: #F5F5EB;
@@ -126,6 +127,12 @@
             gap: 12px;
         }
         
+        .stats-grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+        
         .stat-item {
             background: var(--bg-secondary);
             border-radius: 10px;
@@ -163,6 +170,12 @@
             font-size: 1.125rem;
             font-weight: 600;
             margin-bottom: 20px;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
         }
         
         .league-stats {
@@ -216,6 +229,10 @@
             transition: width 0.3s;
         }
         
+        .progress-fill.good { background: var(--success); }
+        .progress-fill.warning { background: var(--warning); }
+        .progress-fill.bad { background: var(--danger); }
+        
         .table-container {
             overflow-x: auto;
         }
@@ -252,15 +269,66 @@
         .trend.down { color: var(--danger); }
         .trend.neutral { color: var(--text-muted); }
         
+        .pattern-card {
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            padding: 14px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .pattern-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        .pattern-stats {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+        
+        .pattern-stat {
+            text-align: center;
+        }
+        
+        .pattern-stat .value {
+            font-weight: 700;
+            font-size: 1rem;
+        }
+        
+        .pattern-stat .label {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+        
+        .pattern-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
         .empty-state {
             text-align: center;
             padding: 40px;
             color: var(--text-muted);
         }
         
+        .pending-badge {
+            background: var(--warning);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
         @media (max-width: 768px) {
             header { flex-direction: column; gap: 16px; align-items: flex-start; }
             .comparison-grid { grid-template-columns: 1fr; }
+            .stats-grid-3 { grid-template-columns: repeat(2, 1fr); }
         }
     </style>
 </head>
@@ -279,23 +347,32 @@
             </nav>
         </header>
         
-        <h1 class="page-title">Статистика</h1>
-        <p class="page-subtitle">Сравнение прогнозов модели и ручного отбора</p>
+        <h1 class="page-title">Аналитика точности модели</h1>
+        <p class="page-subtitle">
+            Детальный анализ прогнозов по лигам, паттернам и уровню уверенности
+            {% if model_stats.pending > 0 %}
+            <span class="pending-badge">{{ model_stats.pending }} ожидают результата</span>
+            {% endif %}
+        </p>
         
         <div class="comparison-grid">
             <div class="comparison-card model">
                 <div class="card-header">
-                    <h2 class="card-title">Прогнозы модели</h2>
+                    <h2 class="card-title">Все прогнозы модели</h2>
                     <span class="card-badge badge-model">AI</span>
                 </div>
-                <div class="stats-grid">
+                <div class="stats-grid-3">
                     <div class="stat-item">
                         <div class="value">{{ model_stats.total or 0 }}</div>
-                        <div class="label">Всего</div>
+                        <div class="label">Завершено</div>
                     </div>
                     <div class="stat-item">
                         <div class="value success">{{ model_stats.wins or 0 }}</div>
                         <div class="label">Выигрыши</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="value danger">{{ model_stats.losses or 0 }}</div>
+                        <div class="label">Проигрыши</div>
                     </div>
                     <div class="stat-item">
                         <div class="value accent">{{ '%.1f'|format(model_stats.win_rate or 0) }}%</div>
@@ -307,12 +384,16 @@
                         </div>
                         <div class="label">ROI</div>
                     </div>
+                    <div class="stat-item">
+                        <div class="value link">{{ model_stats.pending or 0 }}</div>
+                        <div class="label">Ожидают</div>
+                    </div>
                 </div>
             </div>
             
             <div class="comparison-card manual">
                 <div class="card-header">
-                    <h2 class="card-title">Ручной отбор</h2>
+                    <h2 class="card-title">Ваш ручной отбор</h2>
                     <span class="card-badge badge-manual">Вы</span>
                 </div>
                 <div class="stats-grid">
@@ -338,42 +419,129 @@
             </div>
         </div>
         
+        {% if chart_data and chart_data.labels %}
         <div class="section">
-            <h3 class="section-title">📊 Статистика по лигам</h3>
+            <h3 class="section-title">📈 Динамика точности</h3>
+            <div class="chart-container">
+                <canvas id="accuracyChart"></canvas>
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="section">
+            <h3 class="section-title">🏒 Точность по лигам</h3>
             <div class="league-stats">
                 {% for league in ['NHL', 'KHL', 'SHL', 'Liiga', 'DEL'] %}
                 <div class="league-card">
                     <div class="league-header">
                         <span class="league-name">{{ league }}</span>
                     </div>
+                    {% if league_stats and league in league_stats %}
                     <div class="league-metrics">
                         <div class="metric-row">
                             <span class="name">Прогнозов</span>
-                            <span class="value">{{ league_stats[league].total if league_stats and league in league_stats else 0 }}</span>
+                            <span class="value">{{ league_stats[league].total }}</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="name">W / L</span>
+                            <span class="value" style="color: var(--success)">{{ league_stats[league].wins }}</span> / 
+                            <span class="value" style="color: var(--danger)">{{ league_stats[league].losses }}</span>
                         </div>
                         <div class="metric-row">
                             <span class="name">Win Rate</span>
-                            <span class="value" style="color: var(--success)">
-                                {{ '%.0f'|format(league_stats[league].win_rate) if league_stats and league in league_stats and league_stats[league].win_rate else 0 }}%
+                            <span class="value" style="color: {% if league_stats[league].win_rate >= 55 %}var(--success){% elif league_stats[league].win_rate >= 50 %}var(--warning){% else %}var(--danger){% endif %}">
+                                {{ '%.1f'|format(league_stats[league].win_rate) }}%
                             </span>
                         </div>
                         <div class="metric-row">
                             <span class="name">ROI</span>
-                            <span class="value">
-                                {{ '%+.1f'|format(league_stats[league].roi) if league_stats and league in league_stats and league_stats[league].roi else 0 }}%
+                            <span class="value" style="color: {% if league_stats[league].roi > 0 %}var(--success){% else %}var(--danger){% endif %}">
+                                {{ '%+.1f'|format(league_stats[league].roi) }}%
                             </span>
                         </div>
                     </div>
                     <div class="progress-bar">
-                        <div class="progress-fill" style="width: {{ league_stats[league].win_rate if league_stats and league in league_stats and league_stats[league].win_rate else 0 }}%;"></div>
+                        <div class="progress-fill {% if league_stats[league].win_rate >= 55 %}good{% elif league_stats[league].win_rate >= 50 %}warning{% else %}bad{% endif %}" 
+                             style="width: {{ league_stats[league].win_rate }}%;"></div>
                     </div>
+                    {% else %}
+                    <div class="league-metrics">
+                        <div class="metric-row">
+                            <span class="name">Нет данных</span>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        {% if pattern_stats %}
+        <div class="section">
+            <h3 class="section-title">🎯 Точность по типам паттернов</h3>
+            <div class="pattern-list">
+                {% for pattern_type, stats in pattern_stats.items() %}
+                <div class="pattern-card">
+                    <span class="pattern-name">{{ pattern_type }}</span>
+                    <div class="pattern-stats">
+                        <div class="pattern-stat">
+                            <div class="value">{{ stats.total }}</div>
+                            <div class="label">Всего</div>
+                        </div>
+                        <div class="pattern-stat">
+                            <div class="value" style="color: var(--success)">{{ stats.wins }}</div>
+                            <div class="label">Побед</div>
+                        </div>
+                        <div class="pattern-stat">
+                            <div class="value" style="color: {% if stats.win_rate >= 55 %}var(--success){% elif stats.win_rate >= 50 %}var(--warning){% else %}var(--danger){% endif %}">
+                                {{ '%.1f'|format(stats.win_rate) }}%
+                            </div>
+                            <div class="label">Win Rate</div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="section">
+            <h3 class="section-title">🎚️ Точность по уровню уверенности</h3>
+            <div class="league-stats">
+                {% for conf in range(1, 11) %}
+                <div class="league-card" style="text-align: center;">
+                    <div style="font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; color: var(--accent-dark);">{{ conf }}/10</div>
+                    {% if confidence_stats and conf in confidence_stats %}
+                    <div class="league-metrics">
+                        <div class="metric-row">
+                            <span class="name">Ставок</span>
+                            <span class="value">{{ confidence_stats[conf].total }}</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="name">Win Rate</span>
+                            <span class="value" style="color: {% if confidence_stats[conf].win_rate >= 55 %}var(--success){% elif confidence_stats[conf].win_rate >= 50 %}var(--warning){% else %}var(--danger){% endif %}">
+                                {{ '%.0f'|format(confidence_stats[conf].win_rate) }}%
+                            </span>
+                        </div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill {% if confidence_stats[conf].win_rate >= 55 %}good{% elif confidence_stats[conf].win_rate >= 50 %}warning{% else %}bad{% endif %}" 
+                             style="width: {{ confidence_stats[conf].win_rate }}%;"></div>
+                    </div>
+                    {% else %}
+                    <div class="league-metrics">
+                        <div class="metric-row">
+                            <span class="name">-</span>
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
                 {% endfor %}
             </div>
         </div>
         
         <div class="section">
-            <h3 class="section-title">📈 История по месяцам</h3>
+            <h3 class="section-title">📅 История по месяцам</h3>
             {% if monthly_stats %}
             <div class="table-container">
                 <table class="stats-table">
@@ -381,6 +549,7 @@
                         <tr>
                             <th>Месяц</th>
                             <th>Прогнозов</th>
+                            <th>W / L</th>
                             <th>Win Rate</th>
                             <th>ROI</th>
                             <th>Принято</th>
@@ -390,16 +559,22 @@
                     <tbody>
                         {% for month in monthly_stats %}
                         <tr>
-                            <td>{{ month.month }}</td>
+                            <td><strong>{{ month.month }}</strong></td>
                             <td>{{ month.total }}</td>
-                            <td>{{ '%.1f'|format(month.win_rate) }}%</td>
+                            <td>
+                                <span style="color: var(--success)">{{ month.wins }}</span> / 
+                                <span style="color: var(--danger)">{{ month.total - month.wins }}</span>
+                            </td>
+                            <td style="color: {% if month.win_rate >= 55 %}var(--success){% elif month.win_rate >= 50 %}var(--warning){% else %}var(--danger){% endif %}">
+                                {{ '%.1f'|format(month.win_rate) }}%
+                            </td>
                             <td style="color: {% if month.roi > 0 %}var(--success){% else %}var(--danger){% endif %}">
                                 {{ '%+.1f'|format(month.roi) }}%
                             </td>
                             <td>{{ month.accepted }}</td>
                             <td>
                                 <span class="trend {{ 'up' if month.trend > 0 else 'down' if month.trend < 0 else 'neutral' }}">
-                                    {{ '↑' if month.trend > 0 else '↓' if month.trend < 0 else '→' }}
+                                    {% if month.trend > 0 %}↑ Рост{% elif month.trend < 0 %}↓ Спад{% else %}→ Стабильно{% endif %}
                                 </span>
                             </td>
                         </tr>
@@ -409,33 +584,104 @@
             </div>
             {% else %}
             <div class="empty-state">
-                <p>Нет данных для отображения. Статистика появится после первых прогнозов.</p>
+                <p>Статистика появится после накопления результатов прогнозов.</p>
+                <p style="margin-top: 8px; font-size: 0.9rem;">Система автоматически проверяет результаты каждые 12 часов.</p>
             </div>
             {% endif %}
         </div>
-        
-        <div class="section">
-            <h3 class="section-title">🎯 Анализ по уверенности</h3>
-            <div class="league-stats">
-                {% for conf in range(1, 11) %}
-                <div class="league-card" style="text-align: center;">
-                    <div style="font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; color: var(--accent-dark);">{{ conf }}/10</div>
-                    <div class="league-metrics">
-                        <div class="metric-row">
-                            <span class="name">Ставок</span>
-                            <span class="value">{{ confidence_stats[conf].total if confidence_stats and conf in confidence_stats else 0 }}</span>
-                        </div>
-                        <div class="metric-row">
-                            <span class="name">Win Rate</span>
-                            <span class="value" style="color: var(--success)">
-                                {{ '%.0f'|format(confidence_stats[conf].win_rate) if confidence_stats and conf in confidence_stats and confidence_stats[conf].win_rate else '-' }}%
-                            </span>
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
     </div>
+    
+    {% if chart_data and chart_data.labels %}
+    <script>
+        const ctx = document.getElementById('accuracyChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: {{ chart_data.labels | tojson }},
+                datasets: [{
+                    label: 'Win Rate %',
+                    data: {{ chart_data.win_rates | tojson }},
+                    borderColor: '#BEFF50',
+                    backgroundColor: 'rgba(190, 255, 80, 0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    pointBackgroundColor: '#9FDF00',
+                    pointBorderColor: '#fff',
+                    pointRadius: 5,
+                    pointHoverRadius: 7
+                }, {
+                    label: 'Прогнозов',
+                    data: {{ chart_data.totals | tojson }},
+                    borderColor: '#216BA5',
+                    backgroundColor: 'rgba(33, 107, 165, 0.1)',
+                    fill: false,
+                    tension: 0.3,
+                    pointBackgroundColor: '#216BA5',
+                    pointBorderColor: '#fff',
+                    pointRadius: 4,
+                    yAxisID: 'y1'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 20
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(20, 20, 15, 0.9)',
+                        titleColor: '#BEFF50',
+                        bodyColor: '#fff',
+                        padding: 12,
+                        cornerRadius: 8
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        min: 0,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'Win Rate %'
+                        },
+                        grid: {
+                            color: 'rgba(0,0,0,0.05)'
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        min: 0,
+                        title: {
+                            display: true,
+                            text: 'Количество'
+                        },
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+    {% endif %}
 </body>
 </html>

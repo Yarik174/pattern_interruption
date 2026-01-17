@@ -188,19 +188,33 @@ def dashboard_page():
 
 @routes_bp.route('/statistics')
 def statistics_page():
-    """Страница статистики"""
-    model_stats = {'total': 0, 'wins': 0, 'win_rate': 0, 'roi': 0}
+    """Страница расширенной статистики с аналитикой точности модели"""
+    from collections import defaultdict
+    import json
+    
+    model_stats = {'total': 0, 'wins': 0, 'losses': 0, 'pending': 0, 'win_rate': 0, 'roi': 0}
     manual_stats = {'total': 0, 'wins': 0, 'win_rate': 0, 'roi': 0}
     league_stats = {}
     monthly_stats = []
     confidence_stats = {}
+    pattern_stats = {}
+    chart_data = {'labels': [], 'win_rates': [], 'totals': []}
     
     if Prediction and UserDecision and db:
         try:
-            all_predictions = Prediction.query.filter(Prediction.is_win != None).all()
-            model_stats['total'] = len(all_predictions)
-            model_stats['wins'] = sum(1 for p in all_predictions if p.is_win)
+            all_predictions = Prediction.query.all()
+            completed = [p for p in all_predictions if p.is_win is not None]
+            pending = [p for p in all_predictions if p.is_win is None]
+            
+            model_stats['total'] = len(completed)
+            model_stats['wins'] = sum(1 for p in completed if p.is_win)
+            model_stats['losses'] = sum(1 for p in completed if not p.is_win)
+            model_stats['pending'] = len(pending)
             model_stats['win_rate'] = (model_stats['wins'] / model_stats['total'] * 100) if model_stats['total'] else 0
+            
+            profit = sum((p.odds or 2.0) - 1 for p in completed if p.is_win) - model_stats['losses']
+            if model_stats['total'] > 0:
+                model_stats['roi'] = (profit / model_stats['total']) * 100
             
             accepted = Prediction.query.join(UserDecision).filter(
                 UserDecision.decision == 'accepted',
@@ -208,27 +222,124 @@ def statistics_page():
             ).all()
             manual_stats['total'] = len(accepted)
             manual_stats['wins'] = sum(1 for p in accepted if p.is_win)
+            manual_stats['losses'] = len(accepted) - manual_stats['wins']
             manual_stats['win_rate'] = (manual_stats['wins'] / manual_stats['total'] * 100) if manual_stats['total'] else 0
             
+            manual_profit = sum((p.odds or 2.0) - 1 for p in accepted if p.is_win) - manual_stats['losses']
+            if manual_stats['total'] > 0:
+                manual_stats['roi'] = (manual_profit / manual_stats['total']) * 100
+            
             for league in ['NHL', 'KHL', 'SHL', 'Liiga', 'DEL']:
-                league_preds = [p for p in all_predictions if p.league == league]
+                league_preds = [p for p in completed if p.league == league]
                 if league_preds:
                     wins = sum(1 for p in league_preds if p.is_win)
+                    losses = len(league_preds) - wins
+                    league_profit = sum((p.odds or 2.0) - 1 for p in league_preds if p.is_win) - losses
+                    roi = (league_profit / len(league_preds)) * 100 if league_preds else 0
                     league_stats[league] = {
                         'total': len(league_preds),
+                        'wins': wins,
+                        'losses': losses,
                         'win_rate': wins / len(league_preds) * 100,
-                        'roi': 0
+                        'roi': roi
                     }
+            
+            for conf_level in range(1, 11):
+                conf_preds = [p for p in completed if p.confidence_1_10 == conf_level]
+                if conf_preds:
+                    wins = sum(1 for p in conf_preds if p.is_win)
+                    confidence_stats[conf_level] = {
+                        'total': len(conf_preds),
+                        'wins': wins,
+                        'win_rate': wins / len(conf_preds) * 100
+                    }
+            
+            pattern_counts = defaultdict(lambda: {'total': 0, 'wins': 0})
+            for pred in completed:
+                if pred.patterns_data:
+                    patterns = pred.patterns_data
+                    if isinstance(patterns, str):
+                        try:
+                            patterns = json.loads(patterns)
+                        except:
+                            patterns = {}
+                    
+                    pattern_type = patterns.get('pattern_type', 'unknown')
+                    if pattern_type and pattern_type != 'unknown':
+                        pattern_counts[pattern_type]['total'] += 1
+                        if pred.is_win:
+                            pattern_counts[pattern_type]['wins'] += 1
+            
+            for pattern_type, counts in pattern_counts.items():
+                if counts['total'] >= 3:
+                    pattern_stats[pattern_type] = {
+                        'total': counts['total'],
+                        'wins': counts['wins'],
+                        'win_rate': counts['wins'] / counts['total'] * 100
+                    }
+            
+            pattern_stats = dict(sorted(pattern_stats.items(), 
+                                       key=lambda x: x[1]['win_rate'], reverse=True))
+            
+            monthly_data = defaultdict(lambda: {'total': 0, 'wins': 0, 'accepted': 0})
+            for pred in completed:
+                if pred.match_date:
+                    month_key = pred.match_date.strftime('%Y-%m')
+                    monthly_data[month_key]['total'] += 1
+                    if pred.is_win:
+                        monthly_data[month_key]['wins'] += 1
+            
+            for pred in accepted:
+                if pred.match_date:
+                    month_key = pred.match_date.strftime('%Y-%m')
+                    monthly_data[month_key]['accepted'] += 1
+            
+            sorted_months = sorted(monthly_data.keys())
+            prev_win_rate = None
+            for month in sorted_months:
+                data = monthly_data[month]
+                win_rate = data['wins'] / data['total'] * 100 if data['total'] else 0
+                trend = 0
+                if prev_win_rate is not None:
+                    trend = 1 if win_rate > prev_win_rate else (-1 if win_rate < prev_win_rate else 0)
+                prev_win_rate = win_rate
+                
+                month_preds = [p for p in completed if p.match_date and p.match_date.strftime('%Y-%m') == month]
+                month_wins = [p for p in month_preds if p.is_win]
+                month_losses = len(month_preds) - len(month_wins)
+                month_profit = sum((p.odds or 2.0) - 1 for p in month_wins) - month_losses
+                roi = (month_profit / len(month_preds)) * 100 if month_preds else 0
+                
+                monthly_stats.append({
+                    'month': month,
+                    'total': data['total'],
+                    'wins': data['wins'],
+                    'win_rate': win_rate,
+                    'roi': roi,
+                    'accepted': data['accepted'],
+                    'trend': trend
+                })
+            
+            chart_data['labels'] = sorted_months[-12:]
+            for month in chart_data['labels']:
+                data = monthly_data[month]
+                win_rate = data['wins'] / data['total'] * 100 if data['total'] else 0
+                chart_data['win_rates'].append(round(win_rate, 1))
+                chart_data['totals'].append(data['total'])
                     
         except Exception as e:
             print(f"Error loading statistics: {e}")
+            import traceback
+            traceback.print_exc()
     
     return render_template('statistics.html',
                          model_stats=model_stats,
                          manual_stats=manual_stats,
                          league_stats=league_stats,
                          monthly_stats=monthly_stats,
-                         confidence_stats=confidence_stats)
+                         confidence_stats=confidence_stats,
+                         pattern_stats=pattern_stats,
+                         chart_data=chart_data)
 
 
 @routes_bp.route('/settings/telegram')
