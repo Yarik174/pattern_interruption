@@ -209,6 +209,7 @@ def statistics_page():
     import json
     
     model_stats = {'total': 0, 'wins': 0, 'losses': 0, 'pending': 0, 'win_rate': 0, 'roi': 0}
+    rl_stats = {'total': 0, 'wins': 0, 'losses': 0, 'win_rate': 0, 'roi': 0, 'bet_count': 0, 'skip_count': 0}
     manual_stats = {'total': 0, 'wins': 0, 'win_rate': 0, 'roi': 0}
     league_stats = {}
     monthly_stats = []
@@ -244,6 +245,25 @@ def statistics_page():
             manual_profit = sum((p.odds or 2.0) - 1 for p in accepted if p.is_win) - manual_stats['losses']
             if manual_stats['total'] > 0:
                 manual_stats['roi'] = (manual_profit / manual_stats['total']) * 100
+            
+            # RL-агент статистика (прогнозы где агент рекомендовал BET)
+            rl_bet_predictions = [p for p in completed if p.rl_recommendation == 'BET']
+            rl_skip_predictions = [p for p in completed if p.rl_recommendation == 'SKIP']
+            
+            rl_stats['bet_count'] = len(rl_bet_predictions)
+            rl_stats['skip_count'] = len(rl_skip_predictions)
+            rl_stats['total'] = len(rl_bet_predictions)
+            rl_stats['wins'] = sum(1 for p in rl_bet_predictions if p.is_win)
+            rl_stats['losses'] = rl_stats['total'] - rl_stats['wins']
+            rl_stats['win_rate'] = (rl_stats['wins'] / rl_stats['total'] * 100) if rl_stats['total'] else 0
+            
+            # Считаем сколько SKIP были бы проигрышами
+            skip_would_lose = sum(1 for p in rl_skip_predictions if not p.is_win)
+            rl_stats['skip_saved'] = skip_would_lose
+            
+            rl_profit = sum((p.odds or 2.0) - 1 for p in rl_bet_predictions if p.is_win) - rl_stats['losses']
+            if rl_stats['total'] > 0:
+                rl_stats['roi'] = (rl_profit / rl_stats['total']) * 100
             
             for league in ['NHL', 'KHL', 'SHL', 'Liiga', 'DEL']:
                 league_preds = [p for p in completed if p.league == league]
@@ -366,6 +386,7 @@ def statistics_page():
     
     return render_template('statistics.html',
                          model_stats=model_stats,
+                         rl_stats=rl_stats,
                          manual_stats=manual_stats,
                          league_stats=league_stats,
                          monthly_stats=monthly_stats,

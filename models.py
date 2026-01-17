@@ -33,6 +33,11 @@ class Prediction(db.Model):
     notified_telegram = db.Column(db.Boolean, default=False)
     flashlive_event_id = db.Column(db.String(50))
     
+    # RL-агент рекомендация
+    rl_recommendation = db.Column(db.String(10))  # 'BET' или 'SKIP'
+    rl_confidence = db.Column(db.Float)
+    rl_comment = db.Column(db.Text)
+    
     user_decision = db.relationship('UserDecision', backref='prediction', uselist=False)
     
     def to_dict(self):

@@ -258,14 +258,62 @@ class RLBettingAgent:
             # Confidence как разница между Q-значениями
             confidence = abs(q_bet - q_skip) / (abs(q_bet) + abs(q_skip) + 1e-6)
             
+            # Генерируем комментарий на основе состояния
+            comment = self._generate_comment(state, action, confidence)
+            
             return {
                 'action': 'BET' if action == 1 else 'SKIP',
                 'action_id': action,
                 'confidence': min(confidence, 1.0),
                 'q_bet': q_bet,
                 'q_skip': q_skip,
-                'recommendation': 'Рекомендуется ставка' if action == 1 else 'Рекомендуется пропустить'
+                'recommendation': 'Рекомендуется ставка' if action == 1 else 'Рекомендуется пропустить',
+                'comment': comment
             }
+    
+    def _generate_comment(self, state: np.ndarray, action: int, confidence: float) -> str:
+        """Генерация текстового комментария на основе анализа состояния"""
+        model_conf = state[0]  # model_confidence
+        odds_norm = state[2]   # normalized odds
+        home_series = (state[3] * 10) - 5  # denormalize
+        away_series = (state[4] * 10) - 5
+        bankroll = state[6] * 2  # denormalize
+        recent_wr = state[7]
+        
+        reasons = []
+        
+        if action == 1:  # BET
+            if model_conf > 0.7:
+                reasons.append("высокая уверенность модели")
+            if odds_norm > 0.4:  # odds > 2.0
+                reasons.append("привлекательный коэффициент")
+            if home_series > 2 or away_series > 2:
+                reasons.append("сильная серия команды")
+            if recent_wr > 0.6:
+                reasons.append("хорошая недавняя статистика")
+            if bankroll > 1.0:
+                reasons.append("банкролл в плюсе")
+            
+            if not reasons:
+                reasons.append("совокупность факторов")
+            
+            return f"Ставка рекомендуется: {', '.join(reasons)}"
+        else:  # SKIP
+            if model_conf < 0.5:
+                reasons.append("низкая уверенность модели")
+            if odds_norm < 0.3:  # odds < 1.5
+                reasons.append("низкий коэффициент")
+            if recent_wr < 0.4:
+                reasons.append("плохая недавняя статистика")
+            if bankroll < 0.7:
+                reasons.append("банкролл под давлением")
+            if abs(home_series) < 2 and abs(away_series) < 2:
+                reasons.append("неопределённая ситуация")
+            
+            if not reasons:
+                reasons.append("риск превышает потенциальную выгоду")
+            
+            return f"Пропустить: {', '.join(reasons)}"
     
     def train_step(self) -> Optional[float]:
         """Один шаг обучения"""

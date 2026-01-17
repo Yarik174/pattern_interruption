@@ -49,6 +49,24 @@ def create_prediction_from_match(match: dict, bet_on: str, target_odds: float) -
             
             flashlive_event_id = event_id.replace('flash_', '') if event_id else None
             
+            # Получаем рекомендацию RL-агента
+            rl_rec = None
+            rl_action = None
+            rl_conf = None
+            rl_comment = None
+            try:
+                from src.rl_agent import get_rl_recommendation
+                rl_rec = get_rl_recommendation(
+                    model_confidence=confidence,
+                    predicted_probability=1.0 / target_odds if target_odds > 0 else 0.5,
+                    odds=target_odds
+                )
+                rl_action = rl_rec.get('action')
+                rl_conf = rl_rec.get('confidence')
+                rl_comment = rl_rec.get('comment')
+            except Exception as e:
+                logger.warning(f"RL recommendation not available: {e}")
+            
             prediction = Prediction(
                 created_at=datetime.utcnow(),
                 match_date=parse_match_date(match),
@@ -71,7 +89,10 @@ def create_prediction_from_match(match: dict, bet_on: str, target_odds: float) -
                     'odds_filter': '[2.0-3.5]'
                 },
                 model_version='AutoMonitor_v1',
-                flashlive_event_id=flashlive_event_id
+                flashlive_event_id=flashlive_event_id,
+                rl_recommendation=rl_action,
+                rl_confidence=rl_conf,
+                rl_comment=rl_comment
             )
             
             db.session.add(prediction)
