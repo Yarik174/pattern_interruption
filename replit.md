@@ -1,83 +1,122 @@
 # Hockey Pattern Prediction System
 
 ## Overview
-The Hockey Pattern Prediction System is a multi-league system designed to predict outcomes of hockey matches across several leagues (NHL, KHL, SHL, Liiga, DEL). It analyzes historical match data to identify recurring patterns in results. The core idea is that when a pattern reaches a critical length, it has a high probability of breaking. The system aims to provide profitable betting recommendations based on these pattern breaks and calculated Expected Value (EV).
+Production-ready hockey prediction system monitoring betting odds via FlashLive Sports API (RapidAPI) for 5 leagues (NHL, KHL, SHL, Liiga, DEL). System automatically generates predictions 1-2 days before matches using Random Forest + CPP logic + LSTM, sends Telegram notifications, and provides web interface with Perk.com-inspired light theme.
+
+**Current Status:** Fully automated system with automatic result verification.
 
 ## User Preferences
-I prefer clear and concise explanations.
-I value iterative development and regular updates on progress.
-Please ask for confirmation before implementing significant architectural changes or adding new external dependencies.
-Ensure all generated code is well-commented and follows standard Python best practices.
+- Clear and concise explanations preferred
+- Iterative development with regular progress updates
+- Ask confirmation before major architectural changes
+- Well-commented code following Python best practices
+- Verify facts before accepting — accuracy over quick agreement
 
 ## System Architecture
-The system is built around a core pattern recognition engine that identifies various types of patterns, including home series, away series, head-to-head records, and alternating win/loss sequences. It utilizes both a Random Forest model for general predictions and a Critical Pattern Prediction (CPP) logic for identifying high-confidence pattern breaks.
 
-**UI/UX Decisions:**
-- **Theme:** Perk.com inspired light theme with #BEFF50 accent, #F5F5EB background, and #14140F text.
-- **Navigation:** Features 3 primary pages: Predictions, Dashboard, and Statistics.
-- **Dashboard:** Includes an impressive AI visualization with LSTM + Random Forest architecture diagram, feature importance charts, and a "How AI Works" ML education section with interactive tabs explaining machine learning concepts from data to prediction.
+### Core Components
+1. **Pattern Engine** (`pattern_engine.py`) — identifies home/away series, H2H records, alternating win/loss sequences
+2. **Feature Builder** (`feature_builder.py`) — creates 112 features for ML models
+3. **Prediction Models:**
+   - Random Forest (probability calibration, 112 features)
+   - LSTM Neural Network (PyTorch, dual predictions for regulation/final)
+   - CPP Logic (Critical Pattern Prediction for high-confidence breaks)
 
-**Technical Implementations:**
-- **Data Loading:** `flashlive_loader.py` fetches live match data for all leagues via the FlashLive API. Historical data is loaded via `data_loader.py` (for NHL) and `multi_league_loader.py` (for European leagues).
-- **Pattern Engine:** `pattern_engine.py` is central to identifying and analyzing patterns, calculating their weights and reliability.
-- **Feature Engineering:** `feature_builder.py` creates features for machine learning models, incorporating series lengths, alternations, synergies, and deep H2H statistics.
-- **Prediction Models:**
-    - **Random Forest:** Implemented in `model.py`, it's a classifier with probability calibration using 112 features.
-    - **LSTM Sequence Model:** A PyTorch-based LSTM neural network in `sequence_model.py` performs dual predictions for regulation (1X2) and final (Money Line) results using 16 features.
-- **CPP Logic:** This logic determines pattern breaks based on predefined critical lengths and rules. Synergy (multiple patterns pointing to the same outcome) is a key factor for bet recommendations, focusing on betting against critical length series. A filter applied to odds between 2.0 and 3.5 has been shown to improve ROI for CPP predictions.
-- **Database:** PostgreSQL with SQLAlchemy ORM stores predictions, user decisions, and model versions.
-- **Notifications:** A Telegram bot provides real-time alerts for new predictions.
-- **AutoMonitoring:** The system automatically monitors matches and updates historical data, logging all operations to the database.
+### Data Architecture (ВАЖНО!)
+| Компонент | Источник | Назначение |
+|-----------|----------|------------|
+| MultiLeaguePatternEngine | Кэш исторических матчей | Обучение моделей (6,632 матча) |
+| FlashLive H2H API | `/v1/events/h2h` | Отображение последних 5 матчей в UI |
+| FlashLive Events | `/v1/events/list` | Список предстоящих матчей |
+| FlashLive Odds | `/v1/events/odds` | Коэффициенты (отдельный запрос!) |
+| FlashLive Data | `/v1/events/data` | Результаты завершённых матчей |
 
-**Feature Specifications:**
-- **Web Interface:**
-    - `/predictions`: Table of all predictions with filters.
-    - `/prediction/<id>`: Detailed prediction page with patterns.
-    - `/dashboard`: AI Model Dashboard with live stats and ML education.
-    - `/statistics`: Model vs. manual selection comparison.
-    - `/logs`: System logs with filters.
+### Key Data Fields
+- `predicted_outcome` — хранит **НАЗВАНИЕ КОМАНДЫ** (например "Anaheim Ducks"), НЕ 'home'/'away'
+- `patterns_data.bet_on` — хранит 'home'/'away' флаг
+- `is_win` — результат прогноза (True/False/None)
+- `flashlive_event_id` — ID матча для API запросов
 
-## Recent Changes Log
+### Automation Pipeline
+1. **Мониторинг** (каждые 12 часов):
+   - Загрузка предстоящих матчей через FlashLive API
+   - Генерация прогнозов через RF + LSTM + CPP
+   - Отправка уведомлений в Telegram
+2. **Проверка результатов** (автоматически):
+   - Находит прогнозы с `is_win == None` и прошедшей датой
+   - Запрашивает результат через `/v1/events/data`
+   - Обновляет `actual_result`, `is_win`, `result_updated_at`
 
-### [2026-01-17] Оптимизация расхода API запросов
-**Проблема:** 500 запросов FlashLive API быстро расходовались
-**Решение:** 
-- Отключён автозапуск мониторинга при старте сервера
-- Интервал мониторинга: 12 часов (вместо 4)
-- Кэширование H2H данных: 24 часа
-- Кэширование матчей/odds: 60 минут
-**Расход:** ~1,860 запросов/месяц (достаточно для Basic плана)
+## FlashLive API Reference
 
-### [2026-01-16] Исправление отображения коэффициентов + история матчей
-**Проблема:** Коэффициенты показывались неправильно; не было истории матчей
-**Решение:** 
-- predicted_outcome хранит НАЗВАНИЕ команды, не 'home'/'away'
-- Добавлен endpoint /v1/events/h2h для загрузки истории
-- H_RESULT возвращает 'WIN'/'LOSS'/'DRAW'
+### Endpoints
+| Endpoint | Параметры | Возвращает |
+|----------|-----------|------------|
+| `/v1/events/list` | sport_id, timezone | Список матчей БЕЗ коэффициентов |
+| `/v1/events/odds` | event_id, odds_source | Коэффициенты для конкретного матча |
+| `/v1/events/h2h` | event_id | Последние 5 матчей каждой команды |
+| `/v1/events/data` | event_id | Детали матча, счёт, статус |
 
-### FlashLive API Structure (ВАЖНО)
-- Список матчей: `GET /v1/events/list` (БЕЗ коэффициентов!)
-- Коэффициенты: `GET /v1/events/odds?event_id=XXX` (отдельный запрос)
-- H2H история: `GET /v1/events/h2h?event_id=XXX`
-- Результат матча: `GET /v1/events/data?event_id=XXX` (STAGE_TYPE='FINISHED', HOME_SCORE_CURRENT, AWAY_SCORE_CURRENT)
-- Только 5 лиг: NHL, KHL, SHL, Liiga, DEL
+### Sport IDs
+- Hockey: sport_id = 4
+- Поддерживаемые лиги: NHL, KHL, SHL, Liiga, DEL
+
+### API Budget (Ultra Plan: 75,000/month)
+| Операция | Запросов/день | В месяц |
+|----------|--------------|---------|
+| Список матчей (5 лиг) | 10 | 300 |
+| Коэффициенты (~50 матчей) | 500 | 15,000 |
+| Проверка результатов | 30 | 900 |
+| H2H при просмотре | ~3 | 100 |
+| **ИТОГО** | | **~16,300** |
+
+**Запас:** ~58,700 запросов для расширения на другие виды спорта.
+
+## UI/UX Design
+- **Theme:** Perk.com inspired — #BEFF50 accent, #F5F5EB background, #14140F text
+- **Pages:**
+  - `/predictions` — таблица прогнозов с фильтрами
+  - `/prediction/<id>` — детали с паттернами и историей H2H
+  - `/dashboard` — AI визуализация, архитектура моделей
+  - `/statistics` — сравнение модели vs ручной выбор
+  - `/logs` — системные логи
+
+## Key Files
+| Файл | Назначение |
+|------|------------|
+| `src/flashlive_loader.py` | API клиент для FlashLive |
+| `src/odds_monitor.py` | AutoMonitor, проверка результатов |
+| `src/prediction_service.py` | Генерация прогнозов |
+| `src/pattern_engine.py` | Анализ паттернов |
+| `src/multi_league_loader.py` | Загрузка исторических данных |
+| `models.py` | SQLAlchemy модели (Prediction, etc.) |
+| `src/routes.py` | Flask маршруты |
+
+## Recent Changes
 
 ### [2026-01-17] Автоматическая проверка результатов
-- Добавлен метод `get_match_result()` в FlashLiveLoader
-- AutoMonitor теперь автоматически проверяет результаты завершённых матчей
-- Обновляет поля: `actual_result`, `is_win`, `result_updated_at`
+- Добавлен `get_match_result()` в FlashLiveLoader
+- AutoMonitor автоматически проверяет завершённые матчи
+- Обновляет `is_win` на основе сравнения predicted_outcome с победителем
+- Исправлена ошибка app_context для фоновых потоков
 
-### Расчёт API запросов (Ultra план: 75,000/месяц)
-- Список матчей (5 спортов): 5 × 2/день × 30 = 300
-- Коэффициенты (~50 матчей): 250 × 2/день × 30 = 15,000
-- Проверка результатов (~30 прогнозов): 30 × 1/день × 30 = 900
-- H2H при просмотре: ~100/месяц
-- **ИТОГО: ~16,300 запросов/месяц** (запас ~58,700)
+### [2026-01-17] Оптимизация API запросов
+- Интервал мониторинга: 12 часов
+- Кэширование H2H: 24 часа
+- Кэширование матчей/odds: 60 минут
+
+### [2026-01-16] Исправление коэффициентов
+- predicted_outcome теперь хранит название команды
+- Добавлена загрузка H2H истории через API
 
 ## External Dependencies
-- **FlashLive Sports API (RapidAPI):** Primary source for live hockey match data across 30+ leagues.
-- **NHL API:** Used for NHL historical match data.
-- **AllBestBets API:** Fallback source for value bets.
-- **Telegram Bot API:** For sending notifications.
-- **PostgreSQL:** Database for storing system data.
-- **Python Libraries:** Flask, Flask-SQLAlchemy, PyTorch, Scikit-learn.
+- **FlashLive Sports API (RapidAPI)** — основной источник данных
+- **NHL API** — исторические данные NHL
+- **AllBestBets API** — fallback для value bets
+- **Telegram Bot API** — уведомления
+- **PostgreSQL** — база данных
+- **Python:** Flask, SQLAlchemy, PyTorch, Scikit-learn
+
+## Future Plans
+- Расширение на 5 видов спорта (25 лиг) — бюджет API позволяет
+- Улучшение точности моделей на основе накопленных результатов
