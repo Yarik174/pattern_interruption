@@ -420,10 +420,18 @@
         </div>
         
         {% if chart_data and chart_data.labels %}
-        <div class="section">
-            <h3 class="section-title">📈 Динамика точности</h3>
-            <div class="chart-container">
-                <canvas id="accuracyChart"></canvas>
+        <div class="charts-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
+            <div class="section" style="margin-bottom: 0;">
+                <h3 class="section-title">📈 Динамика точности</h3>
+                <div class="chart-container">
+                    <canvas id="accuracyChart"></canvas>
+                </div>
+            </div>
+            <div class="section" style="margin-bottom: 0;">
+                <h3 class="section-title">💰 Накопительный ROI</h3>
+                <div class="chart-container">
+                    <canvas id="roiChart"></canvas>
+                </div>
             </div>
         </div>
         {% endif %}
@@ -671,6 +679,79 @@
                         },
                         grid: {
                             drawOnChartArea: false
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Накопительный ROI график
+        const ctxRoi = document.getElementById('roiChart').getContext('2d');
+        const roiData = {{ chart_data.cumulative_roi | default([]) | tojson }};
+        
+        new Chart(ctxRoi, {
+            type: 'line',
+            data: {
+                labels: {{ chart_data.labels | tojson }},
+                datasets: [{
+                    label: 'Накопительный ROI %',
+                    data: roiData,
+                    borderColor: roiData.map(v => v >= 0 ? '#22C55E' : '#EF4444'),
+                    backgroundColor: function(context) {
+                        const value = context.raw;
+                        return value >= 0 ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)';
+                    },
+                    fill: true,
+                    tension: 0.3,
+                    pointBackgroundColor: roiData.map(v => v >= 0 ? '#22C55E' : '#EF4444'),
+                    pointBorderColor: '#fff',
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                    segment: {
+                        borderColor: function(ctx) {
+                            return ctx.p1.raw >= 0 ? '#22C55E' : '#EF4444';
+                        }
+                    }
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(20, 20, 15, 0.9)',
+                        titleColor: '#BEFF50',
+                        bodyColor: '#fff',
+                        padding: 12,
+                        cornerRadius: 8,
+                        callbacks: {
+                            label: function(context) {
+                                return 'ROI: ' + (context.raw >= 0 ? '+' : '') + context.raw + '%';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'ROI %'
+                        },
+                        grid: {
+                            color: function(context) {
+                                if (context.tick.value === 0) {
+                                    return 'rgba(0,0,0,0.3)';
+                                }
+                                return 'rgba(0,0,0,0.05)';
+                            }
                         }
                     },
                     x: {

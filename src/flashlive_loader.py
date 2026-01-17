@@ -4,12 +4,51 @@ FlashLive Sports API Loader (via RapidAPI)
 """
 import requests
 import os
+import time
 from datetime import datetime, timedelta
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Callable
 import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Callback для отправки алертов (устанавливается извне)
+_error_alert_callback: Optional[Callable[[str], None]] = None
+_telegram_notifier_instance = None
+
+def set_error_alert_callback(callback: Callable[[str], None]):
+    """Установить callback для отправки алертов об ошибках"""
+    global _error_alert_callback
+    _error_alert_callback = callback
+
+def set_telegram_notifier(notifier):
+    """Установить TelegramNotifier для динамической отправки алертов"""
+    global _telegram_notifier_instance
+    _telegram_notifier_instance = notifier
+
+def _send_error_alert(message: str):
+    """Отправить алерт об ошибке через callback или TelegramNotifier"""
+    global _error_alert_callback, _telegram_notifier_instance
+    
+    # Приоритет: callback, затем прямой вызов TelegramNotifier
+    if _error_alert_callback:
+        try:
+            _error_alert_callback(message)
+            return
+        except Exception as e:
+            logger.error(f"Failed to send error alert via callback: {e}")
+    
+    # Fallback: прямой вызов TelegramNotifier если он установлен и настроен
+    if _telegram_notifier_instance:
+        try:
+            if _telegram_notifier_instance.is_configured():
+                _telegram_notifier_instance.send_error_alert(message)
+                return
+        except Exception as e:
+            logger.error(f"Failed to send error alert via notifier: {e}")
+    
+    # Если ничего не настроено - только логируем
+    logger.warning(f"Error alert not sent (Telegram not configured): {message}")
 
 RAPIDAPI_KEY = os.environ.get('RAPIDAPI_KEY', '').strip()
 RAPIDAPI_HOST = 'flashlive-sports.p.rapidapi.com'
@@ -46,6 +85,76 @@ class FlashLiveLoader:
         """Проверка настроен ли API"""
         return bool(self.api_key)
     
+    def _request_with_retry(self, url: str, params: Dict, max_retries: int = 3, 
+                           base_delay: float = 1.0) -> Optional[requests.Response]:
+        """
+        Выполнить HTTP запрос с exponential backoff при ошибках
+        
+        Args:
+            url: URL для запроса
+            params: Параметры запроса
+            max_retries: Максимальное число попыток
+            base_delay: Базовая задержка в секундах
+            
+        Returns:
+            Response объект или None при неудаче
+        """
+        last_error = None
+        
+        for attempt in range(max_retries):
+            try:
+                resp = requests.get(
+                    url,
+                    headers=self._get_headers(),
+                    params=params,
+                    timeout=30
+                )
+                
+                # Успешный ответ
+                if resp.status_code == 200:
+                    return resp
+                
+                # Rate limit - ждём и повторяем
+                if resp.status_code == 429:
+                    delay = base_delay * (2 ** attempt)
+                    logger.warning(f"Rate limit (429), retry {attempt+1}/{max_retries} in {delay}s")
+                    time.sleep(delay)
+                    continue
+                
+                # Серверные ошибки - повторяем
+                if resp.status_code >= 500:
+                    delay = base_delay * (2 ** attempt)
+                    logger.warning(f"Server error {resp.status_code}, retry {attempt+1}/{max_retries} in {delay}s")
+                    time.sleep(delay)
+                    continue
+                
+                # Клиентские ошибки (4xx кроме 429) - не повторяем
+                logger.error(f"API error {resp.status_code}: {resp.text[:200]}")
+                return None
+                
+            except requests.exceptions.Timeout:
+                delay = base_delay * (2 ** attempt)
+                logger.warning(f"Timeout, retry {attempt+1}/{max_retries} in {delay}s")
+                last_error = "Timeout"
+                time.sleep(delay)
+                
+            except requests.exceptions.ConnectionError as e:
+                delay = base_delay * (2 ** attempt)
+                logger.warning(f"Connection error, retry {attempt+1}/{max_retries} in {delay}s")
+                last_error = str(e)
+                time.sleep(delay)
+                
+            except Exception as e:
+                logger.error(f"Unexpected error: {e}")
+                last_error = str(e)
+                break
+        
+        # Все попытки исчерпаны - отправляем алерт
+        error_msg = f"FlashLive API failed after {max_retries} retries: {last_error}"
+        logger.error(error_msg)
+        _send_error_alert(f"⚠️ API ERROR\n\n{error_msg}")
+        return None
+    
     def _get_headers(self) -> Dict:
         """Заголовки для RapidAPI"""
         return {
@@ -54,19 +163,17 @@ class FlashLiveLoader:
         }
     
     def _get_hockey_sport_id(self) -> int:
-        """Получить sport_id для хоккея"""
+        """Получить sport_id для хоккея (с retry логикой)"""
         if self._sport_id:
             return self._sport_id
         
-        try:
-            resp = requests.get(
-                f'{BASE_URL}/v1/sports/list',
-                headers=self._get_headers(),
-                params={'locale': 'en_INT'},
-                timeout=30
-            )
-            
-            if resp.status_code == 200:
+        resp = self._request_with_retry(
+            f'{BASE_URL}/v1/sports/list',
+            params={'locale': 'en_INT'}
+        )
+        
+        if resp:
+            try:
                 data = resp.json()
                 sports = data.get('DATA', [])
                 for sport in sports:
@@ -75,14 +182,12 @@ class FlashLiveLoader:
                         self._sport_id = sport.get('ID')
                         logger.info(f"FlashLive: Hockey sport_id = {self._sport_id}")
                         return self._sport_id
-            
-            # Fallback
-            self._sport_id = HOCKEY_SPORT_ID
-            return self._sport_id
-            
-        except Exception as e:
-            logger.error(f"FlashLive get_sports error: {e}")
-            return HOCKEY_SPORT_ID
+            except Exception as e:
+                logger.error(f"FlashLive get_sports parse error: {e}")
+        
+        # Fallback
+        self._sport_id = HOCKEY_SPORT_ID
+        return self._sport_id
     
     def get_upcoming_games(self, leagues: Optional[List[str]] = None, days_ahead: int = 2) -> List[Dict]:
         """
@@ -143,33 +248,25 @@ class FlashLiveLoader:
         return filtered
     
     def _fetch_events_for_day(self, sport_id: int, day_offset: int) -> List[Dict]:
-        """Получить матчи на конкретный день"""
+        """Получить матчи на конкретный день (с retry логикой)"""
+        resp = self._request_with_retry(
+            f'{BASE_URL}/v1/events/list',
+            params={
+                'sport_id': sport_id,
+                'indent_days': day_offset,
+                'locale': 'en_INT',
+                'timezone': 0
+            }
+        )
+        
+        if not resp:
+            return []
+        
         try:
-            resp = requests.get(
-                f'{BASE_URL}/v1/events/list',
-                headers=self._get_headers(),
-                params={
-                    'sport_id': sport_id,
-                    'indent_days': day_offset,  # FlashLive uses indent_days, not day
-                    'locale': 'en_INT',
-                    'timezone': 0  # UTC offset as integer
-                },
-                timeout=30
-            )
-            
-            if resp.status_code == 429:
-                logger.warning("FlashLive: Rate limit exceeded")
-                return []
-            
-            if resp.status_code != 200:
-                logger.error(f"FlashLive error: {resp.status_code}")
-                return []
-            
             data = resp.json()
             return self._parse_events(data)
-            
         except Exception as e:
-            logger.error(f"FlashLive request error: {e}")
+            logger.error(f"FlashLive parse error: {e}")
             return []
     
     def _parse_events(self, data: Dict) -> List[Dict]:
@@ -248,7 +345,7 @@ class FlashLiveLoader:
         return [m for m in matches if m.get('league') in leagues]
     
     def get_event_odds(self, event_id: str) -> Optional[Dict]:
-        """Получить коэффициенты для конкретного матча
+        """Получить коэффициенты для конкретного матча (с retry логикой)
         
         Returns:
             Dict с ключами home_odds, draw_odds, away_odds, bookmaker
@@ -259,20 +356,18 @@ class FlashLiveLoader:
         
         raw_id = event_id.replace('flash_', '')
         
+        resp = self._request_with_retry(
+            f'{BASE_URL}/v1/events/odds',
+            params={
+                'event_id': raw_id,
+                'locale': 'en_INT'
+            }
+        )
+        
+        if not resp:
+            return None
+        
         try:
-            resp = requests.get(
-                f'{BASE_URL}/v1/events/odds',
-                headers=self._get_headers(),
-                params={
-                    'event_id': raw_id,
-                    'locale': 'en_INT'
-                },
-                timeout=30
-            )
-            
-            if resp.status_code != 200:
-                return None
-            
             data = resp.json()
             
             for betting_type in data.get('DATA', []):
@@ -305,12 +400,12 @@ class FlashLiveLoader:
             return None
             
         except Exception as e:
-            logger.error(f"FlashLive odds error: {e}")
+            logger.error(f"FlashLive odds parse error: {e}")
             return None
     
     def get_h2h_data(self, event_id: str) -> Optional[Dict]:
         """
-        Получить данные H2H (последние матчи команд) для события
+        Получить данные H2H (последние матчи команд) для события (с retry логикой)
         С кэшированием на 24 часа для экономии API запросов
         
         Args:
@@ -332,21 +427,18 @@ class FlashLiveLoader:
                 logger.info(f"H2H cache hit for {raw_id}")
                 return self._h2h_cache[raw_id]
         
+        resp = self._request_with_retry(
+            f'{BASE_URL}/v1/events/h2h',
+            params={
+                'event_id': raw_id,
+                'locale': 'en_GB'
+            }
+        )
+        
+        if not resp:
+            return None
+        
         try:
-            resp = requests.get(
-                f'{BASE_URL}/v1/events/h2h',
-                headers=self._get_headers(),
-                params={
-                    'event_id': raw_id,
-                    'locale': 'en_GB'
-                },
-                timeout=30
-            )
-            
-            if resp.status_code != 200:
-                logger.error(f"FlashLive H2H error: {resp.status_code}")
-                return None
-            
             data = resp.json()
             
             result = {
@@ -417,7 +509,7 @@ class FlashLiveLoader:
 
     def get_match_result(self, event_id: str) -> Optional[Dict]:
         """
-        Получить результат матча по event_id
+        Получить результат матча по event_id (с retry логикой)
         
         Args:
             event_id: ID события (может содержать префикс 'flash_')
@@ -435,25 +527,18 @@ class FlashLiveLoader:
         
         raw_id = event_id.replace('flash_', '')
         
+        resp = self._request_with_retry(
+            f'{BASE_URL}/v1/events/data',
+            params={
+                'event_id': raw_id,
+                'locale': 'en_INT'
+            }
+        )
+        
+        if not resp:
+            return None
+        
         try:
-            resp = requests.get(
-                f'{BASE_URL}/v1/events/data',
-                headers=self._get_headers(),
-                params={
-                    'event_id': raw_id,
-                    'locale': 'en_INT'
-                },
-                timeout=30
-            )
-            
-            if resp.status_code == 429:
-                logger.warning("FlashLive: Rate limit exceeded")
-                return None
-            
-            if resp.status_code != 200:
-                logger.error(f"FlashLive match result error: {resp.status_code}")
-                return None
-            
             data = resp.json()
             event_data = data.get('DATA', {})
             

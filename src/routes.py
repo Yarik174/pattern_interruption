@@ -321,11 +321,27 @@ def statistics_page():
                 })
             
             chart_data['labels'] = sorted_months[-12:]
+            chart_data['cumulative_roi'] = []
+            cumulative_profit = 0
+            cumulative_total = 0
+            
             for month in chart_data['labels']:
                 data = monthly_data[month]
                 win_rate = data['wins'] / data['total'] * 100 if data['total'] else 0
                 chart_data['win_rates'].append(round(win_rate, 1))
                 chart_data['totals'].append(data['total'])
+                
+                # Накопительный ROI
+                month_preds = [p for p in completed if p.match_date and p.match_date.strftime('%Y-%m') == month]
+                month_wins = [p for p in month_preds if p.is_win]
+                month_losses = len(month_preds) - len(month_wins)
+                month_profit = sum((p.odds or 2.0) - 1 for p in month_wins) - month_losses
+                
+                cumulative_profit += month_profit
+                cumulative_total += len(month_preds)
+                
+                cum_roi = (cumulative_profit / cumulative_total) * 100 if cumulative_total > 0 else 0
+                chart_data['cumulative_roi'].append(round(cum_roi, 1))
                     
         except Exception as e:
             print(f"Error loading statistics: {e}")

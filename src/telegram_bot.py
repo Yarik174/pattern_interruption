@@ -127,6 +127,30 @@ class TelegramNotifier:
         
         return self.send_message(message.strip())
     
+    def send_error_alert(self, error_message: str) -> bool:
+        """
+        Отправить алерт о критической ошибке
+        
+        Args:
+            error_message: Текст ошибки
+            
+        Returns:
+            True если успешно отправлено
+        """
+        from datetime import datetime
+        timestamp = datetime.now().strftime('%d.%m.%Y %H:%M')
+        
+        message = f"""
+<b>СИСТЕМНАЯ ОШИБКА</b>
+
+<b>Время:</b> {timestamp}
+
+{error_message}
+
+<i>Проверьте логи системы</i>
+"""
+        return self.send_message(message.strip())
+    
     def _get_confidence_emoji(self, confidence: int) -> str:
         """Эмодзи по уровню уверенности"""
         if confidence >= 8:

@@ -53,7 +53,7 @@ app.register_blueprint(routes_bp)
 from src.telegram_bot import TelegramNotifier
 from src.apisports_odds_loader import APISportsOddsLoader, get_demo_odds
 from src.allbestbets_loader import AllBestBetsLoader, get_demo_matches
-from src.flashlive_loader import FlashLiveLoader
+from src.flashlive_loader import FlashLiveLoader, set_telegram_notifier as set_flashlive_notifier
 from src.odds_monitor import OddsMonitor, start_auto_monitoring, get_auto_monitor
 
 telegram_notifier = TelegramNotifier()
@@ -62,6 +62,10 @@ allbestbets_loader = AllBestBetsLoader()
 flashlive_loader = FlashLiveLoader()
 set_telegram(telegram_notifier)
 set_odds_loader(flashlive_loader)
+
+# Настроить отправку алертов об ошибках API в Telegram
+# Передаём notifier напрямую - он проверит is_configured() динамически
+set_flashlive_notifier(telegram_notifier)
 
 # AutoMonitor с интервалом 12 часов (экономия API запросов)
 start_auto_monitoring()
