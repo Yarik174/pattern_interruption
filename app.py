@@ -63,6 +63,7 @@ flashlive_loader = FlashLiveLoader()
 set_telegram(telegram_notifier)
 set_odds_loader(flashlive_loader)
 
+# AutoMonitor с интервалом 12 часов (экономия API запросов)
 start_auto_monitoring()
 
 @app.after_request

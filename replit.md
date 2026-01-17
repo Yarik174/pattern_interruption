@@ -37,6 +37,30 @@ The system is built around a core pattern recognition engine that identifies var
     - `/statistics`: Model vs. manual selection comparison.
     - `/logs`: System logs with filters.
 
+## Recent Changes Log
+
+### [2026-01-17] Оптимизация расхода API запросов
+**Проблема:** 500 запросов FlashLive API быстро расходовались
+**Решение:** 
+- Отключён автозапуск мониторинга при старте сервера
+- Интервал мониторинга: 12 часов (вместо 4)
+- Кэширование H2H данных: 24 часа
+- Кэширование матчей/odds: 60 минут
+**Расход:** ~1,860 запросов/месяц (достаточно для Basic плана)
+
+### [2026-01-16] Исправление отображения коэффициентов + история матчей
+**Проблема:** Коэффициенты показывались неправильно; не было истории матчей
+**Решение:** 
+- predicted_outcome хранит НАЗВАНИЕ команды, не 'home'/'away'
+- Добавлен endpoint /v1/events/h2h для загрузки истории
+- H_RESULT возвращает 'WIN'/'LOSS'/'DRAW'
+
+### FlashLive API Structure (ВАЖНО)
+- Список матчей: `GET /v1/events/list` (БЕЗ коэффициентов!)
+- Коэффициенты: `GET /v1/events/odds?event_id=XXX` (отдельный запрос)
+- H2H история: `GET /v1/events/h2h?event_id=XXX`
+- Только 5 лиг: NHL, KHL, SHL, Liiga, DEL
+
 ## External Dependencies
 - **FlashLive Sports API (RapidAPI):** Primary source for live hockey match data across 30+ leagues.
 - **NHL API:** Used for NHL historical match data.

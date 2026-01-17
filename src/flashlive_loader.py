@@ -35,9 +35,12 @@ class FlashLiveLoader:
     def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key or RAPIDAPI_KEY
         self._cache = {}
-        self._cache_time = None
-        self._cache_ttl = 300  # 5 минут
+        self._cache_time = {}
+        self._cache_ttl = 3600  # 60 минут (экономия API запросов)
         self._sport_id = None  # Будет получен динамически
+        self._h2h_cache = {}
+        self._h2h_cache_time = {}
+        self._h2h_cache_ttl = 86400  # 24 часа для H2H данных
         
     def is_configured(self) -> bool:
         """Проверка настроен ли API"""
@@ -308,6 +311,7 @@ class FlashLiveLoader:
     def get_h2h_data(self, event_id: str) -> Optional[Dict]:
         """
         Получить данные H2H (последние матчи команд) для события
+        С кэшированием на 24 часа для экономии API запросов
         
         Args:
             event_id: ID события (может содержать префикс 'flash_')
@@ -320,6 +324,13 @@ class FlashLiveLoader:
             return None
         
         raw_id = event_id.replace('flash_', '')
+        
+        now = datetime.now()
+        if raw_id in self._h2h_cache:
+            cache_time = self._h2h_cache_time.get(raw_id)
+            if cache_time and (now - cache_time).total_seconds() < self._h2h_cache_ttl:
+                logger.info(f"H2H cache hit for {raw_id}")
+                return self._h2h_cache[raw_id]
         
         try:
             resp = requests.get(
@@ -394,6 +405,9 @@ class FlashLiveLoader:
                         result['home_team_matches'] = matches
                     else:
                         result['away_team_matches'] = matches
+            
+            self._h2h_cache[raw_id] = result
+            self._h2h_cache_time[raw_id] = now
             
             return result
             

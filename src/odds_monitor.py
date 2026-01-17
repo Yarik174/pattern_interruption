@@ -165,7 +165,7 @@ class AutoMonitor:
     - Логированием в БД
     """
     
-    def __init__(self, check_interval: int = 14400):
+    def __init__(self, check_interval: int = 43200):  # 12 часов вместо 4
         self.check_interval = check_interval
         self._running = False
         self._thread: Optional[threading.Thread] = None
@@ -352,7 +352,7 @@ def get_auto_monitor() -> AutoMonitor:
     """Получить глобальный экземпляр AutoMonitor"""
     global _global_monitor
     if _global_monitor is None:
-        _global_monitor = AutoMonitor(check_interval=14400)
+        _global_monitor = AutoMonitor(check_interval=43200)  # 12 часов
     return _global_monitor
 
 
