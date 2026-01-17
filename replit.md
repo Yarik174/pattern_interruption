@@ -108,6 +108,13 @@ ROI = (profit / N_total) × 100%
 
 ## Recent Changes
 
+### [2026-01-17] RL-агент для meta-стратегии
+- **DQN-агент** для принятия решений BET/SKIP
+- State space: 8 признаков (confidence, odds, серии, bankroll)
+- Обучен на 20k+ исторических матчей
+- Интегрирован в UI страницы прогноза
+- Файлы: `src/rl_agent.py`, `src/rl_trainer.py`
+
 ### [2026-01-17] Отказоустойчивость и визуализация ROI
 - **Retry логика** с exponential backoff (1с→2с→4с) для FlashLive API
 - **Telegram алерты** при критических сбоях API (после 3 неудачных попыток)
