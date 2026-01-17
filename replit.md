@@ -78,8 +78,22 @@ Production-ready hockey prediction system monitoring betting odds via FlashLive 
   - `/predictions` — таблица прогнозов с фильтрами
   - `/prediction/<id>` — детали с паттернами и историей H2H
   - `/dashboard` — AI визуализация, архитектура моделей
-  - `/statistics` — сравнение модели vs ручной выбор
+  - `/statistics` — расширенная аналитика точности модели
   - `/logs` — системные логи
+
+### Страница статистики (/statistics)
+- **Общая статистика:** W/L, Win Rate, ROI, pending прогнозы
+- **По лигам:** NHL, KHL, SHL, Liiga, DEL с цветовой индикацией
+- **По паттернам:** какие типы паттернов работают лучше
+- **По уверенности:** точность на каждом уровне 1-10
+- **История по месяцам:** тренды, принятые ставки
+- **График Chart.js:** динамика Win Rate по месяцам
+
+### Формула ROI
+```
+profit = Σ(odds_win - 1) - N_losses
+ROI = (profit / N_total) × 100%
+```
 
 ## Key Files
 | Файл | Назначение |
