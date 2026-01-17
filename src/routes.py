@@ -107,12 +107,28 @@ def prediction_detail(prediction_id):
             print(f"Error loading prediction: {e}")
             return "Прогноз не найден", 404
     
+    # Получаем рекомендацию RL-агента
+    rl_recommendation = None
+    if prediction:
+        try:
+            from src.prediction_service import get_rl_recommendation_for_prediction
+            prediction_data = {
+                'confidence': prediction.confidence or 0.5,
+                'home_odds': prediction.home_odds,
+                'away_odds': prediction.away_odds,
+                'patterns_data': prediction.patterns_data or {}
+            }
+            rl_recommendation = get_rl_recommendation_for_prediction(prediction_data)
+        except Exception as e:
+            print(f"Error getting RL recommendation: {e}")
+    
     return render_template('prediction_detail.html', 
                          prediction=prediction,
                          home_history=home_history,
                          away_history=away_history,
                          h2h_history=h2h_history,
-                         h2h_data=h2h_data)
+                         h2h_data=h2h_data,
+                         rl_recommendation=rl_recommendation)
 
 
 @routes_bp.route('/prediction/<int:prediction_id>/decide', methods=['POST'])

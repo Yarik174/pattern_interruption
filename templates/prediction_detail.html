@@ -406,6 +406,26 @@
             </div>
             
             <div>
+                {% if rl_recommendation %}
+                <div class="section" style="margin-bottom: 24px;">
+                    <h3 class="section-title">🤖 RL-агент рекомендует</h3>
+                    <div style="background: {% if rl_recommendation.action == 'BET' %}rgba(63, 185, 80, 0.15){% else %}rgba(248, 81, 73, 0.15){% endif %}; 
+                                border: 1px solid {% if rl_recommendation.action == 'BET' %}var(--success){% else %}var(--danger){% endif %};
+                                border-radius: 12px; padding: 20px; text-align: center;">
+                        <div style="font-size: 2rem; font-weight: 700; color: {% if rl_recommendation.action == 'BET' %}var(--success){% else %}var(--danger){% endif %}; margin-bottom: 8px;">
+                            {% if rl_recommendation.action == 'BET' %}✅ СТАВИТЬ{% else %}⏭️ ПРОПУСТИТЬ{% endif %}
+                        </div>
+                        <div style="color: var(--text-secondary); font-size: 0.875rem;">
+                            {{ rl_recommendation.recommendation }}
+                        </div>
+                        <div style="margin-top: 12px; display: flex; justify-content: center; gap: 24px; font-size: 0.75rem; color: var(--text-muted);">
+                            <span>Q(bet): {{ '%.3f'|format(rl_recommendation.q_bet or 0) }}</span>
+                            <span>Q(skip): {{ '%.3f'|format(rl_recommendation.q_skip or 0) }}</span>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
                 <div class="section">
                     <h3 class="section-title">Паттерны</h3>
                     <div class="patterns-list">

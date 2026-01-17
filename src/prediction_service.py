@@ -149,3 +149,58 @@ def is_target_league(league: str) -> bool:
     if not league:
         return False
     return league.upper() in {l.upper() for l in TARGET_LEAGUES}
+
+
+def get_rl_recommendation_for_prediction(prediction_data: dict) -> dict:
+    """
+    Получить рекомендацию RL-агента для прогноза.
+    
+    Args:
+        prediction_data: Данные прогноза с confidence, odds и т.д.
+        
+    Returns:
+        Рекомендация RL-агента: BET/SKIP с уверенностью
+    """
+    try:
+        from src.rl_agent import get_rl_recommendation
+        
+        # Извлекаем данные из прогноза
+        confidence = prediction_data.get('confidence', 0.5)
+        patterns = prediction_data.get('patterns_data', {})
+        bet_on = patterns.get('bet_on', 'home')
+        
+        # Получаем коэффициент
+        if bet_on == 'home':
+            odds = prediction_data.get('home_odds') or patterns.get('target_odds', 2.0)
+        else:
+            odds = prediction_data.get('away_odds') or patterns.get('target_odds', 2.0)
+        
+        # Серии команд (если есть в паттернах)
+        home_series = patterns.get('home_series', 0)
+        away_series = patterns.get('away_series', 0)
+        h2h_advantage = patterns.get('h2h_advantage', 0)
+        
+        # Получаем статистику банкролла (упрощённо)
+        bankroll_ratio = 1.0  # TODO: отслеживать реальный банкролл
+        recent_winrate = 0.5  # TODO: рассчитывать из последних прогнозов
+        
+        recommendation = get_rl_recommendation(
+            model_confidence=confidence,
+            predicted_probability=1.0 / odds if odds > 0 else 0.5,
+            odds=odds,
+            home_series=home_series,
+            away_series=away_series,
+            h2h_advantage=h2h_advantage,
+            bankroll_ratio=bankroll_ratio,
+            recent_winrate=recent_winrate
+        )
+        
+        return recommendation
+        
+    except Exception as e:
+        logger.error(f"Error getting RL recommendation: {e}")
+        return {
+            'action': 'UNKNOWN',
+            'confidence': 0,
+            'recommendation': 'RL-агент не доступен'
+        }
