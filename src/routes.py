@@ -246,22 +246,27 @@ def statistics_page():
             if manual_stats['total'] > 0:
                 manual_stats['roi'] = (manual_profit / manual_stats['total']) * 100
             
-            # RL-агент статистика (прогнозы где агент рекомендовал BET)
-            rl_bet_predictions = [p for p in completed if p.rl_recommendation == 'BET']
-            rl_skip_predictions = [p for p in completed if p.rl_recommendation == 'SKIP']
+            # RL-агент статистика
+            # Считаем ВСЕ прогнозы с RL рекомендацией (включая pending)
+            all_rl_bet = [p for p in all_predictions if p.rl_recommendation == 'BET']
+            all_rl_skip = [p for p in all_predictions if p.rl_recommendation == 'SKIP']
             
-            rl_stats['bet_count'] = len(rl_bet_predictions)
-            rl_stats['skip_count'] = len(rl_skip_predictions)
-            rl_stats['total'] = len(rl_bet_predictions)
-            rl_stats['wins'] = sum(1 for p in rl_bet_predictions if p.is_win)
+            # Только completed для расчёта win rate
+            rl_bet_completed = [p for p in completed if p.rl_recommendation == 'BET']
+            rl_skip_completed = [p for p in completed if p.rl_recommendation == 'SKIP']
+            
+            rl_stats['bet_count'] = len(all_rl_bet)
+            rl_stats['skip_count'] = len(all_rl_skip)
+            rl_stats['total'] = len(rl_bet_completed)  # Только completed для win rate
+            rl_stats['wins'] = sum(1 for p in rl_bet_completed if p.is_win)
             rl_stats['losses'] = rl_stats['total'] - rl_stats['wins']
             rl_stats['win_rate'] = (rl_stats['wins'] / rl_stats['total'] * 100) if rl_stats['total'] else 0
             
-            # Считаем сколько SKIP были бы проигрышами
-            skip_would_lose = sum(1 for p in rl_skip_predictions if not p.is_win)
+            # Сколько SKIP оказались проигрышами (спасённые ставки)
+            skip_would_lose = sum(1 for p in rl_skip_completed if not p.is_win)
             rl_stats['skip_saved'] = skip_would_lose
             
-            rl_profit = sum((p.odds or 2.0) - 1 for p in rl_bet_predictions if p.is_win) - rl_stats['losses']
+            rl_profit = sum((p.odds or 2.0) - 1 for p in rl_bet_completed if p.is_win) - rl_stats['losses']
             if rl_stats['total'] > 0:
                 rl_stats['roi'] = (rl_profit / rl_stats['total']) * 100
             
