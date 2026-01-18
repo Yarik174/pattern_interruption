@@ -14,6 +14,8 @@ class Prediction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     match_date = db.Column(db.DateTime, nullable=False)
+    sport_type = db.Column(db.String(20), default='hockey')  # hockey, football, basketball, volleyball
+    bet_type = db.Column(db.String(30), default='winner')  # winner, half_totals
     league = db.Column(db.String(50), nullable=False)
     home_team = db.Column(db.String(100), nullable=False)
     away_team = db.Column(db.String(100), nullable=False)
@@ -45,6 +47,8 @@ class Prediction(db.Model):
             'id': self.id,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'match_date': self.match_date.isoformat() if self.match_date else None,
+            'sport_type': self.sport_type or 'hockey',
+            'bet_type': self.bet_type or 'winner',
             'league': self.league,
             'home_team': self.home_team,
             'away_team': self.away_team,

@@ -54,9 +54,11 @@ RAPIDAPI_KEY = os.environ.get('RAPIDAPI_KEY', '').strip()
 RAPIDAPI_HOST = 'flashlive-sports.p.rapidapi.com'
 BASE_URL = f'https://{RAPIDAPI_HOST}'
 
-HOCKEY_SPORT_ID = 4  # Hockey sport_id в FlashLive API
+from src.sports_config import SportType, SPORTS_CONFIG, get_sport_config, match_league, get_leagues_for_sport
 
-# Только 5 основных лиг
+HOCKEY_SPORT_ID = 4  # Hockey sport_id в FlashLive API (для обратной совместимости)
+
+# Для обратной совместимости
 SUPPORTED_LEAGUES = ['NHL', 'KHL', 'SHL', 'Liiga', 'DEL']
 
 HOCKEY_LEAGUES = {
@@ -69,17 +71,32 @@ HOCKEY_LEAGUES = {
 
 
 class FlashLiveLoader:
-    """Загрузчик матчей через FlashLive Sports API (RapidAPI)"""
+    """Загрузчик матчей через FlashLive Sports API (RapidAPI) - мульти-спорт версия"""
     
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: Optional[str] = None, sport_type: SportType = SportType.HOCKEY):
         self.api_key = api_key or RAPIDAPI_KEY
+        self.sport_type = sport_type
+        self.sport_config = get_sport_config(sport_type)
         self._cache = {}
         self._cache_time = {}
         self._cache_ttl = 3600  # 60 минут (экономия API запросов)
-        self._sport_id = None  # Будет получен динамически
+        self._sport_id = sport_type.value
         self._h2h_cache = {}
         self._h2h_cache_time = {}
         self._h2h_cache_ttl = 86400  # 24 часа для H2H данных
+    
+    @property
+    def supported_leagues(self) -> List[str]:
+        """Получить список поддерживаемых лиг для текущего вида спорта"""
+        return get_leagues_for_sport(self.sport_type)
+    
+    def get_sport_name(self) -> str:
+        """Получить название вида спорта"""
+        return self.sport_config.get('name', 'Unknown')
+    
+    def get_sport_icon(self) -> str:
+        """Получить иконку вида спорта"""
+        return self.sport_config.get('icon', '🎯')
         
     def is_configured(self) -> bool:
         """Проверка настроен ли API"""
@@ -162,39 +179,16 @@ class FlashLiveLoader:
             'x-rapidapi-host': RAPIDAPI_HOST
         }
     
-    def _get_hockey_sport_id(self) -> int:
-        """Получить sport_id для хоккея (с retry логикой)"""
-        if self._sport_id:
-            return self._sport_id
-        
-        resp = self._request_with_retry(
-            f'{BASE_URL}/v1/sports/list',
-            params={'locale': 'en_INT'}
-        )
-        
-        if resp:
-            try:
-                data = resp.json()
-                sports = data.get('DATA', [])
-                for sport in sports:
-                    name = sport.get('NAME', '').lower()
-                    if 'hockey' in name or 'ice hockey' in name:
-                        self._sport_id = sport.get('ID')
-                        logger.info(f"FlashLive: Hockey sport_id = {self._sport_id}")
-                        return self._sport_id
-            except Exception as e:
-                logger.error(f"FlashLive get_sports parse error: {e}")
-        
-        # Fallback
-        self._sport_id = HOCKEY_SPORT_ID
+    def _get_sport_id(self) -> int:
+        """Получить sport_id для текущего вида спорта"""
         return self._sport_id
     
     def get_upcoming_games(self, leagues: Optional[List[str]] = None, days_ahead: int = 2) -> List[Dict]:
         """
-        Получить предстоящие матчи (только 5 основных лиг: NHL, KHL, SHL, Liiga, DEL)
+        Получить предстоящие матчи для текущего вида спорта
         
         Args:
-            leagues: Список лиг для фильтрации (по умолчанию все 5)
+            leagues: Список лиг для фильтрации (по умолчанию все из конфигурации)
             days_ahead: Сколько дней вперёд
             
         Returns:
@@ -204,23 +198,23 @@ class FlashLiveLoader:
             logger.warning("FlashLive API not configured (RAPIDAPI_KEY missing)")
             return []
         
-        # По умолчанию только 5 основных лиг
+        # По умолчанию все лиги для данного вида спорта
         if leagues is None:
-            leagues = SUPPORTED_LEAGUES
+            leagues = self.supported_leagues
         
         # Проверяем кэш
-        cache_key = f"events_{days_ahead}"
+        cache_key = f"events_{self._sport_id}_{days_ahead}"
         now = datetime.utcnow()
         
         if cache_key in self._cache:
             cache_data, cache_time = self._cache[cache_key]
             if (now - cache_time).total_seconds() < self._cache_ttl:
                 filtered = self._filter_by_leagues(cache_data, leagues)
-                logger.info(f"FlashLive: из кэша {len(filtered)} матчей (5 лиг)")
+                logger.info(f"FlashLive {self.get_sport_icon()}: из кэша {len(filtered)} матчей")
                 return filtered
         
         all_matches = []
-        sport_id = self._get_hockey_sport_id()
+        sport_id = self._get_sport_id()
         
         # Получаем матчи на несколько дней
         for day_offset in range(days_ahead + 1):
@@ -241,9 +235,9 @@ class FlashLiveLoader:
         # Кэшируем все матчи
         self._cache[cache_key] = (unique_matches, now)
         
-        # Фильтруем только 5 основных лиг
+        # Фильтруем по лигам
         filtered = self._filter_by_leagues(unique_matches, leagues)
-        logger.info(f"FlashLive: {len(filtered)} матчей в 5 лигах (всего {len(unique_matches)})")
+        logger.info(f"FlashLive {self.get_sport_icon()}: {len(filtered)} матчей (всего {len(unique_matches)})")
         
         return filtered
     
@@ -327,15 +321,8 @@ class FlashLiveLoader:
         return matches
     
     def _detect_league(self, tournament_name: str) -> str:
-        """Определить код лиги по названию турнира"""
-        name_lower = tournament_name.lower()
-        
-        for code, patterns in HOCKEY_LEAGUES.items():
-            for pattern in patterns:
-                if pattern in name_lower:
-                    return code
-        
-        return 'OTHER'
+        """Определить код лиги по названию турнира (мульти-спорт)"""
+        return match_league(tournament_name, self.sport_type)
     
     def _filter_by_leagues(self, matches: List[Dict], leagues: Optional[List[str]]) -> List[Dict]:
         """Фильтрация матчей по лигам"""
