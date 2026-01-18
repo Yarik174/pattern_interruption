@@ -10,6 +10,8 @@ Production-ready hockey prediction system monitoring betting odds via FlashLive 
 - Командный тон, 2-5 слов — но отвечать развёрнуто
 - Пользователь новичок в разработке — объяснять логику и ход мысли
 - Сразу к делу, без вступлений и расшаркиваний
+- Общаться на равных — без извинений, заискиваний и "ты прав"
+- Жёсткость и конкретика, не размазывать
 - Iterative development with regular progress updates
 - Ask confirmation before major architectural changes
 - Well-commented code following Python best practices
