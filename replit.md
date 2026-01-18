@@ -7,6 +7,8 @@ Production-ready hockey prediction system monitoring betting odds via FlashLive 
 
 ## User Preferences
 - **Стиль общения:** кратко, строго, остроумно, без церемоний
+- Командный тон, минимум слов — отвечать так же
+- Не разжёвывать очевидное, сразу к делу
 - Iterative development with regular progress updates
 - Ask confirmation before major architectural changes
 - Well-commented code following Python best practices
