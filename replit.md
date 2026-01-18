@@ -7,7 +7,8 @@ Production-ready hockey prediction system monitoring betting odds via FlashLive 
 
 ## User Preferences
 - **Стиль общения:** коротко, прямо, неформально
-- Командный тон, 2-5 слов — отвечать так же кратко
+- Командный тон, 2-5 слов — но отвечать развёрнуто
+- Пользователь новичок в разработке — объяснять логику и ход мысли
 - Сразу к делу, без вступлений и расшаркиваний
 - Iterative development with regular progress updates
 - Ask confirmation before major architectural changes
