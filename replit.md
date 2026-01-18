@@ -6,7 +6,7 @@ Production-ready hockey prediction system monitoring betting odds via FlashLive 
 **Current Status:** Fully automated system with automatic result verification.
 
 ## User Preferences
-- Clear and concise explanations preferred
+- **Стиль общения:** кратко, строго, остроумно, без церемоний
 - Iterative development with regular progress updates
 - Ask confirmation before major architectural changes
 - Well-commented code following Python best practices
