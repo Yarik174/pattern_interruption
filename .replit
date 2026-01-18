@@ -3,7 +3,7 @@ modules = ["python-3.11", "web", "postgresql-16"]
 
 [nix]
 channel = "stable-25_05"
-packages = ["alsa-lib", "at-spi2-atk", "bazel", "cairo", "cups", "curl", "dbus", "double-conversion", "expat", "ffmpeg-full", "freetype", "ghostscript", "giflib", "gitFull", "glib", "glibcLocales", "gobject-introspection", "grpc", "gtk3", "jsoncpp", "libdrm", "libjpeg_turbo", "libxkbcommon", "mesa", "nspr", "nss", "nsync", "ocl-icd", "opencl-headers", "openssl", "pango", "pkg-config", "playwright-driver", "postgresql", "qhull", "snappy", "static-web-server", "tcl", "tk", "which", "xcodebuild", "xorg.libX11", "xorg.libXcomposite", "xorg.libXdamage", "xorg.libXext", "xorg.libXfixes", "xorg.libXrandr", "xorg.libxcb", "zlib", "libgbm"]
+packages = ["alsa-lib", "at-spi2-atk", "bazel", "cairo", "cups", "curl", "dbus", "double-conversion", "expat", "ffmpeg-full", "freetype", "ghostscript", "giflib", "gitFull", "glib", "glibcLocales", "gobject-introspection", "grpc", "gtk3", "jsoncpp", "libdrm", "libgbm", "libjpeg_turbo", "libxkbcommon", "mesa", "nspr", "nss", "nsync", "ocl-icd", "opencl-headers", "openssl", "pango", "pkg-config", "playwright-driver", "postgresql", "qhull", "snappy", "static-web-server", "tcl", "tk", "which", "xcodebuild", "xorg.libX11", "xorg.libXcomposite", "xorg.libXdamage", "xorg.libXext", "xorg.libXfixes", "xorg.libXrandr", "xorg.libxcb", "zlib"]
 
 [deployment]
 publicDir = "/"
