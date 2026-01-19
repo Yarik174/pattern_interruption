@@ -58,7 +58,7 @@ LEAGUE_URLS = {
         'BBL': '/basketball/germany/bbl/',
     },
     'volleyball': {
-        'Superliga': '/volleyball/russia/super-league/',
+        'Superliga': '/volleyball/russia/superleague/',
         'SerieA': '/volleyball/italy/superlega/',
         'PlusLiga': '/volleyball/poland/plusliga/',
         'Bundesliga': '/volleyball/germany/bundesliga/',
@@ -110,7 +110,7 @@ class FlashScoreScraper:
         if self.playwright:
             await self.playwright.stop()
             
-    async def _random_delay(self, min_sec: float = 1.0, max_sec: float = 3.0):
+    async def _random_delay(self, min_sec: float = 2.0, max_sec: float = 5.0):
         """Случайная задержка для имитации человека"""
         delay = random.uniform(min_sec, max_sec)
         await asyncio.sleep(delay)
@@ -135,7 +135,7 @@ class FlashScoreScraper:
         logger.info(f"Fetching {sport}/{league} season {season} from {url}")
         
         try:
-            await self.page.goto(url, wait_until='networkidle', timeout=30000)
+            await self.page.goto(url, wait_until='networkidle', timeout=60000)
             await self._random_delay(2, 4)
             
             await self._accept_cookies()
@@ -187,11 +187,25 @@ class FlashScoreScraper:
         try:
             match_id = await el.get_attribute('id')
             if not match_id:
+                link = await el.query_selector('a.eventRowLink')
+                if link:
+                    href = await link.get_attribute('href')
+                    if href:
+                        match_id = href.split('?mid=')[-1] if '?mid=' in href else href.split('/')[-2]
+            if not match_id:
                 return None
             match_id = match_id.replace('g_1_', '')
             
             home_team_el = await el.query_selector('.event__participant--home')
             away_team_el = await el.query_selector('.event__participant--away')
+            
+            if not home_team_el or not away_team_el:
+                home_team_el = await el.query_selector('.event__homeParticipant .wcl-name_jjfMf')
+                away_team_el = await el.query_selector('.event__awayParticipant .wcl-name_jjfMf')
+            
+            if not home_team_el or not away_team_el:
+                home_team_el = await el.query_selector('.event__homeParticipant')
+                away_team_el = await el.query_selector('.event__awayParticipant')
             
             if not home_team_el or not away_team_el:
                 return None
@@ -283,7 +297,7 @@ class FlashScoreScraper:
         url = f"{self.BASE_URL}/match/{match_id}/#/odds-comparison/1x2-odds/full-time"
         
         try:
-            await self.page.goto(url, wait_until='networkidle', timeout=30000)
+            await self.page.goto(url, wait_until='networkidle', timeout=60000)
             await self._random_delay(1, 2)
             
             odds = {'home': None, 'draw': None, 'away': None}
@@ -335,7 +349,7 @@ class FlashScoreScraper:
         logger.info(f"Starting scrape for {sport}/{league}, {num_pages} pages")
         
         try:
-            await self.page.goto(url, wait_until='networkidle', timeout=30000)
+            await self.page.goto(url, wait_until='networkidle', timeout=60000)
             await self._random_delay(2, 4)
             await self._accept_cookies()
             
