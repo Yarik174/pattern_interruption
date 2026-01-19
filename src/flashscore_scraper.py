@@ -374,8 +374,8 @@ class FlashScoreScraper:
         logger.info(f"Starting scrape for {sport}/{league}, {num_pages} pages")
         
         try:
-            await self.page.goto(url, wait_until='networkidle', timeout=60000)
-            await self._random_delay(2, 4)
+            await self.page.goto(url, wait_until='domcontentloaded', timeout=45000)
+            await self._random_delay(3, 5)  # Даём время на загрузку JS
             await self._accept_cookies()
             
             # Сначала раскрываем все страницы кликами на Show more
@@ -404,15 +404,17 @@ class FlashScoreScraper:
                 m.league = league
                 
             if with_odds and all_matches:
-                logger.info(f"Fetching odds for {len(all_matches)} matches...")
-                for i, m in enumerate(all_matches):
-                    if i % 20 == 0:
-                        logger.info(f"Fetching odds: {i}/{len(all_matches)}")
+                # Ограничиваем до 50 матчей с коэффициентами для скорости
+                odds_limit = min(50, len(all_matches))
+                logger.info(f"Fetching odds for {odds_limit} of {len(all_matches)} matches...")
+                for i, m in enumerate(all_matches[:odds_limit]):
+                    if i % 10 == 0:
+                        logger.info(f"Fetching odds: {i}/{odds_limit}")
                     odds = await self.get_match_odds(m.match_url)
                     m.home_odds = odds['home']
                     m.draw_odds = odds['draw']
                     m.away_odds = odds['away']
-                    await self._random_delay(0.5, 1.5)
+                    await self._random_delay(0.3, 0.8)  # Сокращаем задержку
                     
         except Exception as e:
             logger.error(f"Error scraping {sport}/{league}: {e}")
