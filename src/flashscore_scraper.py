@@ -27,6 +27,7 @@ class MatchData:
     away_odds: Optional[float] = None
     sport: str = ""
     league: str = ""
+    match_url: Optional[str] = None
     home_score_ht: Optional[int] = None
     away_score_ht: Optional[int] = None
     home_sets: Optional[int] = None
@@ -37,7 +38,7 @@ class MatchData:
 
 LEAGUE_URLS = {
     'hockey': {
-        'NHL': '/hockey/usa/nhl/',
+        # NHL данные уже есть через NHL API (13,000+ матчей)
         'KHL': '/hockey/russia/khl/',
         'SHL': '/hockey/sweden/shl/',
         'Liiga': '/hockey/finland/liiga/',
@@ -171,7 +172,7 @@ class FlashScoreScraper:
         
         match_elements = await self.page.query_selector_all('.event__match')
         
-        for el in match_elements[:100]:
+        for el in match_elements:
             try:
                 match_data = await self._parse_match_element(el, sport)
                 if match_data:
@@ -186,12 +187,17 @@ class FlashScoreScraper:
         """Парсинг одного матча"""
         try:
             match_id = await el.get_attribute('id')
-            if not match_id:
-                link = await el.query_selector('a.eventRowLink')
-                if link:
-                    href = await link.get_attribute('href')
-                    if href:
+            match_url = None
+            
+            link = await el.query_selector('a.eventRowLink')
+            if link:
+                href = await link.get_attribute('href')
+                if href:
+                    # Убираем параметры ?mid= для чистого URL
+                    match_url = href.split('?')[0] if '?' in href else href
+                    if not match_id:
                         match_id = href.split('?mid=')[-1] if '?mid=' in href else href.split('/')[-2]
+            
             if not match_id:
                 return None
             match_id = match_id.replace('g_1_', '')
@@ -240,7 +246,8 @@ class FlashScoreScraper:
                 away_team=away_team.strip(),
                 home_score=home_score,
                 away_score=away_score,
-                sport=sport
+                sport=sport,
+                match_url=match_url
             )
             
             if sport == 'football':
@@ -292,32 +299,50 @@ class FlashScoreScraper:
             pass
         return match
         
-    async def get_match_odds(self, match_id: str) -> Dict[str, float]:
+    async def get_match_odds(self, match_url: str) -> Dict[str, float]:
         """Получить коэффициенты для матча"""
-        url = f"{self.BASE_URL}/match/{match_id}/#/odds-comparison/1x2-odds/full-time"
+        if not match_url:
+            return {'home': None, 'draw': None, 'away': None}
+        
+        # Добавляем путь к коэффициентам
+        url = f"{match_url}#/odds-comparison/1x2-odds/full-time"
         
         try:
-            await self.page.goto(url, wait_until='networkidle', timeout=60000)
-            await self._random_delay(1, 2)
+            await self.page.goto(url, wait_until='domcontentloaded', timeout=30000)
+            await self._random_delay(2, 3)
             
             odds = {'home': None, 'draw': None, 'away': None}
             
-            odds_rows = await self.page.query_selector_all('.ui-table__row')
+            # Ждём появления коэффициентов
+            try:
+                await self.page.wait_for_selector('[class*="oddsCell"], .wclOddsContent', timeout=10000)
+            except:
+                pass
             
-            for row in odds_rows[:5]:
-                cells = await row.query_selector_all('.oddsCell__odd')
+            # Новый селектор — ищем контейнер с коэффициентами
+            odds_container = await self.page.query_selector('.wclOddsContent, .odds')
+            if odds_container:
+                text = await odds_container.inner_text()
+                # Текст в формате "1.60\n4.00\n5.50"
+                parts = [p.strip() for p in text.split('\n') if p.strip()]
+                if len(parts) >= 3:
+                    try:
+                        odds['home'] = float(parts[0])
+                        odds['draw'] = float(parts[1])
+                        odds['away'] = float(parts[2])
+                    except:
+                        pass
+            
+            # Fallback — ищем отдельные ячейки
+            if odds['home'] is None:
+                cells = await self.page.query_selector_all('.wcl-oddsInfo_CqWpN, [class*="oddsCell"]')
                 if len(cells) >= 3:
                     try:
-                        home_text = await cells[0].inner_text()
-                        draw_text = await cells[1].inner_text()
-                        away_text = await cells[2].inner_text()
-                        
-                        odds['home'] = float(home_text.strip())
-                        odds['draw'] = float(draw_text.strip())
-                        odds['away'] = float(away_text.strip())
-                        break
+                        odds['home'] = float(await cells[0].inner_text())
+                        odds['draw'] = float(await cells[1].inner_text())
+                        odds['away'] = float(await cells[2].inner_text())
                     except:
-                        continue
+                        pass
                         
             return odds
             
@@ -353,33 +378,41 @@ class FlashScoreScraper:
             await self._random_delay(2, 4)
             await self._accept_cookies()
             
-            for page_num in range(num_pages):
-                logger.info(f"Page {page_num + 1}/{num_pages}")
-                
-                matches = await self._parse_results_page(sport)
-                
-                for m in matches:
-                    m.sport = sport
-                    m.league = league
-                    
-                if with_odds:
-                    for i, m in enumerate(matches):
-                        if i % 10 == 0:
-                            logger.info(f"Fetching odds: {i}/{len(matches)}")
-                        odds = await self.get_match_odds(m.match_id)
-                        m.home_odds = odds['home']
-                        m.draw_odds = odds['draw']
-                        m.away_odds = odds['away']
-                        await self._random_delay(0.5, 1.5)
-                        
-                all_matches.extend(matches)
-                
-                show_more = self.page.locator('.event__more')
-                if await show_more.is_visible():
-                    await show_more.click()
-                    await self._random_delay(2, 4)
-                else:
+            # Сначала раскрываем все страницы кликами на Show more
+            for page_num in range(num_pages - 1):
+                try:
+                    show_more = self.page.locator('a[class*="event__more"], a:has-text("Show more")')
+                    if await show_more.count() > 0 and await show_more.first.is_visible():
+                        await show_more.first.scroll_into_view_if_needed()
+                        await self._random_delay(0.5, 1)
+                        await show_more.first.click()
+                        logger.info(f"Clicked Show more ({page_num + 1}/{num_pages - 1})")
+                        await self._random_delay(3, 5)
+                    else:
+                        logger.info("No more pages available")
+                        break
+                except Exception as e:
+                    logger.warning(f"Pagination error: {e}")
                     break
+            
+            # Теперь парсим все матчи на странице
+            logger.info("Parsing all matches...")
+            all_matches = await self._parse_results_page(sport)
+            
+            for m in all_matches:
+                m.sport = sport
+                m.league = league
+                
+            if with_odds and all_matches:
+                logger.info(f"Fetching odds for {len(all_matches)} matches...")
+                for i, m in enumerate(all_matches):
+                    if i % 20 == 0:
+                        logger.info(f"Fetching odds: {i}/{len(all_matches)}")
+                    odds = await self.get_match_odds(m.match_url)
+                    m.home_odds = odds['home']
+                    m.draw_odds = odds['draw']
+                    m.away_odds = odds['away']
+                    await self._random_delay(0.5, 1.5)
                     
         except Exception as e:
             logger.error(f"Error scraping {sport}/{league}: {e}")
