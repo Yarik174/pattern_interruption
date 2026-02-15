@@ -49,7 +49,7 @@
             box-shadow: var(--shadow);
         }
         .logo h1 { font-size: 1.25rem; font-weight: 700; color: var(--text-primary); }
-        nav { display: flex; gap: 4px; }
+        nav { display: flex; gap: 4px; overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; width: 100%; position: relative; white-space: nowrap; }
         nav a {
             padding: 10px 18px;
             border-radius: 8px;
@@ -61,9 +61,21 @@
             min-height: 44px;
             display: inline-flex;
             align-items: center;
+            flex: 0 0 auto;
         }
         nav a:hover { background: var(--bg-card); color: var(--text-primary); }
         nav a.active { background: var(--accent); color: var(--text-primary); font-weight: 600; }
+        nav::before, nav::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            width: 20px;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        nav::before { left: 0; background: linear-gradient(to right, var(--bg-primary), rgba(255,255,255,0)); }
+        nav::after { right: 0; background: linear-gradient(to left, var(--bg-primary), rgba(255,255,255,0)); }
         .page-title {
             font-size: 2rem;
             font-weight: 700;

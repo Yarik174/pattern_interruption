@@ -6,7 +6,7 @@ NHL Pattern Prediction Web Interface
 import warnings
 warnings.filterwarnings('ignore', category=UserWarning)
 
-from flask import Flask, render_template, jsonify, request, redirect, url_for
+from flask import Flask, render_template, jsonify, request, redirect, url_for, session
 import joblib
 import pandas as pd
 from datetime import datetime, timedelta
@@ -14,6 +14,11 @@ import requests
 import os
 import sys
 import re
+try:
+    from supabase import create_client, Client
+except Exception:
+    create_client = None
+    Client = None
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -35,11 +40,22 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 }
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-from models import db, Prediction, UserDecision, ModelVersion, TelegramSettings, OddsMonitorLog, SystemLog
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY")
+supabase = create_client(SUPABASE_URL, SUPABASE_ANON_KEY) if (create_client and SUPABASE_URL and SUPABASE_ANON_KEY) else None
+
+from models import db, Prediction, UserDecision, ModelVersion, TelegramSettings, OddsMonitorLog, SystemLog, User
 db.init_app(app)
 
 with app.app_context():
     db.create_all()
+    try:
+        from sqlalchemy import inspect
+        inspector = inspect(db.engine)
+        if not inspector.has_table('users'):
+            User.__table__.create(db.engine)
+    except Exception:
+        pass
     
 from src.routes import routes_bp, init_routes, set_monitor, set_telegram, set_odds_loader
 init_routes(db, {
@@ -69,6 +85,131 @@ set_flashlive_notifier(telegram_notifier)
 
 # AutoMonitor с интервалом 12 часов (экономия API запросов)
 start_auto_monitoring()
+
+@app.before_request
+def require_login():
+    allowed = ['/auth', '/static', '/favicon', '/@vite']
+    path = request.path or '/'
+    if any(path.startswith(p) for p in allowed):
+        return None
+    if not (session.get('sb_user_id') or session.get('user_id')):
+        return redirect(url_for('auth_login', next=path))
+
+@app.after_request
+def add_header(response):
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
+
+@app.route('/auth/login', methods=['GET', 'POST'])
+def auth_login():
+    error = ''
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip().lower()
+        password = request.form.get('password', '')
+        if supabase:
+            try:
+                res = supabase.auth.sign_in_with_password({"email": email, "password": password})
+                if getattr(res, 'user', None) and getattr(res, 'session', None):
+                    session['sb_user_id'] = res.user.id
+                    session['sb_access_token'] = res.session.access_token
+                    next_path = request.args.get('next') or url_for('routes.predictions_page')
+                    return redirect(next_path)
+                error = 'Неверный email или пароль'
+            except Exception:
+                error = 'Неверный email или пароль'
+        else:
+            user = User.query.filter_by(email=email).first()
+            if user:
+                from werkzeug.security import check_password_hash
+                if check_password_hash(user.password_hash, password):
+                    session['user_id'] = user.id
+                    next_path = request.args.get('next') or url_for('routes.predictions_page')
+                    return redirect(next_path)
+            error = 'Неверный email или пароль'
+    return render_template('auth/login.html', error=error)
+
+@app.route('/auth/register', methods=['GET', 'POST'])
+def auth_register():
+    error = ''
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip().lower()
+        password = request.form.get('password', '')
+        confirm = request.form.get('confirm', '')
+        if '@' not in email or '.' not in email:
+            error = 'Некорректный email'
+        if not error and len(password) < 6:
+            error = 'Пароль слишком короткий'
+        if not error and password != confirm:
+            error = 'Пароли не совпадают'
+        if not error:
+            if supabase:
+                try:
+                    res = supabase.auth.sign_up({"email": email, "password": password})
+                    try_signin = supabase.auth.sign_in_with_password({"email": email, "password": password})
+                    if getattr(try_signin, 'user', None) and getattr(try_signin, 'session', None):
+                        session['sb_user_id'] = try_signin.user.id
+                        session['sb_access_token'] = try_signin.session.access_token
+                    return redirect(url_for('routes.predictions_page'))
+                except Exception:
+                    error = 'Ошибка регистрации'
+            else:
+                if User.query.filter_by(email=email).first():
+                    error = 'Пользователь уже существует'
+                else:
+                    from werkzeug.security import generate_password_hash
+                    user = User(email=email, password_hash=generate_password_hash(password, method='pbkdf2:sha256', salt_length=16))
+                    db.session.add(user)
+                    db.session.commit()
+                    session['user_id'] = user.id
+                    return redirect(url_for('routes.predictions_page'))
+    return render_template('auth/register.html', error=error)
+
+@app.route('/auth/forgot', methods=['GET', 'POST'])
+def auth_forgot():
+    message = ''
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip().lower()
+        if supabase:
+            try:
+                supabase.auth.reset_password_email(email)
+                message = 'Если email существует, письмо отправлено.'
+            except Exception:
+                message = 'Ошибка отправки письма'
+        else:
+            exists = bool(User.query.filter_by(email=email).first())
+            message = 'Пользователь найден. Инструкция отправлена.' if exists else 'Пользователь не найден.'
+    return render_template('auth/forgot.html', message=message)
+
+@app.route('/auth/logout')
+def auth_logout():
+    try:
+        if supabase:
+            supabase.auth.sign_out()
+    except Exception:
+        pass
+    session.clear()
+    return redirect(url_for('auth_login'))
+
+@app.route('/auth/db-init')
+def auth_db_init():
+    try:
+        db.create_all()
+        from sqlalchemy import inspect
+        inspector = inspect(db.engine)
+        tables = inspector.get_table_names()
+        return jsonify({'ok': True, 'tables': tables})
+    except Exception as e:
+        return jsonify({'ok': False, 'error': str(e)})
+@app.before_request
+def require_login():
+    allowed = ['/auth', '/static', '/favicon', '/@vite']
+    path = request.path or '/'
+    if any(path.startswith(p) for p in allowed):
+        return None
+    if not (session.get('sb_user_id') or session.get('user_id')):
+        return redirect(url_for('auth_login', next=path))
 
 @app.after_request
 def add_header(response):

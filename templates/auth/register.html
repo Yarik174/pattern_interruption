@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+    <title>Регистрация | ArenaPredictor</title>
+    <style>
+        :root {
+            --bg-primary: #F5F5EB;
+            --bg-secondary: #EBEBDF;
+            --bg-card: #FFFFFF;
+            --accent: #BEFF50;
+            --accent-dark: #9FDF00;
+            --text-primary: #14140F;
+            --text-secondary: #5A5A52;
+            --text-muted: #8A8A7A;
+            --border: #D4D4C8;
+            --border-light: #E8E8DC;
+            --shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; }
+        .app { max-width: 420px; margin: 0 auto; padding: 24px; }
+        header { display: flex; align-items: center; gap: 12px; padding: 24px 0; margin-bottom: 8px; }
+        .logo-icon { width: 40px; height: 40px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow); }
+        .logo-title { font-size: 1.25rem; font-weight: 700; }
+        .card { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 12px; box-shadow: var(--shadow); padding: 20px; }
+        .title { font-size: 1.25rem; font-weight: 700; margin-bottom: 12px; }
+        .subtitle { color: var(--text-muted); margin-bottom: 16px; }
+        .form-group { margin-bottom: 12px; }
+        .label { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 6px; display: block; }
+        .input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); }
+        .btn { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; }
+        .btn-primary { background: var(--accent); color: var(--text-primary); }
+        .btn-primary:hover { background: var(--accent-dark); }
+        .actions { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
+        .link { color: #216BA5; text-decoration: none; font-size: 0.9rem; }
+        .error { background: #FEE2E2; color: #DC2626; border: 1px solid #FECACA; padding: 10px 12px; border-radius: 8px; margin-bottom: 12px; }
+    </style>
+    </head>
+<body>
+    <div class="app">
+        <header>
+            <img src="/static/logo.svg" alt="ArenaPredictor" class="logo-icon">
+            <div class="logo-title">ArenaPredictor</div>
+        </header>
+        <div class="card">
+            <div class="title">Регистрация</div>
+            <div class="subtitle">Создайте учётную запись для доступа</div>
+            {% if error %}
+            <div class="error">{{ error }}</div>
+            {% endif %}
+            <form method="POST" action="/auth/register">
+                <div class="form-group">
+                    <label class="label">Email</label>
+                    <input class="input" type="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label class="label">Пароль</label>
+                    <input class="input" type="password" name="password" required>
+                </div>
+                <div class="form-group">
+                    <label class="label">Повтор пароля</label>
+                    <input class="input" type="password" name="confirm" required>
+                </div>
+                <button class="btn btn-primary" type="submit">Зарегистрироваться</button>
+                <div class="actions">
+                    <a class="link" href="/auth/login">Вход</a>
+                    <a class="link" href="/auth/forgot">Восстановить пароль</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
