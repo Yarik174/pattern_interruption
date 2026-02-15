@@ -4,6 +4,7 @@
 from flask import Blueprint, render_template, jsonify, request, redirect, url_for
 from datetime import datetime, timedelta
 import os
+from src.sports_config import SportType, get_leagues_for_sport, get_sport_config
 
 routes_bp = Blueprint('routes', __name__)
 
@@ -74,6 +75,44 @@ def predictions_page():
     
     return render_template('predictions.html', predictions=predictions, stats=stats)
 
+@routes_bp.route('/sports/<sport>')
+def sports_predictions_page(sport):
+    sport_map = {
+        'hockey': SportType.HOCKEY,
+        'football': SportType.FOOTBALL,
+        'basketball': SportType.BASKETBALL,
+        'volleyball': SportType.VOLLEYBALL
+    }
+    sport_type = sport_map.get(str(sport).lower())
+    if not sport_type:
+        return redirect(url_for('routes.predictions_page'))
+    leagues = get_leagues_for_sport(sport_type)
+    predictions = []
+    stats = {'total': 0, 'pending': 0, 'win_rate': 0, 'roi': 0}
+    if Prediction and db:
+        try:
+            query = Prediction.query.filter(Prediction.league.in_(leagues)).order_by(Prediction.match_date.desc())
+            predictions = query.limit(100).all()
+            total = Prediction.query.filter(Prediction.league.in_(leagues)).count()
+            pending = Prediction.query.filter(Prediction.league.in_(leagues)).filter(Prediction.user_decision == None).count()
+            completed = Prediction.query.filter(Prediction.league.in_(leagues)).filter(Prediction.is_win != None).all()
+            wins = sum(1 for p in completed if p.is_win)
+            win_rate = (wins / len(completed) * 100) if completed else 0
+            stats = {
+                'total': total,
+                'pending': pending,
+                'win_rate': round(win_rate, 1),
+                'roi': 0
+            }
+        except Exception as e:
+            print(f"Error loading sport predictions: {e}")
+    sport_config = get_sport_config(sport_type)
+    return render_template('sports/sport_predictions.html',
+                           sport=sport,
+                           sport_config=sport_config,
+                           leagues=leagues,
+                           predictions=predictions,
+                           stats=stats)
 
 @routes_bp.route('/prediction/<int:prediction_id>')
 def prediction_detail(prediction_id):

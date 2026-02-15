@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-    <title>AI Model Dashboard | Hockey Predictor</title>
+    <title>AI Model Dashboard | ArenaPredictor</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -70,6 +70,9 @@
             font-weight: 500;
             font-size: 0.9rem;
             transition: all 0.2s;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
         }
         nav a:hover { background: var(--bg-card); color: var(--text-primary); }
         nav a.active { background: var(--accent); color: var(--text-primary); font-weight: 600; }
@@ -177,6 +180,7 @@
         .model-stats {
             display: flex;
             gap: 32px;
+            flex-wrap: wrap;
         }
         
         .model-stat {
@@ -206,6 +210,8 @@
             margin-bottom: 24px;
             border: 1px solid var(--border-light);
             box-shadow: var(--shadow);
+            overflow-wrap: anywhere;
+            word-break: break-word;
         }
         
         .section-header {
@@ -506,6 +512,9 @@
             box-shadow: var(--shadow);
             position: relative;
             overflow: hidden;
+            min-width: 0;
+            word-break: break-word;
+            overflow-wrap: anywhere;
         }
         
         .metric-card::before {
@@ -732,6 +741,7 @@
             padding: 28px;
             color: #fff;
             margin-bottom: 24px;
+            overflow: hidden;
         }
         
         .inference-grid {
@@ -846,6 +856,7 @@
             display: flex;
             gap: 16px;
             margin-top: 16px;
+            flex-wrap: wrap;
         }
         
         .edu-stat {
@@ -855,6 +866,7 @@
             text-align: center;
             flex: 1;
             border: 1px solid var(--border-light);
+            min-width: 0;
         }
         
         .edu-stat .value {
@@ -988,6 +1000,7 @@
             font-family: 'Monaco', 'Consolas', monospace;
             font-size: 0.85rem;
             line-height: 1.8;
+            overflow-x: auto;
         }
         
         .edu-tree .node { color: var(--text-primary); }
@@ -1108,6 +1121,8 @@
             font-weight: 600;
             font-size: 0.875rem;
             transition: all 0.2s;
+            min-height: 44px;
+            min-width: 44px;
         }
         
         .control-btn.primary {
@@ -1140,6 +1155,11 @@
             .result-stats { justify-content: center; }
         }
         
+        img, svg, canvas {
+            max-width: 100%;
+            height: auto;
+        }
+        
         @media (max-width: 768px) {
             header { flex-direction: column; gap: 16px; align-items: flex-start; }
             .model-hero-content { flex-direction: column; gap: 24px; text-align: center; }
@@ -1149,6 +1169,52 @@
             .story-match-header { flex-direction: column; gap: 12px; }
             .result-card { padding: 20px; }
             .result-stats { flex-direction: column; gap: 16px; }
+            .monitor-section { flex-direction: column; }
+            .params-grid { grid-template-columns: repeat(2, 1fr); }
+            .edu-models-compare { grid-template-columns: repeat(2, 1fr); }
+            .inference-grid { grid-template-columns: repeat(2, 1fr); }
+            .cpp-grid { grid-template-columns: 1fr; }
+            .two-cols { grid-template-columns: 1fr; }
+            .app { padding: 20px; }
+            .edu-stats-row { justify-content: center; }
+        }
+        
+        @media (max-width: 425px) {
+            .app { padding: 16px; }
+            nav { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            .page-title { font-size: 1.6rem; }
+            .model-info h2 { font-size: 1.4rem; }
+            .metrics-grid { grid-template-columns: 1fr; }
+            .inference-grid { grid-template-columns: 1fr; }
+            .params-grid { grid-template-columns: 1fr; }
+            .edu-models-compare { grid-template-columns: 1fr; }
+            .story-team-logo { width: 40px; height: 40px; }
+            .result-icon { width: 48px; height: 48px; font-size: 24px; }
+            .metric-card { padding: 16px; }
+            .cpp-grid { grid-template-columns: 1fr; }
+            .monitor-card { flex-direction: column; gap: 12px; align-items: flex-start; }
+            .edu-stats-row { display: grid; grid-template-columns: 1fr 1fr; }
+        }
+        
+        @media (max-width: 375px) {
+            .page-title { font-size: 1.5rem; }
+            .model-desc { font-size: 0.9rem; }
+            .metric-value { font-size: 1.5rem; }
+            .inference-stat .value { font-size: 1.6rem; }
+            .edu-feature-card { padding: 14px; }
+            .edu-tree { font-size: 0.8rem; }
+            .story-team-name { font-size: 1rem; }
+            .edu-stats-row { grid-template-columns: 1fr; }
+        }
+        
+        @media (max-width: 320px) {
+            .app { padding: 12px; }
+            .page-title { font-size: 1.4rem; }
+            .metric-card { padding: 14px; }
+            .monitor-section { gap: 12px; }
+            .section-title { font-size: 1.1rem; }
+            .control-btn { width: 100%; }
+            .edu-stats-row { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -1156,8 +1222,8 @@
     <div class="app">
         <header>
             <a href="/" class="logo">
-                <div class="logo-icon">🏒</div>
-                <h1>Hockey Predictor</h1>
+                <img src="/static/logo.svg" alt="ArenaPredictor" class="logo-icon">
+                <h1>ArenaPredictor</h1>
             </a>
             <nav>
                 <a href="/">Прогнозы</a>

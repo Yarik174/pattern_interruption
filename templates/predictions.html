@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-    <title>Прогнозы | Hockey Predictor</title>
+    <title>Прогнозы | ArenaPredictor</title>
     <style>
         :root {
             --bg-primary: #F5F5EB;
@@ -111,6 +111,46 @@
             color: var(--text-muted); 
             margin-top: 4px; 
         }
+        
+        .sports-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin: 8px 0 24px;
+        }
+        
+        .sport-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid var(--border-light);
+            box-shadow: var(--shadow);
+        }
+        .sport-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            background: var(--bg-secondary);
+        }
+        .sport-info { flex: 1; }
+        .sport-name { font-weight: 700; }
+        .sport-status { font-size: 0.8rem; color: var(--text-muted); }
+        .sport-action {
+            padding: 8px 12px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+        .sport-action.primary { background: var(--accent); color: var(--text-primary); }
+        .sport-action.disabled { background: var(--bg-secondary); color: var(--text-secondary); pointer-events: none; }
         
         .filters {
             display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap;
@@ -305,19 +345,55 @@
     <div class="app">
         <header>
             <a href="/" class="logo">
-                <div class="logo-icon">🏒</div>
-                <h1>Hockey Predictor</h1>
+                <img src="/static/logo.svg" alt="ArenaPredictor" class="logo-icon">
+                <h1>ArenaPredictor</h1>
             </a>
             <nav>
-                <a href="/" class="active">Прогнозы</a>
+                <a href="/predictions" class="active">Прогнозы</a>
                 <a href="/dashboard">Дашборд</a>
                 <a href="/statistics">Статистика</a>
                 <a href="/logs">Логи</a>
+                <a href="#sports">Спорт</a>
             </nav>
         </header>
         
         <h1 class="page-title">Прогнозы</h1>
-        <p class="page-subtitle">Автоматические рекомендации на основе паттернов и CPP логики</p>
+        <p class="page-subtitle">Выберите вид спорта. Фильтры и список прогнозов доступны на страницах спорта.</p>
+        
+        <div id="sports" class="sports-row">
+            <div class="sport-card">
+                <div class="sport-icon">🏒</div>
+                <div class="sport-info">
+                    <div class="sport-name">Хоккей</div>
+                    <div class="sport-status">NHL, KHL, SHL, Liiga, DEL</div>
+                </div>
+                <a class="sport-action primary" href="/sports/hockey">Открыть</a>
+            </div>
+            <div class="sport-card">
+                <div class="sport-icon">⚽</div>
+                <div class="sport-info">
+                    <div class="sport-name">Футбол</div>
+                    <div class="sport-status">EPL, La Liga, Bundesliga, Serie A, Ligue 1</div>
+                </div>
+                <a class="sport-action primary" href="/sports/football">Открыть</a>
+            </div>
+            <div class="sport-card">
+                <div class="sport-icon">🏀</div>
+                <div class="sport-info">
+                    <div class="sport-name">Баскетбол</div>
+                    <div class="sport-status">NBA, EuroLeague, VTB League, ACB, BBL</div>
+                </div>
+                <a class="sport-action primary" href="/sports/basketball">Открыть</a>
+            </div>
+            <div class="sport-card">
+                <div class="sport-icon">🏐</div>
+                <div class="sport-info">
+                    <div class="sport-name">Волейбол</div>
+                    <div class="sport-status">Superliga Russia, Serie A Italy, PlusLiga, Bundesliga</div>
+                </div>
+                <a class="sport-action primary" href="/sports/volleyball">Открыть</a>
+            </div>
+        </div>
         
         <div class="stats-row">
             <div class="stat-card">
@@ -340,92 +416,7 @@
             </div>
         </div>
         
-        <div class="filters">
-            <button class="filter-btn active" data-filter="all">Все</button>
-            <button class="filter-btn" data-filter="pending">Ожидают</button>
-            <button class="filter-btn" data-filter="accepted">Принятые</button>
-            <button class="filter-btn" data-filter="today">Сегодня</button>
-            <button class="filter-btn" data-filter="NHL">NHL</button>
-            <button class="filter-btn" data-filter="KHL">KHL</button>
-            <button class="filter-btn" data-filter="SHL">SHL</button>
-            <button class="filter-btn" data-filter="Liiga">Liiga</button>
-            <button class="filter-btn" data-filter="DEL">DEL</button>
-        </div>
         
-        {% if predictions %}
-        <table class="predictions-table">
-            <thead>
-                <tr>
-                    <th>Дата</th>
-                    <th>Лига</th>
-                    <th>Матч</th>
-                    <th>Прогноз</th>
-                    <th>Коэф.</th>
-                    <th>Уверенность</th>
-                    <th>Статус</th>
-                    <th>Действие</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for p in predictions %}
-                <tr data-league="{{ p.league }}" data-status="{{ p.user_decision.decision if p.user_decision else 'pending' }}">
-                    <td>{{ p.match_date.strftime('%d.%m %H:%M') if p.match_date else '-' }}</td>
-                    <td><span class="league-badge league-{{ p.league }}">{{ p.league }}</span></td>
-                    <td>
-                        <div class="teams">
-                            <div class="team team-home"><span class="team-name">{{ p.home_team }}</span></div>
-                            <div class="team"><span class="team-name">{{ p.away_team }}</span></div>
-                        </div>
-                    </td>
-                    <td>
-                        <span class="prediction-outcome outcome-{% if p.predicted_outcome == p.home_team %}home{% else %}away{% endif %}">
-                            {{ p.predicted_outcome }}
-                        </span>
-                    </td>
-                    <td>
-                        <span class="odds">
-                            {% if p.predicted_outcome == p.home_team %}
-                                {{ '%.2f'|format(p.home_odds) if p.home_odds else '-' }}
-                            {% else %}
-                                {{ '%.2f'|format(p.away_odds) if p.away_odds else '-' }}
-                            {% endif %}
-                        </span>
-                    </td>
-                    <td>
-                        <div class="confidence">
-                            <div class="confidence-bar">
-                                <div class="confidence-fill" style="width: {{ p.confidence_1_10 * 10 }}%"></div>
-                            </div>
-                            <span class="confidence-value">{{ p.confidence_1_10 }}/10</span>
-                        </div>
-                    </td>
-                    <td>
-                        {% if p.is_win is not none %}
-                            <span class="status-badge status-{{ 'win' if p.is_win else 'loss' }}">
-                                {{ 'Выигрыш' if p.is_win else 'Проигрыш' }}
-                            </span>
-                        {% elif p.user_decision %}
-                            <span class="status-badge status-{{ p.user_decision.decision }}">
-                                {{ 'Принят' if p.user_decision.decision == 'accepted' else 'Отклонён' }}
-                            </span>
-                        {% else %}
-                            <span class="status-badge status-pending">Ожидает</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <a href="/prediction/{{ p.id }}" class="action-btn view">Подробнее</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        {% else %}
-        <div class="empty-state">
-            <div class="icon">📊</div>
-            <h3>Нет прогнозов</h3>
-            <p>Прогнозы появятся когда будут обнаружены матчи с коэффициентами</p>
-        </div>
-        {% endif %}
     </div>
     
     <script>
