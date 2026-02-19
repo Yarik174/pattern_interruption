@@ -8,12 +8,14 @@ import logging
 from datetime import datetime, timedelta
 from typing import Optional, Callable
 import os
+import atexit
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 _global_monitor = None
 _monitor_thread_started = False
+_guard = None
 
 
 class OddsMonitor:
@@ -443,6 +445,73 @@ class AutoMonitor:
         return result
 
 
+class MonitorGuard:
+    def __init__(self, lock_path: Optional[str] = None):
+        self.lock_path = lock_path or os.environ.get('MONITOR_LOCK_PATH') or '/tmp/arena_monitor.lock'
+        self.pid = os.getpid()
+        self.fd = None
+        self.mode = None
+    def acquire(self) -> bool:
+        try:
+            import fcntl
+            self.fd = open(self.lock_path, 'w')
+            fcntl.lockf(self.fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            self.mode = 'fcntl'
+            self.fd.write(str(self.pid))
+            self.fd.flush()
+            return True
+        except Exception:
+            pass
+        try:
+            if os.path.exists(self.lock_path):
+                try:
+                    with open(self.lock_path, 'r') as f:
+                        content = f.read().strip()
+                        existing = int(content) if content else 0
+                except Exception:
+                    existing = 0
+                if existing:
+                    try:
+                        os.kill(existing, 0)
+                        return False
+                    except OSError:
+                        try:
+                            os.unlink(self.lock_path)
+                        except Exception:
+                            pass
+            fd = os.open(self.lock_path, os.O_CREAT | os.O_EXCL | os.O_RDWR)
+            os.write(fd, str(self.pid).encode())
+            os.close(fd)
+            self.mode = 'pid'
+            return True
+        except Exception:
+            return False
+    def release(self):
+        if self.mode == 'fcntl':
+            try:
+                import fcntl
+                fcntl.lockf(self.fd, fcntl.LOCK_UN)
+            except Exception:
+                pass
+            try:
+                self.fd.close()
+            except Exception:
+                pass
+            try:
+                os.unlink(self.lock_path)
+            except Exception:
+                pass
+        elif self.mode == 'pid':
+            try:
+                with open(self.lock_path, 'r') as f:
+                    content = f.read().strip()
+                if content == str(self.pid):
+                    os.unlink(self.lock_path)
+            except Exception:
+                pass
+        self.mode = None
+
+
 def get_auto_monitor() -> AutoMonitor:
     """Получить глобальный экземпляр AutoMonitor"""
     global _global_monitor
@@ -453,15 +522,19 @@ def get_auto_monitor() -> AutoMonitor:
 
 def start_auto_monitoring():
     """Запустить автомониторинг (вызывается при старте сервера)"""
-    global _monitor_thread_started
+    global _monitor_thread_started, _guard
     if _monitor_thread_started:
+        return
+    if _guard is None:
+        _guard = MonitorGuard()
+    if not _guard.acquire():
+        logger.info("AutoMonitor guard active, skipping start")
         return
     
     monitor = get_auto_monitor()
     if not monitor.is_running():
         monitor.start()
         _monitor_thread_started = True
-        logger.info("Auto monitoring started on server startup")
 
 
 class MockOddsLoader:
@@ -473,3 +546,14 @@ class MockOddsLoader:
     def get_upcoming_games(self, days_ahead=2):
         from src.apisports_odds_loader import get_demo_odds
         return get_demo_odds()
+
+
+def _release_guard():
+    global _guard
+    try:
+        if _guard:
+            _guard.release()
+    except Exception:
+        pass
+
+atexit.register(_release_guard)
