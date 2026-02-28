@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+    <title>ArenaPredictor | Отобранные матчи</title>
+    <style>
+        :root {
+            --bg-primary: #F5F5EB;
+            --bg-secondary: #EBEBDF;
+            --bg-card: #FFFFFF;
+            --accent: #BEFF50;
+            --accent-dark: #9FDF00;
+            --link: #216BA5;
+            --success: #22C55E;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --text-primary: #14140F;
+            --text-secondary: #5A5A52;
+            --text-muted: #8A8A7A;
+            --border: #D4D4C8;
+            --border-light: #E8E8DC;
+            --shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        .app { max-width: 1400px; margin: 0 auto; padding: 24px; }
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 0 24px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+        .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+        .logo-icon {
+            width: 40px; height: 40px;
+            background: var(--accent);
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px;
+            box-shadow: var(--shadow);
+        }
+        .logo h1 { font-size: 1.25rem; font-weight: 700; color: var(--text-primary); }
+        nav { display: flex; gap: 4px; overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; width: 100%; position: relative; white-space: nowrap; }
+        nav a {
+            padding: 10px 18px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            flex: 0 0 auto;
+        }
+        nav a:hover { background: var(--bg-card); color: var(--text-primary); }
+        nav a.active { background: var(--accent); color: var(--text-primary); font-weight: 600; }
+        nav::before, nav::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            width: 20px;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        nav::before { left: 0; background: linear-gradient(to right, var(--bg-primary), rgba(255,255,255,0)); }
+        nav::after { right: 0; background: linear-gradient(to left, var(--bg-primary), rgba(255,255,255,0)); }
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+        .page-subtitle { color: var(--text-muted); margin-bottom: 24px; }
+        .predictions-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--bg-card);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+        .predictions-table th {
+            background: var(--bg-secondary);
+            padding: 14px 16px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+        }
+        .predictions-table td {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-light);
+            font-size: 0.9rem;
+            vertical-align: middle;
+        }
+        .predictions-table tr:hover { background: var(--bg-secondary); }
+        .predictions-table tr:last-child td { border-bottom: none; }
+        .league-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 4px 10px; border-radius: 6px;
+            font-size: 0.75rem; font-weight: 600;
+        }
+        .teams { display: flex; flex-direction: column; gap: 4px; }
+        .team-name { font-weight: 500; }
+        .prediction-outcome { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 6px; font-weight: 600; font-size: 0.875rem; }
+        .outcome-home { background: rgba(190, 255, 80, 0.2); color: #5A7F00; }
+        .outcome-away { background: rgba(33, 107, 165, 0.1); color: var(--link); }
+        .odds { font-weight: 600; color: var(--accent-dark); }
+        .result-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; }
+        .result-win { background: #DCFCE7; color: #166534; }
+        .result-loss { background: #FEE2E2; color: #991B1B; }
+        .result-pending { background: #FEF3E2; color: #B45309; }
+        .note-cell {
+            min-width: 160px;
+            max-width: 260px;
+            color: var(--text-secondary);
+            outline: none;
+            border-radius: 4px;
+            padding: 2px 4px;
+            cursor: text;
+        }
+        .note-cell:empty::before { content: 'Добавить заметку...'; color: var(--text-muted); font-style: italic; pointer-events: none; }
+        .note-cell:focus { background: var(--bg-secondary); box-shadow: 0 0 0 2px var(--accent); }
+        .btn-remove {
+            background: none; border: 1px solid var(--border); border-radius: 6px;
+            cursor: pointer; padding: 4px 10px; font-size: 14px;
+            color: var(--text-muted); transition: all 0.2s;
+        }
+        .btn-remove:hover { border-color: var(--danger); color: var(--danger); }
+        .empty-state { text-align: center; padding: 80px 20px; background: var(--bg-card); border-radius: 12px; box-shadow: var(--shadow); }
+        .empty-state h3 { margin: 16px 0 8px; font-size: 1.25rem; }
+        .empty-state p { color: var(--text-muted); }
+        @media (max-width: 768px) {
+            header { flex-direction: column; gap: 16px; align-items: flex-start; }
+            .predictions-table { font-size: 0.875rem; }
+            .predictions-table th, .predictions-table td { padding: 10px 8px; }
+            .note-cell { min-width: 100px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <header>
+            <a href="/" class="logo">
+                <img src="/static/logo.svg" alt="ArenaPredictor" class="logo-icon">
+                <h1>ArenaPredictor</h1>
+            </a>
+            <nav>
+                <a href="/predictions">Прогнозы</a>
+                <a href="/watchlist" class="active">★ Отобранные</a>
+                <a href="/dashboard">Дашборд</a>
+                <a href="/statistics">Статистика</a>
+                <a href="/logs">Логи</a>
+            </nav>
+        </header>
+
+        <h1 class="page-title">★ Отобранные матчи</h1>
+        <p class="page-subtitle">{{ entries|length }} матч{{ 'а' if entries|length in [2,3,4] else ('ей' if entries|length != 1 else '') }}</p>
+
+        {% if entries %}
+        <table class="predictions-table">
+            <thead>
+                <tr>
+                    <th>Дата</th>
+                    <th>Лига</th>
+                    <th>Матч</th>
+                    <th>Прогноз</th>
+                    <th>Коэф.</th>
+                    <th>Score</th>
+                    <th>Заметка</th>
+                    <th>Результат</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in entries %}
+                {% set p = entry.prediction %}
+                <tr id="row-{{ entry.id }}">
+                    <td>{{ p.match_date.strftime('%d.%m %H:%M') if p.match_date else '-' }}</td>
+                    <td><span class="league-badge">{{ p.league }}</span></td>
+                    <td>
+                        <div class="teams">
+                            <div><span class="team-name">{{ p.home_team }}</span></div>
+                            <div><span class="team-name" style="color:var(--text-muted)">{{ p.away_team }}</span></div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="prediction-outcome outcome-{% if p.predicted_outcome == p.home_team %}home{% else %}away{% endif %}">
+                            {{ p.predicted_outcome }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="odds">
+                            {% if p.predicted_outcome == p.home_team %}
+                                {{ '%.2f'|format(p.home_odds) if p.home_odds else '-' }}
+                            {% else %}
+                                {{ '%.2f'|format(p.away_odds) if p.away_odds else '-' }}
+                            {% endif %}
+                        </span>
+                    </td>
+                    <td>
+                        {% if p.confidence_1_10 %}
+                            <strong>{{ p.confidence_1_10 }}</strong>/10
+                        {% else %}-{% endif %}
+                    </td>
+                    <td>
+                        <div class="note-cell"
+                             contenteditable="true"
+                             data-entry-id="{{ entry.id }}"
+                             onblur="saveNote({{ entry.id }}, this.textContent.trim())">{{ entry.note or '' }}</div>
+                    </td>
+                    <td>
+                        {% if p.is_win is not none %}
+                            <span class="result-badge result-{{ 'win' if p.is_win else 'loss' }}">
+                                {{ '✓ WIN' if p.is_win else '✗ LOSS' }}
+                            </span>
+                        {% else %}
+                            <span class="result-badge result-pending">⏳ Ожидает</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <button class="btn-remove" onclick="removeFromWatchlist({{ entry.id }}, {{ p.id }}, this)" title="Убрать из отобранных">✕</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">
+            <div style="font-size:3rem">☆</div>
+            <h3>Нет отобранных матчей</h3>
+            <p>Нажми ☆ на странице прогнозов, чтобы добавить матч сюда</p>
+        </div>
+        {% endif %}
+    </div>
+    <script>
+        async function saveNote(entryId, text) {
+            try {
+                await fetch(`/api/watchlist/${entryId}/note`, {
+                    method: 'PATCH',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({note: text})
+                });
+            } catch (e) {
+                console.error('Save note error:', e);
+            }
+        }
+
+        async function removeFromWatchlist(entryId, predictionId, btn) {
+            try {
+                const res = await fetch(`/api/watchlist/${predictionId}`, {method: 'DELETE'});
+                if (res.ok) {
+                    const row = document.getElementById(`row-${entryId}`);
+                    if (row) row.remove();
+                    // обновить счётчик
+                    const subtitle = document.querySelector('.page-subtitle');
+                    const rows = document.querySelectorAll('.predictions-table tbody tr');
+                    if (rows.length === 0) location.reload();
+                }
+            } catch (e) {
+                console.error('Remove watchlist error:', e);
+            }
+        }
+    </script>
+</body>
+</html>

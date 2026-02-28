@@ -100,6 +100,18 @@ class UserDecision(db.Model):
         }
 
 
+class UserWatchlist(db.Model):
+    """Матчи в ручном отборе пользователя"""
+    __tablename__ = 'user_watchlists'
+
+    id = db.Column(db.Integer, primary_key=True)
+    prediction_id = db.Column(db.Integer, db.ForeignKey('predictions.id'), nullable=False, unique=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    note = db.Column(db.Text)
+
+    prediction = db.relationship('Prediction', backref=db.backref('watchlist_entry', uselist=False))
+
+
 class ModelVersion(db.Model):
     """Версия модели и её метрики"""
     __tablename__ = 'model_versions'

@@ -33,7 +33,10 @@ app.secret_key = os.environ.get("SESSION_SECRET")
 if not app.secret_key:
     raise RuntimeError("SESSION_SECRET environment variable is required. Please set it in the Secrets tab.")
 
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+_database_url = os.environ.get("DATABASE_URL", "")
+if _database_url.startswith("postgres://"):
+    _database_url = _database_url.replace("postgres://", "postgresql://", 1)
+app.config["SQLALCHEMY_DATABASE_URI"] = _database_url
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_recycle": 300,
     "pool_pre_ping": True,
@@ -44,7 +47,7 @@ SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY")
 supabase = create_client(SUPABASE_URL, SUPABASE_ANON_KEY) if (create_client and SUPABASE_URL and SUPABASE_ANON_KEY) else None
 
-from models import db, Prediction, UserDecision, ModelVersion, TelegramSettings, OddsMonitorLog, SystemLog, User
+from models import db, Prediction, UserDecision, UserWatchlist, ModelVersion, TelegramSettings, OddsMonitorLog, SystemLog, User
 db.init_app(app)
 
 with app.app_context():
@@ -61,6 +64,7 @@ from src.routes import routes_bp, init_routes, set_monitor, set_telegram, set_od
 init_routes(db, {
     'Prediction': Prediction,
     'UserDecision': UserDecision,
+    'UserWatchlist': UserWatchlist,
     'ModelVersion': ModelVersion,
     'TelegramSettings': TelegramSettings
 })

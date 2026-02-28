@@ -165,6 +165,13 @@
         .status-accepted { background: #DCFCE7; color: #166534; }
         .status-rejected { background: #FEE2E2; color: #991B1B; }
         .empty-state { text-align: center; padding: 80px 20px; background: var(--bg-card); border-radius: 12px; box-shadow: var(--shadow); }
+        .btn-watchlist {
+            background: none; border: 1px solid var(--border); border-radius: 6px;
+            cursor: pointer; padding: 4px 10px; font-size: 16px;
+            color: var(--text-muted); transition: all 0.2s; line-height: 1;
+        }
+        .btn-watchlist:hover { border-color: var(--accent-dark); color: var(--accent-dark); }
+        .btn-watchlist.active { background: var(--accent); border-color: var(--accent); color: var(--text-primary); }
         @media (max-width: 768px) {
             header { flex-direction: column; gap: 16px; align-items: flex-start; }
             .stats-row { grid-template-columns: repeat(2, 1fr); }
@@ -184,6 +191,7 @@
                 <a href="/predictions">Прогнозы</a>
                 <a href="/dashboard">Дашборд</a>
                 <a href="/statistics">Статистика</a>
+                <a href="/watchlist">★ Отобранные</a>
                 <a href="/logs">Логи</a>
             </nav>
         </header>
@@ -259,7 +267,15 @@
                             <span class="status-badge status-pending">Ожидает</span>
                         {% endif %}
                     </td>
-                    <td><a href="/prediction/{{ p.id }}" class="filter-btn" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">Подробнее</a></td>
+                    <td style="display:flex; gap:6px; align-items:center;">
+                        <a href="/prediction/{{ p.id }}" class="filter-btn" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center;">Подробнее</a>
+                        <button class="btn-watchlist{% if p.watchlist_entry %} active{% endif %}"
+                                data-id="{{ p.id }}"
+                                onclick="toggleWatchlist({{ p.id }}, this)"
+                                title="{% if p.watchlist_entry %}Убрать из отобранных{% else %}Добавить в отобранные{% endif %}">
+                            {% if p.watchlist_entry %}★{% else %}☆{% endif %}
+                        </button>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -291,6 +307,21 @@
                 });
             });
         });
+
+        async function toggleWatchlist(id, btn) {
+            const isActive = btn.classList.contains('active');
+            const method = isActive ? 'DELETE' : 'POST';
+            try {
+                const res = await fetch(`/api/watchlist/${id}`, { method });
+                if (res.ok) {
+                    btn.classList.toggle('active');
+                    btn.textContent = isActive ? '☆' : '★';
+                    btn.title = isActive ? 'Добавить в отобранные' : 'Убрать из отобранных';
+                }
+            } catch (e) {
+                console.error('Watchlist error:', e);
+            }
+        }
     </script>
 </body>
 </html>

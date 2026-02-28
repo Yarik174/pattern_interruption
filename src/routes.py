@@ -11,6 +11,7 @@ routes_bp = Blueprint('routes', __name__)
 db = None
 Prediction = None
 UserDecision = None
+UserWatchlist = None
 ModelVersion = None
 TelegramSettings = None
 
@@ -27,10 +28,11 @@ def set_odds_loader(loader):
 
 def init_routes(database, models):
     """Инициализация маршрутов с моделями базы данных"""
-    global db, Prediction, UserDecision, ModelVersion, TelegramSettings
+    global db, Prediction, UserDecision, UserWatchlist, ModelVersion, TelegramSettings
     db = database
     Prediction = models['Prediction']
     UserDecision = models['UserDecision']
+    UserWatchlist = models.get('UserWatchlist')
     ModelVersion = models['ModelVersion']
     TelegramSettings = models.get('TelegramSettings')
 
@@ -670,9 +672,75 @@ def api_auto_monitor_stats():
 def api_auto_monitor_check():
     """API: Выполнить проверку автомониторинга сейчас"""
     from src.odds_monitor import get_auto_monitor
-    
+
     monitor = get_auto_monitor()
     if monitor:
         result = monitor.check_now()
         return jsonify({'ok': True, 'result': result})
     return jsonify({'ok': False, 'error': 'AutoMonitor not available'})
+
+
+# ── Watchlist ─────────────────────────────────────────────────────────────────
+
+@routes_bp.route('/watchlist')
+def watchlist_page():
+    """Страница отобранных матчей"""
+    entries = []
+    if UserWatchlist and db:
+        try:
+            entries = UserWatchlist.query.order_by(UserWatchlist.created_at.desc()).all()
+        except Exception as e:
+            print(f"Error loading watchlist: {e}")
+    return render_template('watchlist.html', entries=entries)
+
+
+@routes_bp.route('/api/watchlist/<int:prediction_id>', methods=['POST'])
+def api_watchlist_add(prediction_id):
+    """API: Добавить матч в отобранные"""
+    if not UserWatchlist or not db:
+        return jsonify({'error': 'Unavailable'}), 503
+    try:
+        existing = UserWatchlist.query.filter_by(prediction_id=prediction_id).first()
+        if existing:
+            return jsonify({'status': 'already_added'})
+        entry = UserWatchlist(prediction_id=prediction_id)
+        db.session.add(entry)
+        db.session.commit()
+        return jsonify({'status': 'added'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@routes_bp.route('/api/watchlist/<int:prediction_id>', methods=['DELETE'])
+def api_watchlist_remove(prediction_id):
+    """API: Убрать матч из отобранных"""
+    if not UserWatchlist or not db:
+        return jsonify({'error': 'Unavailable'}), 503
+    try:
+        entry = UserWatchlist.query.filter_by(prediction_id=prediction_id).first()
+        if entry:
+            db.session.delete(entry)
+            db.session.commit()
+        return jsonify({'status': 'removed'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@routes_bp.route('/api/watchlist/<int:prediction_id>/note', methods=['PATCH'])
+def api_watchlist_note(prediction_id):
+    """API: Обновить заметку"""
+    if not UserWatchlist or not db:
+        return jsonify({'error': 'Unavailable'}), 503
+    try:
+        entry = UserWatchlist.query.filter_by(prediction_id=prediction_id).first()
+        if not entry:
+            return jsonify({'error': 'Not found'}), 404
+        data = request.get_json() or {}
+        entry.note = data.get('note', '')
+        db.session.commit()
+        return jsonify({'status': 'ok'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
