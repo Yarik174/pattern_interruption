@@ -6,6 +6,12 @@ NHL Pattern Prediction Web Interface
 import warnings
 warnings.filterwarnings('ignore', category=UserWarning)
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 from flask import Flask, render_template, jsonify, request, redirect, url_for, session
 import joblib
 import pandas as pd
@@ -1539,4 +1545,5 @@ startup_initialization()
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    port = int(os.environ.get("PORT", 5001))
+    app.run(host='0.0.0.0', port=port, debug=True)

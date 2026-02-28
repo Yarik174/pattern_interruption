@@ -1,10 +1,10 @@
 {
-  "last_refresh": "2026-02-15T09:27:46.531406",
+  "last_refresh": "2026-02-28T10:25:19.204934",
   "last_results": {
     "NHL": {
       "league": "NHL",
       "success": true,
-      "matches": 1012,
+      "matches": 1036,
       "error": null
     },
     "KHL": {

@@ -1,0 +1,31 @@
+[Unit]
+Description=Pattern Interruption — Hockey Prediction App
+Documentation=https://github.com/YOUR_USERNAME/YOUR_REPO
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=exec
+User=appuser
+Group=appuser
+WorkingDirectory=/opt/pattern_interruption
+EnvironmentFile=/opt/pattern_interruption/.env
+
+ExecStart=/opt/pattern_interruption/venv/bin/gunicorn \
+    app:app \
+    --bind 127.0.0.1:8000 \
+    --workers 2 \
+    --timeout 120 \
+    --keep-alive 5 \
+    --log-level info \
+    --access-logfile /var/log/pattern_access.log \
+    --error-logfile /var/log/pattern_error.log
+
+Restart=always
+RestartSec=5
+
+# Limits
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
