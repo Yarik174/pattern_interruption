@@ -350,3 +350,6 @@ class NHLDataLoader:
         print(f"✅ Сгенерировано {len(df)} тестовых матчей")
         self.games = games
         return df
+
+# Backward compatibility alias
+DataLoader = NHLDataLoader
