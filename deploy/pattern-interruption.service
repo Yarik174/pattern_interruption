@@ -1,6 +1,6 @@
 [Unit]
 Description=Pattern Interruption — Hockey Prediction App
-Documentation=https://github.com/YOUR_USERNAME/YOUR_REPO
+Documentation=https://github.com/Yarik174/pattern-interruption
 After=network.target postgresql.service
 Requires=postgresql.service
 

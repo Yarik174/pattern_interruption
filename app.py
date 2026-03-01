@@ -1,5 +1,5 @@
 """
-NHL Pattern Prediction Web Interface
+pattern_interruption Web Interface
 Веб-интерфейс для тестирования прогнозов на реальных матчах
 """
 
@@ -28,7 +28,7 @@ except Exception:
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from src.data_loader import NHLDataLoader
+from src.data_loader import DataLoader
 from src.pattern_engine import PatternEngine
 from src.feature_builder import FeatureBuilder
 
@@ -268,7 +268,7 @@ NHL_TEAM_MAPPING = {
     'STL': ['St Louis Blues', 'St. Louis Blues', 'Blues'],
     'TBL': ['Tampa Bay Lightning', 'Lightning'],
     'TOR': ['Toronto Maple Leafs', 'Maple Leafs'],
-    'UTA': ['Utah Hockey Club', 'Utah HC'],
+    'UTA': ['Utah Hockey Club', 'Utah Mammoth', 'Utah HC'],
     'VAN': ['Vancouver Canucks', 'Canucks'],
     'VGK': ['Vegas Golden Knights', 'Golden Knights'],
     'WSH': ['Washington Capitals', 'Capitals'],
@@ -290,12 +290,12 @@ def init_system():
     
     if data_loader is None:
         print("🔄 Инициализация системы...")
-        data_loader = NHLDataLoader()
+        data_loader = DataLoader()
         pattern_engine = PatternEngine()
         feature_builder = FeatureBuilder(pattern_engine)
         
         print("📥 Загрузка исторических данных...")
-        seasons = NHLDataLoader.get_default_seasons(n_seasons=10)
+        seasons = DataLoader.get_default_seasons(n_seasons=10)
         all_games = data_loader.load_all_data(seasons=seasons)
         
         print("🔍 Анализ паттернов...")
@@ -685,13 +685,28 @@ def analyze_game(home_team, away_team):
             X = pd.DataFrame([X_dict])[feature_names]
             
             proba = model.predict_proba(X)[0]
-            home_prob = proba[1] if len(proba) > 1 else proba[0]
-            
+            break_prob = proba[1] if len(proba) > 1 else proba[0]
+            continue_prob = proba[0] if len(proba) > 1 else (1 - proba[0])
+
+            # cpp_prediction['team'] — какая команда имеет критический паттерн
+            # break_pattern=1 означает, что паттерн прервётся → эта команда проиграет
+            bet_on = cpp_prediction.get('team')  # 'home', 'away', or None
+
+            if bet_on == 'home':
+                predicted_winner = 'away' if break_prob >= 0.5 else 'home'
+            elif bet_on == 'away':
+                predicted_winner = 'home' if break_prob >= 0.5 else 'away'
+            else:
+                predicted_winner = 'home' if break_prob >= 0.5 else 'away'
+
             analysis['prediction'] = {
-                'home_probability': round(home_prob * 100, 1),
-                'away_probability': round((1 - home_prob) * 100, 1),
-                'predicted_winner': 'home' if home_prob >= 0.5 else 'away',
-                'recommendation': home_team if home_prob >= 0.5 else away_team
+                'break_probability': round(break_prob * 100, 1),
+                'continue_probability': round(continue_prob * 100, 1),
+                'home_probability': round(break_prob * 100, 1) if predicted_winner == 'home' else round(continue_prob * 100, 1),
+                'away_probability': round(break_prob * 100, 1) if predicted_winner == 'away' else round(continue_prob * 100, 1),
+                'predicted_winner': predicted_winner,
+                'recommendation': home_team if predicted_winner == 'home' else away_team,
+                'bet_on': bet_on
             }
         except Exception as e:
             print(f"Ошибка предсказания: {e}")
@@ -1453,12 +1468,25 @@ def create_prediction_from_match(match_data):
         if not home_odds or not away_odds:
             return None
         
-        if home_odds < away_odds:
-            predicted_outcome = 'home'
-            confidence = min(0.95, 1 / home_odds + 0.1)
+        _analysis = None
+        try:
+            _analysis = analyze_game(home_team, away_team)
+        except Exception:
+            pass
+
+        _model_pred = _analysis.get('prediction') if _analysis else None
+
+        if _model_pred and _model_pred.get('predicted_winner'):
+            _winner = _model_pred['predicted_winner']
+            predicted_outcome = home_team if _winner == 'home' else away_team
+            confidence = min(0.95, _model_pred.get('break_probability', 60) / 100)
         else:
-            predicted_outcome = 'away'
-            confidence = min(0.95, 1 / away_odds + 0.1)
+            if home_odds < away_odds:
+                predicted_outcome = home_team
+                confidence = min(0.95, 1 / home_odds + 0.1)
+            else:
+                predicted_outcome = away_team
+                confidence = min(0.95, 1 / away_odds + 0.1)
         
         confidence_1_10 = max(1, min(10, int(confidence * 10)))
         

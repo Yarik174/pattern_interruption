@@ -1,0 +1,21 @@
+{
+  "accuracy": 0.6533203125,
+  "cv_mean": 0.6358626588465298,
+  "cv_std": 0.02705494748469687,
+  "n_samples_total": 6817,
+  "n_samples_critical": 5119,
+  "break_rate": 0.4225434655206095,
+  "confusion_matrix": [
+    [
+      311,
+      280
+    ],
+    [
+      75,
+      358
+    ]
+  ],
+  "proba_std": 0.24678315474657458,
+  "model": "CalibratedRF(RF+critical_target)",
+  "trained_on": "critical_patterns_only"
+}

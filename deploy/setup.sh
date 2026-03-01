@@ -13,7 +13,7 @@ set -e
 APP_NAME="pattern-interruption"
 APP_DIR="/opt/pattern_interruption"
 APP_USER="appuser"
-REPO_URL="https://github.com/YOUR_USERNAME/YOUR_REPO.git"  # <-- замени
+REPO_URL="https://github.com/Yarik174/pattern-interruption.git"
 DB_NAME="pattern_interruption"
 DB_USER="pattern_user"
 DB_PASS=$(openssl rand -hex 16)
