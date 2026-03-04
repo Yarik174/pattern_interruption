@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(venv/bin/python /tmp/pi_test3.py)",
+      "Bash(venv/bin/python -c \":*)",
+      "Bash(RAPIDAPI_KEY=901d1aa2a7msh038f4a7fc5cb00ap1c5ee9jsn0635b0d19e80 venv/bin/python /tmp/pi_test3.py)",
+      "Bash(RAPIDAPI_KEY=901d1aa2a7msh038f4a7fc5cb00ap1c5ee9jsn0635b0d19e80 venv/bin/python -c \":*)"
+    ],
+    "defaultMode": "bypassPermissions",
+    "additionalDirectories": [
+      "/tmp",
+      "/private/tmp"
+    ]
+  }
+}
