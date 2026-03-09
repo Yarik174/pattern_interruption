@@ -43,6 +43,10 @@ class MultiLeagueLoader:
             except (ValueError, IndexError):
                 continue
         return sorted(set(seasons), reverse=True)
+
+    def get_games_cache_path(self, league_id, season):
+        """Путь к кэш-файлу сезона."""
+        return CACHE_DIR / f"games_{league_id}_{season}.json"
         
     def _make_request(self, endpoint, params=None):
         """Выполнить запрос к API"""
@@ -105,11 +109,11 @@ class MultiLeagueLoader:
             return teams
         return []
     
-    def get_games(self, league_id, season):
+    def get_games(self, league_id, season, force_refresh=False):
         """Получить все матчи сезона"""
-        cache_file = CACHE_DIR / f"games_{league_id}_{season}.json"
+        cache_file = self.get_games_cache_path(league_id, season)
         
-        if cache_file.exists():
+        if cache_file.exists() and not force_refresh:
             with open(cache_file, 'r') as f:
                 cached = json.load(f)
                 print(f"  📦 Загружено из кэша: {len(cached)} матчей")
@@ -152,7 +156,7 @@ class MultiLeagueLoader:
             return games
         return []
     
-    def load_league_data(self, league_name, n_seasons=5):
+    def load_league_data(self, league_name, n_seasons=5, refresh_current_season=False):
         """Загрузить данные для лиги"""
         if league_name not in LEAGUES:
             print(f"❌ Неизвестная лига: {league_name}")
@@ -176,13 +180,18 @@ class MultiLeagueLoader:
         all_games = []
         requested_seasons = n_seasons if n_seasons and n_seasons > 0 else None
         loaded_seasons = 0
+        current_season = max(seasons) if seasons else None
         for season in seasons:
             if requested_seasons is not None and loaded_seasons >= requested_seasons:
                 break
 
             target_label = requested_seasons if requested_seasons is not None else "all"
             print(f"[{loaded_seasons + 1}/{target_label}] Сезон {season}")
-            games = self.get_games(league_id, season)
+            games = self.get_games(
+                league_id,
+                season,
+                force_refresh=bool(refresh_current_season and season == current_season),
+            )
             if not games:
                 continue
             all_games.extend(games)

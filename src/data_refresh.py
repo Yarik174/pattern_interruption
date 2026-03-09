@@ -5,6 +5,7 @@ import os
 import json
 import logging
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
@@ -42,6 +43,7 @@ LEAGUES_CONFIG = {
 }
 
 REFRESH_STATE_FILE = 'data/cache/refresh_state.json'
+EURO_HOCKEY_LEAGUES = ('KHL', 'SHL', 'Liiga', 'DEL')
 
 
 def get_refresh_state() -> Dict:
@@ -133,6 +135,213 @@ def refresh_multi_league_data(league_name: str) -> Dict:
         logger.error(f"{league_name} refresh error: {e}")
     
     return result
+
+
+def _load_cached_count(cache_file: Path) -> int:
+    try:
+        if cache_file.exists():
+            with open(cache_file, 'r', encoding='utf-8') as handle:
+                payload = json.load(handle)
+            if isinstance(payload, list):
+                return len(payload)
+    except Exception:
+        return 0
+    return 0
+
+
+def plan_hockey_backfill(
+    leagues: Optional[List[str]] = None,
+    from_season: Optional[int] = None,
+    to_season: Optional[int] = None,
+    include_current: bool = True,
+) -> Dict:
+    """Построить план backfill для европейских хоккейных лиг."""
+    from src.multi_league_loader import MultiLeagueLoader
+
+    target_leagues = list(EURO_HOCKEY_LEAGUES if not leagues or 'all' in leagues else leagues)
+    loader = MultiLeagueLoader()
+    result = {
+        'timestamp': datetime.utcnow().isoformat(),
+        'mode': 'plan',
+        'leagues': {},
+        'planned_seasons': {},
+    }
+
+    for league in target_leagues:
+        config = LEAGUES_CONFIG.get(league)
+        if not config or config.get('loader') != 'multi_league':
+            result['leagues'][league] = {
+                'league_id': None,
+                'available_seasons': [],
+                'cached_seasons': [],
+                'current_season': None,
+                'planned_seasons': [],
+                'error': 'Invalid config',
+            }
+            result['planned_seasons'][league] = []
+            continue
+
+        league_id = config['league_id']
+        available_seasons = sorted({int(season) for season in loader.get_available_seasons(league_id)}, reverse=False)
+        cached_seasons = sorted({int(season) for season in loader._get_cached_game_seasons(league_id)}, reverse=False)
+        current_season = max(available_seasons) if available_seasons else None
+
+        planned = []
+        for season in available_seasons:
+            if from_season is not None and season < int(from_season):
+                continue
+            if to_season is not None and season > int(to_season):
+                continue
+            if not include_current and current_season is not None and season == current_season:
+                continue
+            planned.append(season)
+
+        result['leagues'][league] = {
+            'league_id': league_id,
+            'available_seasons': available_seasons,
+            'cached_seasons': cached_seasons,
+            'current_season': current_season,
+            'planned_seasons': planned,
+            'error': None,
+        }
+        result['planned_seasons'][league] = planned
+
+    return result
+
+
+def backfill_hockey_history(
+    leagues: Optional[List[str]] = None,
+    from_season: Optional[int] = None,
+    to_season: Optional[int] = None,
+    include_current: bool = True,
+    refresh_existing_current: bool = False,
+    dry_run: bool = False,
+) -> Dict:
+    """Глубокий backfill исторических сезонов европейского хоккея."""
+    from src.cache_catalog import build_cache_manifest, save_manifest
+    from src.multi_league_loader import MultiLeagueLoader
+
+    plan = plan_hockey_backfill(
+        leagues=leagues,
+        from_season=from_season,
+        to_season=to_season,
+        include_current=include_current,
+    )
+    results = {
+        'timestamp': datetime.utcnow().isoformat(),
+        'mode': 'dry-run' if dry_run else 'execute',
+        'leagues': {},
+        'planned_seasons': {},
+        'downloaded_seasons': {},
+        'updated_seasons': {},
+        'skipped_seasons': {},
+        'failed_seasons': {},
+        'manifest_generated_at': None,
+    }
+
+    for league, info in plan['leagues'].items():
+        results['planned_seasons'][league] = list(info.get('planned_seasons', []))
+        results['downloaded_seasons'][league] = []
+        results['updated_seasons'][league] = []
+        results['skipped_seasons'][league] = []
+        results['failed_seasons'][league] = []
+        results['leagues'][league] = {
+            'league_id': info.get('league_id'),
+            'current_season': info.get('current_season'),
+            'planned_seasons': list(info.get('planned_seasons', [])),
+            'downloaded_seasons': results['downloaded_seasons'][league],
+            'updated_seasons': results['updated_seasons'][league],
+            'skipped_seasons': results['skipped_seasons'][league],
+            'failed_seasons': results['failed_seasons'][league],
+        }
+
+    if dry_run:
+        return results
+
+    loader = MultiLeagueLoader()
+    if not getattr(loader, 'api_key', '').strip():
+        results['error'] = 'API_SPORTS_KEY not set'
+        for league, seasons in results['planned_seasons'].items():
+            if seasons:
+                results['failed_seasons'][league].append({
+                    'season': None,
+                    'error': 'API_SPORTS_KEY not set',
+                })
+        return results
+
+    refreshed_results = {}
+
+    for league, info in plan['leagues'].items():
+        if info.get('error'):
+            results['failed_seasons'][league].append({'season': None, 'error': info['error']})
+            refreshed_results[league] = {
+                'league': league,
+                'success': False,
+                'matches': 0,
+                'error': info['error'],
+            }
+            continue
+
+        changed_matches = 0
+        first_error = None
+        for season in info.get('planned_seasons', []):
+            cache_file = loader.get_games_cache_path(info['league_id'], season)
+            cached_before = _load_cached_count(cache_file)
+            cache_exists = cache_file.exists()
+            is_current = season == info.get('current_season')
+            should_refresh = bool(cache_exists and is_current and refresh_existing_current)
+
+            if cache_exists and not should_refresh:
+                results['skipped_seasons'][league].append(season)
+                continue
+
+            games = loader.get_games(info['league_id'], season, force_refresh=should_refresh)
+            cached_after = _load_cached_count(cache_file)
+
+            if cached_after <= 0:
+                error = 'No completed games returned'
+                if not loader.api_key:
+                    error = 'API_SPORTS_KEY not set'
+                entry = {'season': season, 'error': error}
+                results['failed_seasons'][league].append(entry)
+                if first_error is None:
+                    first_error = error
+                continue
+
+            if cache_exists and should_refresh:
+                delta = max(cached_after - cached_before, 0)
+                changed_matches += delta
+                results['updated_seasons'][league].append({
+                    'season': season,
+                    'matches': cached_after,
+                    'delta': delta,
+                })
+            else:
+                changed_matches += cached_after
+                results['downloaded_seasons'][league].append({
+                    'season': season,
+                    'matches': cached_after,
+                })
+
+        refreshed_results[league] = {
+            'league': league,
+            'success': not results['failed_seasons'][league],
+            'matches': changed_matches,
+            'error': first_error,
+        }
+
+    manifest = build_cache_manifest()
+    save_manifest(manifest)
+    state = build_refresh_state_from_manifest(
+        manifest,
+        refreshed_results=refreshed_results,
+        timestamp=results['timestamp'],
+        source='backfill',
+    )
+    save_refresh_state(state)
+    results['manifest_generated_at'] = manifest.get('generated_at')
+
+    return results
 
 
 def refresh_all_historical_data(force: bool = False) -> Dict:

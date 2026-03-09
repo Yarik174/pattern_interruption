@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-03-09T12:41:15.346254",
+  "generated_at": "2026-03-09T13:19:14.347943",
   "datasets": [
     {
       "id": "basketball-acb-snapshot_history",
@@ -100,28 +100,6 @@
       "for_runtime": true,
       "status": "ok",
       "issues": []
-    },
-    {
-      "id": "basketball-vtb-league-auxiliary",
-      "sport": "basketball",
-      "league": "VTB League",
-      "source": "flashscore_scrape",
-      "kind": "auxiliary",
-      "format": "flashscore_matches_json",
-      "files": [
-        "data/cache/basketball/VTB_test_matches.json"
-      ],
-      "seasons": [],
-      "records": 100,
-      "date_min": null,
-      "date_max": null,
-      "has_odds": false,
-      "for_training": false,
-      "for_runtime": false,
-      "status": "partial",
-      "issues": [
-        "test snapshot"
-      ]
     },
     {
       "id": "football-bundesliga-snapshot_history",
@@ -331,20 +309,17 @@
       "kind": "auxiliary",
       "format": "flashscore_matches_json",
       "files": [
-        "data/cache/hockey/DEL_matches.json",
-        "data/cache/hockey/DEL_test_matches.json"
+        "data/cache/hockey/DEL_matches.json"
       ],
       "seasons": [],
-      "records": 104,
+      "records": 100,
       "date_min": null,
       "date_max": null,
       "has_odds": false,
       "for_training": false,
       "for_runtime": false,
-      "status": "partial",
-      "issues": [
-        "test snapshot"
-      ]
+      "status": "ok",
+      "issues": []
     },
     {
       "id": "hockey-del-seasonal_history",
@@ -369,10 +344,17 @@
       "has_odds": false,
       "for_training": true,
       "for_runtime": true,
-      "status": "partial",
-      "issues": [
-        "metadata seasons without cached games: 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2025"
-      ]
+      "status": "ok",
+      "issues": [],
+      "coverage_policy": {
+        "mode": "accepted_local_baseline",
+        "accepted_seasons": [
+          2022,
+          2023,
+          2024
+        ],
+        "note": "API-Sports backfill недоступен без подписки; текущий локальный корпус принят как рабочая историческая база."
+      }
     },
     {
       "id": "hockey-khl-auxiliary",
@@ -382,20 +364,17 @@
       "kind": "auxiliary",
       "format": "flashscore_matches_json",
       "files": [
-        "data/cache/hockey/KHL_matches.json",
-        "data/cache/hockey/KHL_test_matches.json"
+        "data/cache/hockey/KHL_matches.json"
       ],
       "seasons": [],
-      "records": 102,
+      "records": 100,
       "date_min": null,
       "date_max": null,
       "has_odds": false,
       "for_training": false,
       "for_runtime": false,
-      "status": "partial",
-      "issues": [
-        "test snapshot"
-      ]
+      "status": "ok",
+      "issues": []
     },
     {
       "id": "hockey-khl-seasonal_history",
@@ -420,10 +399,17 @@
       "has_odds": false,
       "for_training": true,
       "for_runtime": true,
-      "status": "partial",
-      "issues": [
-        "metadata seasons without cached games: 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2025"
-      ]
+      "status": "ok",
+      "issues": [],
+      "coverage_policy": {
+        "mode": "accepted_local_baseline",
+        "accepted_seasons": [
+          2022,
+          2023,
+          2024
+        ],
+        "note": "API-Sports backfill недоступен без подписки; текущий локальный корпус принят как рабочая историческая база."
+      }
     },
     {
       "id": "hockey-liiga-auxiliary",
@@ -468,10 +454,17 @@
       "has_odds": false,
       "for_training": true,
       "for_runtime": true,
-      "status": "partial",
-      "issues": [
-        "metadata seasons without cached games: 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2025"
-      ]
+      "status": "ok",
+      "issues": [],
+      "coverage_policy": {
+        "mode": "accepted_local_baseline",
+        "accepted_seasons": [
+          2022,
+          2023,
+          2024
+        ],
+        "note": "API-Sports backfill недоступен без подписки; текущий локальный корпус принят как рабочая историческая база."
+      }
     },
     {
       "id": "hockey-nhl-aux-period-data",
@@ -503,20 +496,17 @@
       "kind": "auxiliary",
       "format": "flashscore_matches_json",
       "files": [
-        "data/cache/hockey/NHL_matches.json",
-        "data/cache/hockey/NHL_test_matches.json"
+        "data/cache/hockey/NHL_matches.json"
       ],
       "seasons": [],
-      "records": 103,
+      "records": 100,
       "date_min": null,
       "date_max": null,
       "has_odds": false,
       "for_training": false,
       "for_runtime": false,
-      "status": "partial",
-      "issues": [
-        "test snapshot"
-      ]
+      "status": "ok",
+      "issues": []
     },
     {
       "id": "hockey-nhl-seasonal_history",
@@ -601,10 +591,17 @@
       "has_odds": false,
       "for_training": true,
       "for_runtime": true,
-      "status": "partial",
-      "issues": [
-        "metadata seasons without cached games: 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2025"
-      ]
+      "status": "ok",
+      "issues": [],
+      "coverage_policy": {
+        "mode": "accepted_local_baseline",
+        "accepted_seasons": [
+          2022,
+          2023,
+          2024
+        ],
+        "note": "API-Sports backfill недоступен без подписки; текущий локальный корпус принят как рабочая историческая база."
+      }
     },
     {
       "id": "volleyball-cev-champions-snapshot_history",
@@ -744,22 +741,6 @@
         "source": "flashscore_scrape",
         "kind": "snapshot_with_odds",
         "status": "ok"
-      },
-      "VTB League": {
-        "sport": "basketball",
-        "league": "VTB League",
-        "full_cache_matches": 0,
-        "date_min": null,
-        "date_max": null,
-        "dataset_count": 1,
-        "has_training_history": false,
-        "has_runtime_history": false,
-        "issues": [
-          "test snapshot"
-        ],
-        "source": null,
-        "kind": null,
-        "status": "empty"
       }
     },
     "football": {
@@ -844,13 +825,19 @@
         "dataset_count": 2,
         "has_training_history": true,
         "has_runtime_history": true,
-        "issues": [
-          "metadata seasons without cached games: 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2025",
-          "test snapshot"
-        ],
+        "issues": [],
         "source": "api_sports_hockey",
         "kind": "seasonal_history",
-        "status": "partial"
+        "status": "ok",
+        "coverage_policy": {
+          "mode": "accepted_local_baseline",
+          "accepted_seasons": [
+            2022,
+            2023,
+            2024
+          ],
+          "note": "API-Sports backfill недоступен без подписки; текущий локальный корпус принят как рабочая историческая база."
+        }
       },
       "KHL": {
         "sport": "hockey",
@@ -861,13 +848,19 @@
         "dataset_count": 2,
         "has_training_history": true,
         "has_runtime_history": true,
-        "issues": [
-          "metadata seasons without cached games: 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2025",
-          "test snapshot"
-        ],
+        "issues": [],
         "source": "api_sports_hockey",
         "kind": "seasonal_history",
-        "status": "partial"
+        "status": "ok",
+        "coverage_policy": {
+          "mode": "accepted_local_baseline",
+          "accepted_seasons": [
+            2022,
+            2023,
+            2024
+          ],
+          "note": "API-Sports backfill недоступен без подписки; текущий локальный корпус принят как рабочая историческая база."
+        }
       },
       "Liiga": {
         "sport": "hockey",
@@ -878,12 +871,19 @@
         "dataset_count": 2,
         "has_training_history": true,
         "has_runtime_history": true,
-        "issues": [
-          "metadata seasons without cached games: 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2025"
-        ],
+        "issues": [],
         "source": "api_sports_hockey",
         "kind": "seasonal_history",
-        "status": "partial"
+        "status": "ok",
+        "coverage_policy": {
+          "mode": "accepted_local_baseline",
+          "accepted_seasons": [
+            2022,
+            2023,
+            2024
+          ],
+          "note": "API-Sports backfill недоступен без подписки; текущий локальный корпус принят как рабочая историческая база."
+        }
       },
       "NHL": {
         "sport": "hockey",
@@ -894,10 +894,7 @@
         "dataset_count": 3,
         "has_training_history": true,
         "has_runtime_history": true,
-        "issues": [
-          "auxiliary period data only",
-          "test snapshot"
-        ],
+        "issues": [],
         "source": "nhl_api",
         "kind": "seasonal_history",
         "status": "ok"
@@ -911,12 +908,19 @@
         "dataset_count": 2,
         "has_training_history": true,
         "has_runtime_history": true,
-        "issues": [
-          "metadata seasons without cached games: 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2025"
-        ],
+        "issues": [],
         "source": "api_sports_hockey",
         "kind": "seasonal_history",
-        "status": "partial"
+        "status": "ok",
+        "coverage_policy": {
+          "mode": "accepted_local_baseline",
+          "accepted_seasons": [
+            2022,
+            2023,
+            2024
+          ],
+          "note": "API-Sports backfill недоступен без подписки; текущий локальный корпус принят как рабочая историческая база."
+        }
       }
     },
     "volleyball": {

@@ -20,6 +20,8 @@ logger = logging.getLogger(__name__)
 
 CACHE_ROOT = Path("data/cache")
 MANIFEST_FILE = CACHE_ROOT / "cache_manifest.json"
+POLICY_FILE = CACHE_ROOT / "cache_policy.json"
+TEST_ARCHIVE_ROOT = Path("data/cache_archive/test_snapshots")
 
 PRIMARY_HOCKEY_LEAGUES = {"NHL", "KHL", "SHL", "Liiga", "DEL"}
 EURO_LEAGUE_IDS = {
@@ -76,6 +78,35 @@ def _load_json(path: Path) -> Tuple[Any, Optional[str]]:
             return json.load(handle), None
     except Exception as exc:
         return None, f"{path.name}: {exc}"
+
+
+def _load_bytes(path: Path) -> bytes:
+    with open(path, "rb") as handle:
+        return handle.read()
+
+
+def load_cache_policy(cache_root: Path | str | None = None) -> Dict[str, Any]:
+    cache_root = _ensure_path(cache_root or CACHE_ROOT)
+    policy_path = cache_root / "cache_policy.json"
+    payload, error = _load_json(policy_path)
+    if error or not isinstance(payload, dict):
+        return {}
+    return payload
+
+
+def _get_coverage_policy(
+    cache_policy: Optional[Dict[str, Any]],
+    *,
+    sport: str,
+    league: str,
+    kind: str,
+) -> Optional[Dict[str, Any]]:
+    if not cache_policy:
+        return None
+    kind_policy = cache_policy.get(kind, {})
+    sport_policy = kind_policy.get(sport, {})
+    policy = sport_policy.get(league)
+    return policy if isinstance(policy, dict) else None
 
 
 def _normalize_sport(sport: str | SportType) -> str:
@@ -181,6 +212,7 @@ def _finalize_dataset(
     for_runtime: bool,
     metadata_expected_seasons: Optional[Iterable[Any]] = None,
     extra_issues: Optional[List[str]] = None,
+    coverage_policy: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     issues = list(extra_issues or [])
     files = list(files)
@@ -214,7 +246,15 @@ def _finalize_dataset(
     if duplicate_count:
         issues.append(f"duplicate records ignored: {duplicate_count}")
 
-    expected = {str(item) for item in metadata_expected_seasons or [] if item is not None}
+    expected_seasons = list(metadata_expected_seasons or [])
+    policy_seasons = coverage_policy.get("accepted_seasons") if coverage_policy else None
+    if policy_seasons:
+        accepted = {str(item) for item in policy_seasons if item is not None}
+        expected_seasons = [item for item in expected_seasons if str(item) in accepted]
+        if not expected_seasons:
+            expected_seasons = [str(item) for item in policy_seasons if item is not None]
+
+    expected = {str(item) for item in expected_seasons if item is not None}
     actual = {str(item) for item in seasons if item is not None}
     missing_from_metadata = sorted(expected - actual)
     if missing_from_metadata:
@@ -241,7 +281,7 @@ def _finalize_dataset(
     else:
         status = "empty"
 
-    return {
+    dataset = {
         "id": f"{sport}-{_slugify(league)}-{kind}",
         "sport": sport,
         "league": league,
@@ -259,6 +299,9 @@ def _finalize_dataset(
         "status": status,
         "issues": issues,
     }
+    if coverage_policy:
+        dataset["coverage_policy"] = coverage_policy
+    return dataset
 
 
 def _build_nhl_dataset(cache_root: Path) -> Dict[str, Any]:
@@ -278,7 +321,7 @@ def _build_nhl_dataset(cache_root: Path) -> Dict[str, Any]:
     )
 
 
-def _build_euro_hockey_datasets(cache_root: Path) -> List[Dict[str, Any]]:
+def _build_euro_hockey_datasets(cache_root: Path, cache_policy: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
     datasets = []
     leagues_root = cache_root / "leagues"
     for league, league_id in EURO_LEAGUE_IDS.items():
@@ -310,6 +353,12 @@ def _build_euro_hockey_datasets(cache_root: Path) -> List[Dict[str, Any]]:
                 for_runtime=True,
                 metadata_expected_seasons=expected_seasons,
                 extra_issues=issues,
+                coverage_policy=_get_coverage_policy(
+                    cache_policy,
+                    sport="hockey",
+                    league=league,
+                    kind="seasonal_history",
+                ),
             )
         )
     return datasets
@@ -464,7 +513,12 @@ def _build_summary(datasets: List[Dict[str, Any]]) -> Dict[str, Dict[str, Dict[s
         issue_order = []
         if primary is not None:
             issue_order.append(primary)
-        issue_order.extend(item for item in items if item is not primary)
+            issue_order.extend(
+                item for item in items
+                if item is not primary and item.get("kind") != "auxiliary"
+            )
+        else:
+            issue_order.extend(items)
         for item in issue_order:
             for issue in item.get("issues", []):
                 if issue not in flattened_issues:
@@ -484,14 +538,17 @@ def _build_summary(datasets: List[Dict[str, Any]]) -> Dict[str, Dict[str, Dict[s
             "kind": primary.get("kind") if primary else None,
             "status": primary.get("status") if primary else "empty",
         }
+        if primary and primary.get("coverage_policy"):
+            summary[sport][league]["coverage_policy"] = primary["coverage_policy"]
     return {sport: dict(leagues) for sport, leagues in summary.items()}
 
 
 def build_cache_manifest(cache_root: Path | str | None = None) -> Dict[str, Any]:
     cache_root = _ensure_path(cache_root or CACHE_ROOT)
+    cache_policy = load_cache_policy(cache_root)
     datasets = [
         _build_nhl_dataset(cache_root),
-        *_build_euro_hockey_datasets(cache_root),
+        *_build_euro_hockey_datasets(cache_root, cache_policy=cache_policy),
         *_build_snapshot_datasets(cache_root),
         *_build_auxiliary_datasets(cache_root),
     ]
@@ -500,6 +557,71 @@ def build_cache_manifest(cache_root: Path | str | None = None) -> Dict[str, Any]
         "generated_at": datetime.utcnow().isoformat(),
         "datasets": datasets,
         "summary": _build_summary(datasets),
+    }
+
+
+def find_test_snapshots(cache_root: Path | str | None = None) -> List[Dict[str, str]]:
+    cache_root = _ensure_path(cache_root or CACHE_ROOT)
+    snapshots = []
+    for path in sorted(cache_root.rglob("*_test_matches.json")):
+        if not path.is_file():
+            continue
+        snapshots.append(
+            {
+                "source": _json_relative(path, cache_root),
+                "sport": path.parent.name,
+                "filename": path.name,
+            }
+        )
+    return snapshots
+
+
+def archive_test_snapshots(
+    *,
+    cache_root: Path | str | None = None,
+    archive_root: Path | str | None = None,
+    dry_run: bool = False,
+) -> Dict[str, Any]:
+    cache_root = _ensure_path(cache_root or CACHE_ROOT)
+    archive_root = _ensure_path(archive_root or TEST_ARCHIVE_ROOT)
+    operations = []
+
+    for item in find_test_snapshots(cache_root=cache_root):
+        source = _ensure_path(item["source"])
+        relative = source.relative_to(cache_root)
+        destination = archive_root / relative
+        operation = {
+            "source": source.as_posix(),
+            "destination": destination.as_posix(),
+            "status": "planned" if dry_run else "pending",
+        }
+
+        if not dry_run:
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            if destination.exists():
+                source_bytes = _load_bytes(source)
+                destination_bytes = _load_bytes(destination)
+                if source_bytes == destination_bytes:
+                    source.unlink()
+                    operation["status"] = "deduplicated"
+                else:
+                    operation["status"] = "failed"
+                    operation["error"] = "archive target exists with different content"
+            else:
+                source.rename(destination)
+                operation["status"] = "archived"
+        operations.append(operation)
+
+    archived = sum(1 for item in operations if item["status"] in {"archived", "deduplicated"})
+    failed = [item for item in operations if item["status"] == "failed"]
+    return {
+        "timestamp": datetime.utcnow().isoformat(),
+        "dry_run": dry_run,
+        "archive_root": archive_root.as_posix(),
+        "files_found": len(operations),
+        "archived": archived,
+        "failed": len(failed),
+        "items": operations,
     }
 
 
@@ -640,6 +762,11 @@ def verify_manifest(manifest: Optional[Dict[str, Any]] = None) -> Dict[str, Any]
         if is_primary and dataset.get("status") in {"corrupt", "empty"}:
             critical.append(
                 f"{dataset['sport']}/{dataset['league']} ({dataset['kind']}): {dataset['status']}"
+            )
+        elif is_primary and dataset.get("status") == "partial":
+            details = "; ".join(dataset.get("issues", [])) or "partial dataset"
+            warnings.append(
+                f"partial dataset: {dataset['sport']}/{dataset['league']} ({dataset['kind']}) -> {details}"
             )
 
         if "test snapshot" in dataset.get("issues", []):

@@ -1,6 +1,13 @@
 import json
 
-from src.cache_catalog import build_cache_manifest, get_best_dataset, load_history, verify_manifest
+from src.cache_catalog import (
+    archive_test_snapshots,
+    build_cache_manifest,
+    find_test_snapshots,
+    get_best_dataset,
+    load_history,
+    verify_manifest,
+)
 
 
 def _write_json(path, payload):
@@ -89,6 +96,7 @@ def test_build_cache_manifest_classifies_datasets_and_summaries(tmp_path):
 
     manifest = build_cache_manifest(cache_root=cache_root)
 
+    assert manifest["summary"]["hockey"]["NHL"]["issues"] == []
     assert manifest["summary"]["hockey"]["NHL"]["full_cache_matches"] == 1
     assert manifest["summary"]["hockey"]["KHL"]["full_cache_matches"] == 1
     assert manifest["summary"]["hockey"]["KHL"]["status"] == "partial"
@@ -156,3 +164,64 @@ def test_manifest_marks_corrupt_primary_dataset_and_verify_fails(tmp_path):
     verification = verify_manifest(manifest)
     assert verification["ok"] is False
     assert any("basketball/NBA" in issue for issue in verification["critical"])
+
+
+def test_archive_test_snapshots_moves_files_out_of_live_cache(tmp_path):
+    cache_root = tmp_path / "data" / "cache"
+    archive_root = tmp_path / "data" / "cache_archive" / "test_snapshots"
+    _build_primary_hockey_cache(cache_root)
+    _write_json(
+        cache_root / "hockey" / "KHL_test_matches.json",
+        [_match("2025-01-05", "SKA", "CSKA", 2, 0, game_id="khl-test")],
+    )
+    _write_json(
+        cache_root / "basketball" / "VTB_test_matches.json",
+        [_match("2025-01-06", "CSKA", "Zenit", 88, 80, game_id="vtb-test")],
+    )
+
+    snapshots = find_test_snapshots(cache_root=cache_root)
+    assert [item["filename"] for item in snapshots] == ["VTB_test_matches.json", "KHL_test_matches.json"]
+
+    dry_run = archive_test_snapshots(cache_root=cache_root, archive_root=archive_root, dry_run=True)
+    assert dry_run["files_found"] == 2
+    assert (cache_root / "hockey" / "KHL_test_matches.json").exists()
+
+    moved = archive_test_snapshots(cache_root=cache_root, archive_root=archive_root, dry_run=False)
+    assert moved["archived"] == 2
+    assert not (cache_root / "hockey" / "KHL_test_matches.json").exists()
+    assert (archive_root / "hockey" / "KHL_test_matches.json").exists()
+    assert (archive_root / "basketball" / "VTB_test_matches.json").exists()
+
+    manifest = build_cache_manifest(cache_root=cache_root)
+    assert all("test snapshot" not in dataset.get("issues", []) for dataset in manifest["datasets"])
+
+
+def test_build_cache_manifest_honors_local_coverage_policy(tmp_path):
+    cache_root = tmp_path / "data" / "cache"
+    _build_primary_hockey_cache(cache_root)
+    _write_json(
+        cache_root / "cache_policy.json",
+        {
+            "seasonal_history": {
+                "hockey": {
+                    "KHL": {
+                        "mode": "accepted_local_baseline",
+                        "accepted_seasons": [2024],
+                        "note": "local baseline",
+                    }
+                }
+            }
+        },
+    )
+
+    manifest = build_cache_manifest(cache_root=cache_root)
+    khl_summary = manifest["summary"]["hockey"]["KHL"]
+    khl_dataset = next(
+        item for item in manifest["datasets"]
+        if item["sport"] == "hockey" and item["league"] == "KHL" and item["kind"] == "seasonal_history"
+    )
+
+    assert khl_summary["status"] == "ok"
+    assert khl_summary["issues"] == []
+    assert khl_summary["coverage_policy"]["accepted_seasons"] == [2024]
+    assert khl_dataset["coverage_policy"]["mode"] == "accepted_local_baseline"

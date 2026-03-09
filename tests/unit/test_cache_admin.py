@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import sys
 from pathlib import Path
 
 from src import cache_catalog, data_refresh
@@ -95,3 +96,50 @@ def test_verify_returns_nonzero_for_corrupt_primary_dataset(tmp_path, monkeypatc
     monkeypatch.setattr(data_refresh, "REFRESH_STATE_FILE", str(cache_root / "refresh_state.json"))
 
     assert module.main(["verify"]) == 1
+
+
+def test_archive_test_snapshots_dry_run_reports_files(tmp_path, monkeypatch, capsys):
+    cache_root = tmp_path / "data" / "cache"
+    archive_root = tmp_path / "data" / "cache_archive" / "test_snapshots"
+    _seed_primary_hockey(cache_root)
+    _write_json(cache_root / "hockey" / "KHL_test_matches.json", [_match("2025-01-01", "SKA", "CSKA", 2, 1, game_id="test-khl")])
+    module = _load_cache_admin_module()
+
+    monkeypatch.setattr(cache_catalog, "CACHE_ROOT", cache_root)
+    monkeypatch.setattr(cache_catalog, "MANIFEST_FILE", cache_root / "cache_manifest.json")
+    monkeypatch.setattr(cache_catalog, "TEST_ARCHIVE_ROOT", archive_root)
+    monkeypatch.setattr(data_refresh, "REFRESH_STATE_FILE", str(cache_root / "refresh_state.json"))
+
+    rc = module.main(["archive-test-snapshots", "--dry-run", "--json"])
+    output = json.loads(capsys.readouterr().out)
+
+    assert rc == 0
+    assert output["files_found"] == 1
+    assert output["items"][0]["status"] == "planned"
+    assert (cache_root / "hockey" / "KHL_test_matches.json").exists()
+    assert not (archive_root / "hockey" / "KHL_test_matches.json").exists()
+
+
+def test_backfill_hockey_dry_run_returns_planned_range(tmp_path, monkeypatch, capsys):
+    cache_root = tmp_path / "data" / "cache"
+    _seed_primary_hockey(cache_root)
+    module = _load_cache_admin_module()
+
+    class _Loader:
+        def get_available_seasons(self, league_id):
+            return [2025, 2024, 2023, 2008]
+
+        def _get_cached_game_seasons(self, league_id):
+            return [2024]
+
+    monkeypatch.setitem(sys.modules, "src.multi_league_loader", type("Mod", (), {"MultiLeagueLoader": _Loader}))
+    monkeypatch.setattr(cache_catalog, "CACHE_ROOT", cache_root)
+    monkeypatch.setattr(cache_catalog, "MANIFEST_FILE", cache_root / "cache_manifest.json")
+    monkeypatch.setattr(data_refresh, "REFRESH_STATE_FILE", str(cache_root / "refresh_state.json"))
+
+    rc = module.main(["backfill-hockey", "--league", "KHL", "--dry-run", "--from-season", "2008", "--to-season", "2025"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert rc == 0
+    assert payload["mode"] == "dry-run"
+    assert payload["planned_seasons"]["KHL"] == [2008, 2023, 2024, 2025]

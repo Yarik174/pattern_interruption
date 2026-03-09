@@ -1,0 +1,27 @@
+{
+  "generated_at": "2026-03-09T13:10:00",
+  "seasonal_history": {
+    "hockey": {
+      "KHL": {
+        "mode": "accepted_local_baseline",
+        "accepted_seasons": [2022, 2023, 2024],
+        "note": "API-Sports backfill недоступен без подписки; текущий локальный корпус принят как рабочая историческая база."
+      },
+      "SHL": {
+        "mode": "accepted_local_baseline",
+        "accepted_seasons": [2022, 2023, 2024],
+        "note": "API-Sports backfill недоступен без подписки; текущий локальный корпус принят как рабочая историческая база."
+      },
+      "Liiga": {
+        "mode": "accepted_local_baseline",
+        "accepted_seasons": [2022, 2023, 2024],
+        "note": "API-Sports backfill недоступен без подписки; текущий локальный корпус принят как рабочая историческая база."
+      },
+      "DEL": {
+        "mode": "accepted_local_baseline",
+        "accepted_seasons": [2022, 2023, 2024],
+        "note": "API-Sports backfill недоступен без подписки; текущий локальный корпус принят как рабочая историческая база."
+      }
+    }
+  }
+}
