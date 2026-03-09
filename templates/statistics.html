@@ -369,7 +369,7 @@
         
         <h1 class="page-title">Аналитика точности модели</h1>
         <p class="page-subtitle">
-            Детальный анализ прогнозов по лигам, паттернам и уровню уверенности
+            Детальный анализ прогнозов по видам спорта, лигам, паттернам и уровню уверенности
             {% if model_stats.pending > 0 %}
             <span class="pending-badge">{{ model_stats.pending }} ожидают результата</span>
             {% endif %}
@@ -495,14 +495,67 @@
         {% endif %}
         
         <div class="section">
-            <h3 class="section-title">🏒 Точность по лигам</h3>
+            <h3 class="section-title">🏟️ Точность по видам спорта</h3>
             <div class="league-stats">
-                {% for league in ['NHL', 'KHL', 'SHL', 'Liiga', 'DEL'] %}
+                {% if sport_stats %}
+                {% for sport in sport_stats.values() %}
                 <div class="league-card">
                     <div class="league-header">
-                        <span class="league-name">{{ league }}</span>
+                        <span>{{ sport.icon }}</span>
+                        <span class="league-name">{{ sport.name_ru }}</span>
                     </div>
-                    {% if league_stats and league in league_stats %}
+                    <div class="league-metrics">
+                        <div class="metric-row">
+                            <span class="name">Прогнозов</span>
+                            <span class="value">{{ sport.total }}</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="name">W / L</span>
+                            <span class="value" style="color: var(--success)">{{ sport.wins }}</span> /
+                            <span class="value" style="color: var(--danger)">{{ sport.losses }}</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="name">Win Rate</span>
+                            <span class="value" style="color: {% if sport.win_rate >= 55 %}var(--success){% elif sport.win_rate >= 50 %}var(--warning){% else %}var(--danger){% endif %}">
+                                {{ '%.1f'|format(sport.win_rate) }}%
+                            </span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="name">ROI</span>
+                            <span class="value" style="color: {% if sport.roi > 0 %}var(--success){% else %}var(--danger){% endif %}">
+                                {{ '%+.1f'|format(sport.roi) }}%
+                            </span>
+                        </div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill {% if sport.win_rate >= 55 %}good{% elif sport.win_rate >= 50 %}warning{% else %}bad{% endif %}"
+                             style="width: {{ sport.win_rate }}%;"></div>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="empty-state">
+                    <p>По видам спорта пока недостаточно завершённых прогнозов.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="section">
+            <h3 class="section-title">🏒 Точность по лигам</h3>
+            <div class="league-stats">
+                {% if league_order %}
+                {% for league in league_order %}
+                <div class="league-card">
+                    <div class="league-header">
+                        <span>{{ league_stats[league].sport_icon }}</span>
+                        <div>
+                            <div class="league-name">{{ league }}</div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">
+                                {{ league_stats[league].sport_name }}
+                            </div>
+                        </div>
+                    </div>
                     <div class="league-metrics">
                         <div class="metric-row">
                             <span class="name">Прогнозов</span>
@@ -510,7 +563,7 @@
                         </div>
                         <div class="metric-row">
                             <span class="name">W / L</span>
-                            <span class="value" style="color: var(--success)">{{ league_stats[league].wins }}</span> / 
+                            <span class="value" style="color: var(--success)">{{ league_stats[league].wins }}</span> /
                             <span class="value" style="color: var(--danger)">{{ league_stats[league].losses }}</span>
                         </div>
                         <div class="metric-row">
@@ -527,18 +580,16 @@
                         </div>
                     </div>
                     <div class="progress-bar">
-                        <div class="progress-fill {% if league_stats[league].win_rate >= 55 %}good{% elif league_stats[league].win_rate >= 50 %}warning{% else %}bad{% endif %}" 
+                        <div class="progress-fill {% if league_stats[league].win_rate >= 55 %}good{% elif league_stats[league].win_rate >= 50 %}warning{% else %}bad{% endif %}"
                              style="width: {{ league_stats[league].win_rate }}%;"></div>
                     </div>
-                    {% else %}
-                    <div class="league-metrics">
-                        <div class="metric-row">
-                            <span class="name">Нет данных</span>
-                        </div>
-                    </div>
-                    {% endif %}
                 </div>
                 {% endfor %}
+                {% else %}
+                <div class="empty-state">
+                    <p>По лигам пока нет завершённых прогнозов.</p>
+                </div>
+                {% endif %}
             </div>
         </div>
         

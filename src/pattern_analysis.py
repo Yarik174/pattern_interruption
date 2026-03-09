@@ -240,7 +240,7 @@ class PatternAnalyzer:
         print("=" * 70)
         
         print("\n📥 Загрузка данных...")
-        seasons = NHLDataLoader.get_default_seasons(n_seasons=10)
+        seasons = self.data_loader.get_cached_seasons() or NHLDataLoader.get_default_seasons(n_seasons=10)
         games_df = self.data_loader.load_all_data(seasons=seasons, use_cache=True)
         
         print("\n🔧 Формирование признаков...")

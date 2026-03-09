@@ -66,7 +66,9 @@ def parse_html_table(html: str, season: str) -> pd.DataFrame:
                 visitor = row
             elif row['VH'] == 'H' and visitor is not None:
                 try:
-                    date_str = str(visitor['Date'])
+                    date_str = str(visitor['Date']).strip()
+                    if date_str.isdigit():
+                        date_str = date_str.zfill(4)
                     if len(date_str) == 4:
                         month = int(date_str[:2])
                         day = int(date_str[2:])

@@ -43,7 +43,8 @@ class EuroLeagueLoader:
         
         cache_files = list(self.cache_dir.glob(f"games_{league_id}_*.json"))
         cache_files.sort(reverse=True)
-        cache_files = cache_files[:n_seasons]
+        if n_seasons and n_seasons > 0:
+            cache_files = cache_files[:n_seasons]
         
         for cache_file in cache_files:
             try:

@@ -32,6 +32,17 @@ class MultiLeagueLoader:
     def __init__(self):
         self.api_key = API_SPORTS_KEY
         CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+    def _get_cached_game_seasons(self, league_id):
+        """Получить сезоны, для которых уже есть кэш матчей."""
+        seasons = []
+        for path in CACHE_DIR.glob(f"games_{league_id}_*.json"):
+            try:
+                season = int(path.stem.split("_")[-1])
+                seasons.append(season)
+            except (ValueError, IndexError):
+                continue
+        return sorted(set(seasons), reverse=True)
         
     def _make_request(self, endpoint, params=None):
         """Выполнить запрос к API"""
@@ -60,6 +71,10 @@ class MultiLeagueLoader:
         if cache_file.exists():
             with open(cache_file, 'r') as f:
                 return json.load(f)
+
+        cached_seasons = self._get_cached_game_seasons(league_id)
+        if cached_seasons:
+            return cached_seasons
         
         data = self._make_request('leagues', {'id': league_id})
         if data and data.get('response'):
@@ -99,6 +114,9 @@ class MultiLeagueLoader:
                 cached = json.load(f)
                 print(f"  📦 Загружено из кэша: {len(cached)} матчей")
                 return cached
+
+        if not self.api_key:
+            return []
         
         data = self._make_request('games', {'league': league_id, 'season': season})
         if data and data.get('response'):
@@ -151,14 +169,24 @@ class MultiLeagueLoader:
             print(f"❌ Не удалось получить сезоны для {league_name}")
             return []
         
-        seasons = sorted(seasons, reverse=True)[:n_seasons]
-        print(f"📅 Сезоны: {seasons}")
+        cached_seasons = self._get_cached_game_seasons(league_id)
+        seasons = sorted(set(seasons) | set(cached_seasons), reverse=True)
+        print(f"📅 Кандидаты сезонов: {seasons}")
         
         all_games = []
-        for i, season in enumerate(seasons):
-            print(f"[{i+1}/{len(seasons)}] Сезон {season}")
+        requested_seasons = n_seasons if n_seasons and n_seasons > 0 else None
+        loaded_seasons = 0
+        for season in seasons:
+            if requested_seasons is not None and loaded_seasons >= requested_seasons:
+                break
+
+            target_label = requested_seasons if requested_seasons is not None else "all"
+            print(f"[{loaded_seasons + 1}/{target_label}] Сезон {season}")
             games = self.get_games(league_id, season)
+            if not games:
+                continue
             all_games.extend(games)
+            loaded_seasons += 1
         
         print(f"\n📊 Итого: {len(all_games)} матчей")
         return all_games

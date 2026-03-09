@@ -20,6 +20,8 @@ import requests
 import os
 import sys
 import re
+from typing import Optional
+from sqlalchemy.pool import StaticPool
 try:
     from supabase import create_client, Client
 except Exception:
@@ -31,70 +33,191 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from src.data_loader import DataLoader
 from src.pattern_engine import PatternEngine
 from src.feature_builder import FeatureBuilder
+from src.sports_config import SportType, get_all_sports, get_leagues_for_sport
+from models import db, Prediction, UserDecision, UserWatchlist, ModelVersion, TelegramSettings, OddsMonitorLog, SystemLog, User
+from src.routes import routes_bp, init_routes, set_monitor, set_telegram, set_odds_loader
+from src.odds_monitor import OddsMonitor, start_auto_monitoring, get_auto_monitor
 
 app = Flask(__name__, static_folder='static')
 app.config['TEMPLATES_AUTO_RELOAD'] = True
-app.secret_key = os.environ.get("SESSION_SECRET")
 
-if not app.secret_key:
-    raise RuntimeError("SESSION_SECRET environment variable is required. Please set it in the Secrets tab.")
+supabase = None
+telegram_notifier = None
+odds_loader = None
+flashlive_loader = None
+flashlive_loaders = {}
+flashlive_multi_loader = None
 
-_database_url = os.environ.get("DATABASE_URL", "")
-if _database_url.startswith("postgres://"):
-    _database_url = _database_url.replace("postgres://", "postgresql://", 1)
-app.config["SQLALCHEMY_DATABASE_URI"] = _database_url
-app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
-    "pool_recycle": 300,
-    "pool_pre_ping": True,
+_db_initialized = False
+_routes_initialized = False
+
+SPORT_NAME_MAP = {
+    'hockey': SportType.HOCKEY,
+    'nhl': SportType.HOCKEY,
+    'football': SportType.FOOTBALL,
+    'soccer': SportType.FOOTBALL,
+    'basketball': SportType.BASKETBALL,
+    'volleyball': SportType.VOLLEYBALL,
 }
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY")
-supabase = create_client(SUPABASE_URL, SUPABASE_ANON_KEY) if (create_client and SUPABASE_URL and SUPABASE_ANON_KEY) else None
 
-from models import db, Prediction, UserDecision, UserWatchlist, ModelVersion, TelegramSettings, OddsMonitorLog, SystemLog, User
-db.init_app(app)
+def resolve_sport_type(sport, default: Optional[SportType] = SportType.HOCKEY):
+    """Преобразовать строку/query param в SportType."""
+    if isinstance(sport, SportType):
+        return sport
+    if sport is None:
+        return default
+    return SPORT_NAME_MAP.get(str(sport).strip().lower(), default)
 
-with app.app_context():
-    db.create_all()
-    try:
-        from sqlalchemy import inspect
-        inspector = inspect(db.engine)
-        if not inspector.has_table('users'):
-            User.__table__.create(db.engine)
-    except Exception:
-        pass
-    
-from src.routes import routes_bp, init_routes, set_monitor, set_telegram, set_odds_loader
-init_routes(db, {
-    'Prediction': Prediction,
-    'UserDecision': UserDecision,
-    'UserWatchlist': UserWatchlist,
-    'ModelVersion': ModelVersion,
-    'TelegramSettings': TelegramSettings
-})
-app.register_blueprint(routes_bp)
 
-from src.telegram_bot import TelegramNotifier
-from src.apisports_odds_loader import APISportsOddsLoader, get_demo_odds
-from src.allbestbets_loader import AllBestBetsLoader, get_demo_matches
-from src.flashlive_loader import FlashLiveLoader, set_telegram_notifier as set_flashlive_notifier
-from src.odds_monitor import OddsMonitor, start_auto_monitoring, get_auto_monitor
+def get_sport_slug(sport_type: SportType) -> str:
+    """Получить slug вида спорта для API/UI."""
+    for slug in ('hockey', 'football', 'basketball', 'volleyball'):
+        if SPORT_NAME_MAP[slug] == sport_type:
+            return slug
+    return 'hockey'
 
-telegram_notifier = TelegramNotifier()
-odds_loader = APISportsOddsLoader()
-allbestbets_loader = AllBestBetsLoader()
-flashlive_loader = FlashLiveLoader()
-set_telegram(telegram_notifier)
-set_odds_loader(flashlive_loader)
 
-# Настроить отправку алертов об ошибках API в Telegram
-# Передаём notifier напрямую - он проверит is_configured() динамически
-set_flashlive_notifier(telegram_notifier)
+def infer_sport_type_from_league(league: Optional[str]) -> SportType:
+    """Определить вид спорта по коду лиги."""
+    if not league:
+        return SportType.HOCKEY
+    for sport_type in (SportType.HOCKEY, SportType.FOOTBALL, SportType.BASKETBALL, SportType.VOLLEYBALL):
+        if league in get_leagues_for_sport(sport_type):
+            return sport_type
+    return SportType.HOCKEY
 
-# AutoMonitor с интервалом 12 часов (экономия API запросов)
-start_auto_monitoring()
+
+def get_flashlive_loader(sport: Optional[str] = None):
+    """Получить кэшированный FlashLive loader для нужного вида спорта."""
+    global flashlive_loader, flashlive_loaders
+
+    sport_type = resolve_sport_type(sport)
+    loader = flashlive_loaders.get(sport_type)
+    if loader is not None:
+        return loader
+
+    from src.flashlive_loader import FlashLiveLoader, set_telegram_notifier as set_flashlive_notifier
+
+    loader = FlashLiveLoader(sport_type=sport_type)
+    flashlive_loaders[sport_type] = loader
+
+    if telegram_notifier is not None:
+        set_flashlive_notifier(telegram_notifier)
+
+    if sport_type == SportType.HOCKEY:
+        flashlive_loader = loader
+
+    return loader
+
+
+def _normalize_flash_match(match: dict, sport_type: SportType) -> dict:
+    """Нормализовать live-матч для ответа API."""
+    normalized = dict(match)
+    normalized['sport'] = get_sport_slug(sport_type)
+    normalized['sport_type'] = get_sport_slug(sport_type)
+    return normalized
+
+
+def _build_odds_key(home_team: str, away_team: str, league: Optional[str], sport_type: SportType) -> str:
+    """Стабильный ключ матча для odds-ответов."""
+    if sport_type == SportType.HOCKEY and league == 'NHL':
+        home_abbrev = get_abbrev_from_full_name(home_team)
+        away_abbrev = get_abbrev_from_full_name(away_team)
+        if home_abbrev and away_abbrev:
+            return f"{home_abbrev}_{away_abbrev}"
+    return f"{home_team}__{away_team}"
+
+
+def create_app(testing: bool = False, start_background: bool = True):
+    """Сконфигурировать глобальный Flask app для рантайма или тестов."""
+    global _db_initialized, _routes_initialized
+    global supabase, telegram_notifier, odds_loader, flashlive_loader, flashlive_loaders, flashlive_multi_loader
+
+    app.config['TEMPLATES_AUTO_RELOAD'] = True
+    app.config['TESTING'] = testing
+
+    if testing:
+        app.secret_key = os.environ.get("SESSION_SECRET", "test-secret-key")
+        app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///:memory:")
+        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+            "connect_args": {"check_same_thread": False},
+            "poolclass": StaticPool,
+        }
+        supabase = None
+    else:
+        app.secret_key = os.environ.get("SESSION_SECRET")
+        if not app.secret_key:
+            raise RuntimeError("SESSION_SECRET environment variable is required. Please set it in the Secrets tab.")
+
+        database_url = os.environ.get("DATABASE_URL", "")
+        if database_url.startswith("postgres://"):
+            database_url = database_url.replace("postgres://", "postgresql://", 1)
+
+        app.config["SQLALCHEMY_DATABASE_URI"] = database_url
+        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+            "pool_recycle": 300,
+            "pool_pre_ping": True,
+        }
+
+        supabase_url = os.environ.get("SUPABASE_URL")
+        supabase_anon_key = os.environ.get("SUPABASE_ANON_KEY")
+        supabase = create_client(supabase_url, supabase_anon_key) if (
+            create_client and supabase_url and supabase_anon_key
+        ) else None
+
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+    if not _db_initialized:
+        db.init_app(app)
+        _db_initialized = True
+
+    if not _routes_initialized:
+        init_routes(db, {
+            'Prediction': Prediction,
+            'UserDecision': UserDecision,
+            'UserWatchlist': UserWatchlist,
+            'ModelVersion': ModelVersion,
+            'TelegramSettings': TelegramSettings
+        })
+        app.register_blueprint(routes_bp)
+        _routes_initialized = True
+
+    with app.app_context():
+        db.create_all()
+        try:
+            from sqlalchemy import inspect
+            inspector = inspect(db.engine)
+            if not inspector.has_table('users'):
+                User.__table__.create(db.engine)
+        except Exception:
+            pass
+
+    if testing:
+        telegram_notifier = None
+        odds_loader = None
+        flashlive_loader = None
+        flashlive_loaders = {}
+        flashlive_multi_loader = None
+        return app
+
+    if telegram_notifier is None or odds_loader is None or flashlive_loader is None or flashlive_multi_loader is None:
+        from src.telegram_bot import TelegramNotifier
+        from src.flashlive_loader import MultiSportFlashLiveLoader, set_telegram_notifier as set_flashlive_notifier
+
+        telegram_notifier = TelegramNotifier()
+        flashlive_loader = get_flashlive_loader(SportType.HOCKEY)
+        flashlive_multi_loader = MultiSportFlashLiveLoader()
+        odds_loader = get_flashlive_loader
+        set_telegram(telegram_notifier)
+        set_odds_loader(get_flashlive_loader)
+        set_flashlive_notifier(telegram_notifier)
+
+    if start_background:
+        start_auto_monitoring()
+        startup_initialization()
+
+    return app
 
 @app.before_request
 def require_login():
@@ -212,21 +335,6 @@ def auth_db_init():
         return jsonify({'ok': True, 'tables': tables})
     except Exception as e:
         return jsonify({'ok': False, 'error': str(e)})
-@app.before_request
-def require_login():
-    allowed = ['/auth', '/static', '/favicon', '/@vite']
-    path = request.path or '/'
-    if any(path.startswith(p) for p in allowed):
-        return None
-    if not (session.get('sb_user_id') or session.get('user_id')):
-        return redirect(url_for('auth_login', next=path))
-
-@app.after_request
-def add_header(response):
-    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
-    response.headers['Pragma'] = 'no-cache'
-    response.headers['Expires'] = '0'
-    return response
 
 data_loader = None
 pattern_engine = None
@@ -295,7 +403,7 @@ def init_system():
         feature_builder = FeatureBuilder(pattern_engine)
         
         print("📥 Загрузка исторических данных...")
-        seasons = DataLoader.get_default_seasons(n_seasons=10)
+        seasons = data_loader.get_cached_seasons() or DataLoader.get_default_seasons(n_seasons=10)
         all_games = data_loader.load_all_data(seasons=seasons)
         
         print("🔍 Анализ паттернов...")
@@ -339,8 +447,8 @@ def get_latest_artifact():
     dirs.sort(reverse=True)
     return os.path.join(artifacts_dir, dirs[0])
 
-def fetch_odds():
-    """Получить коэффициенты NHL из The Odds API"""
+def _fetch_legacy_nhl_odds():
+    """Legacy fallback: получить коэффициенты NHL из The Odds API."""
     global odds_cache, odds_cache_time
     
     if odds_cache_time and (datetime.now() - odds_cache_time).seconds < 300:
@@ -417,11 +525,68 @@ def fetch_odds():
         print(f"❌ Ошибка загрузки коэффициентов: {e}")
         return {}
 
-def get_upcoming_games():
-    """Получить предстоящие матчи NHL"""
+def _fetch_flash_odds_for_sport(sport: Optional[str], leagues=None, days_ahead: int = 1):
+    """Получить коэффициенты через FlashLive для выбранного вида спорта."""
+    sport_type = resolve_sport_type(sport)
+    loader = get_flashlive_loader(sport_type)
+
+    if not loader or not loader.is_configured():
+        return {}
+
+    target_leagues = leagues or get_leagues_for_sport(sport_type)
+    matches = loader.get_matches_with_odds(days_ahead=days_ahead, leagues=target_leagues)
+
+    odds_dict = {}
+    for match in matches:
+        key = _build_odds_key(
+            match.get('home_team', ''),
+            match.get('away_team', ''),
+            match.get('league'),
+            sport_type
+        )
+        odds_dict[key] = {
+            'home_odds': match.get('home_odds'),
+            'away_odds': match.get('away_odds'),
+            'draw_odds': match.get('draw_odds'),
+            'bookmaker': match.get('bookmaker'),
+            'home_team': match.get('home_team'),
+            'away_team': match.get('away_team'),
+            'league': match.get('league'),
+            'match_date': match.get('match_date').isoformat() if isinstance(match.get('match_date'), datetime) else match.get('match_date'),
+            'event_id': match.get('event_id'),
+            'sport': get_sport_slug(sport_type),
+        }
+
+    return odds_dict
+
+
+def fetch_odds(sport: Optional[str] = None, leagues=None, days_ahead: int = 1):
+    """Получить коэффициенты.
+
+    Без sport оставляем legacy-поведение для NHL-аналитики.
+    Со sport используем FlashLive как единый live-source.
+    """
+    global odds_cache, odds_cache_time
+
+    if sport:
+        return _fetch_flash_odds_for_sport(sport=sport, leagues=leagues, days_ahead=days_ahead)
+
+    if odds_cache_time and (datetime.now() - odds_cache_time).seconds < 300:
+        return odds_cache
+
+    if flashlive_loader is not None:
+        odds_data = _fetch_flash_odds_for_sport(sport='hockey', leagues=['NHL'], days_ahead=days_ahead)
+        if odds_data:
+            odds_cache = odds_data
+            odds_cache_time = datetime.now()
+            return odds_data
+
+    return _fetch_legacy_nhl_odds()
+
+
+def _get_nhl_upcoming_games():
+    """Получить предстоящие матчи NHL из официального NHL schedule API."""
     today = datetime.now().strftime("%Y-%m-%d")
-    tomorrow = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
-    
     url = f"https://api-web.nhle.com/v1/schedule/{today}"
     
     try:
@@ -449,6 +614,31 @@ def get_upcoming_games():
         print(f"Ошибка загрузки расписания: {e}")
     
     return []
+
+
+def get_upcoming_games(sport: Optional[str] = None, leagues=None, days_ahead: int = 1):
+    """Получить предстоящие матчи.
+
+    Без sport: legacy NHL schedule для старого пайплайна анализа.
+    Со sport: FlashLive для мультиспорта.
+    """
+    if not sport:
+        return _get_nhl_upcoming_games()
+
+    sport_type = resolve_sport_type(sport, default=None)
+    if sport_type is None:
+        return []
+
+    if str(sport).strip().lower() == 'nhl':
+        return _get_nhl_upcoming_games()
+
+    loader = get_flashlive_loader(sport_type)
+    if not loader or not loader.is_configured():
+        return []
+
+    target_leagues = leagues or get_leagues_for_sport(sport_type)
+    matches = loader.get_upcoming_games(leagues=target_leagues, days_ahead=days_ahead)
+    return [_normalize_flash_match(match, sport_type) for match in matches]
 
 def analyze_game(home_team, away_team):
     """Анализ паттернов для матча"""
@@ -723,8 +913,24 @@ def index():
 @app.route('/api/upcoming')
 def api_upcoming():
     """API: предстоящие матчи"""
-    games = get_upcoming_games()
-    return jsonify({'matches': games})
+    sport = request.args.get('sport')
+    league = request.args.get('league')
+    days_ahead = request.args.get('days', 1, type=int)
+    leagues = [league] if league else None
+
+    if sport and resolve_sport_type(sport, default=None) is None:
+        return jsonify({'error': 'Неизвестный вид спорта'}), 400
+
+    if sport or league or days_ahead != 1:
+        games = get_upcoming_games(sport=sport, leagues=leagues, days_ahead=days_ahead)
+    else:
+        games = get_upcoming_games()
+    payload = {'matches': games}
+    if sport:
+        payload['sport'] = str(sport).lower()
+    if league:
+        payload['league'] = league
+    return jsonify(payload)
 
 @app.route('/api/analyze/<home_team>/<away_team>')
 def api_analyze(home_team, away_team):
@@ -790,8 +996,40 @@ def api_analyze_all():
 @app.route('/api/odds')
 def api_odds():
     """API: получить коэффициенты"""
-    odds_data = fetch_odds()
-    return jsonify({'odds': odds_data, 'count': len(odds_data)})
+    sport = request.args.get('sport')
+    league = request.args.get('league')
+    days_ahead = request.args.get('days', 1, type=int)
+    leagues = [league] if league else None
+
+    if sport and resolve_sport_type(sport, default=None) is None:
+        return jsonify({'error': 'Неизвестный вид спорта'}), 400
+
+    if sport or league or days_ahead != 1:
+        odds_data = fetch_odds(sport=sport, leagues=leagues, days_ahead=days_ahead)
+    else:
+        odds_data = fetch_odds()
+    payload = {'odds': odds_data, 'count': len(odds_data)}
+    if sport:
+        payload['sport'] = str(sport).lower()
+    if league:
+        payload['league'] = league
+    return jsonify(payload)
+
+
+@app.route('/api/sports')
+def api_sports():
+    """API: список поддерживаемых видов спорта и лиг."""
+    sports = []
+    for sport in get_all_sports():
+        sports.append({
+            'id': sport['id'],
+            'slug': get_sport_slug(sport['type']),
+            'name': sport['name'],
+            'name_ru': sport['name_ru'],
+            'icon': sport['icon'],
+            'leagues': sport['leagues'],
+        })
+    return jsonify({'sports': sports})
 
 multi_league_engine = None
 
@@ -803,7 +1041,7 @@ def init_multi_league():
         from src.multi_league_predictor import MultiLeaguePatternEngine
         print("🌍 Инициализация мульти-лигового движка...")
         multi_league_engine = MultiLeaguePatternEngine(critical_length=5)
-        multi_league_engine.load_leagues(['KHL', 'SHL', 'Liiga', 'DEL'], n_seasons=4)
+        multi_league_engine.load_leagues(['KHL', 'SHL', 'Liiga', 'DEL'], n_seasons=None)
         print("✅ Мульти-лиговый движок готов!")
     
     return multi_league_engine
@@ -910,7 +1148,7 @@ def init_euro_leagues():
         print("🏒 Инициализация европейских лиг...")
         
         loader = EuroLeagueLoader()
-        euro_league_data = loader.load_all_european_leagues(n_seasons=4)
+        euro_league_data = loader.load_all_european_leagues(n_seasons=None)
         
         euro_league_engine = PatternEngine()
         
@@ -1456,67 +1694,27 @@ def create_prediction_from_match(match_data):
         Prediction object или None
     """
     try:
-        init_system()
-        
-        home_team = match_data.get('home_team', '')
-        away_team = match_data.get('away_team', '')
-        league = match_data.get('league', 'NHL')
-        
         home_odds = match_data.get('home_odds')
         away_odds = match_data.get('away_odds')
         
-        if not home_odds or not away_odds:
+        if not home_odds and not away_odds:
             return None
-        
-        _analysis = None
-        try:
-            _analysis = analyze_game(home_team, away_team)
-        except Exception:
-            pass
 
-        _model_pred = _analysis.get('prediction') if _analysis else None
+        min_odds, max_odds = 2.0, 3.5
+        target_odds = None
+        bet_on = None
 
-        if _model_pred and _model_pred.get('predicted_winner'):
-            _winner = _model_pred['predicted_winner']
-            predicted_outcome = home_team if _winner == 'home' else away_team
-            confidence = min(0.95, _model_pred.get('break_probability', 60) / 100)
+        if home_odds and min_odds <= home_odds <= max_odds:
+            target_odds = home_odds
+            bet_on = 'home'
+        elif away_odds and min_odds <= away_odds <= max_odds:
+            target_odds = away_odds
+            bet_on = 'away'
         else:
-            if home_odds < away_odds:
-                predicted_outcome = home_team
-                confidence = min(0.95, 1 / home_odds + 0.1)
-            else:
-                predicted_outcome = away_team
-                confidence = min(0.95, 1 / away_odds + 0.1)
-        
-        confidence_1_10 = max(1, min(10, int(confidence * 10)))
-        
-        prediction = Prediction(
-            match_date=match_data.get('match_date', datetime.utcnow()),
-            league=league,
-            home_team=home_team,
-            away_team=away_team,
-            prediction_type='Money Line',
-            predicted_outcome=predicted_outcome,
-            confidence=confidence,
-            confidence_1_10=confidence_1_10,
-            home_odds=home_odds,
-            away_odds=away_odds,
-            draw_odds=match_data.get('draw_odds'),
-            bookmaker=match_data.get('bookmaker', ''),
-            patterns_data=match_data.get('patterns', {}),
-            model_version='1.0.0'
-        )
-        
-        with app.app_context():
-            db.session.add(prediction)
-            db.session.commit()
-            
-            if telegram_notifier.is_configured():
-                telegram_notifier.send_prediction_alert(prediction.to_dict())
-                prediction.notified_telegram = True
-                db.session.commit()
-        
-        return prediction
+            return None
+
+        from src.prediction_service import create_prediction_from_match as create_live_prediction
+        return create_live_prediction(match_data, bet_on, target_odds, flask_app=app)
         
     except Exception as e:
         print(f"Error creating prediction: {e}")
@@ -1525,19 +1723,20 @@ def create_prediction_from_match(match_data):
 
 def init_odds_monitor():
     """Инициализация монитора коэффициентов"""
-    global flashlive_loader
+    global flashlive_loader, flashlive_multi_loader
     
     def prediction_callback(match_data):
         return create_prediction_from_match(match_data)
     
     def notification_callback(prediction):
         if prediction and telegram_notifier.is_configured():
-            return telegram_notifier.send_prediction_alert(prediction.to_dict())
+            payload = prediction.to_dict() if hasattr(prediction, 'to_dict') else prediction
+            return telegram_notifier.send_prediction_alert(payload)
         return False
     
     # FlashLive API - 281 матчей, все лиги, бесплатный план RapidAPI
     monitor = OddsMonitor(
-        odds_loader=flashlive_loader,
+        odds_loader=flashlive_multi_loader or flashlive_loader,
         prediction_callback=prediction_callback,
         notification_callback=notification_callback,
         check_interval=300  # 5 минут
@@ -1559,17 +1758,16 @@ def startup_initialization():
     import threading
     threading.Thread(target=warmup_multi_league, daemon=True).start()
     
-    if flashlive_loader.is_configured():
+    if flashlive_loader and flashlive_loader.is_configured():
         threading.Thread(target=init_odds_monitor, daemon=True).start()
         print("✅ Odds monitor initialized with FlashLive API (RapidAPI)")
-    elif allbestbets_loader.is_configured():
-        threading.Thread(target=init_odds_monitor, daemon=True).start()
-        print("✅ Odds monitor initialized with AllBestBets API (fallback)")
     else:
-        print("⚠️ No odds API configured (need RAPIDAPI_KEY or ALLBESTBETS_API_TOKEN)")
+        print("⚠️ No odds API configured (need RAPIDAPI_KEY)")
 
-
-startup_initialization()
+create_app(
+    testing=os.environ.get("TESTING", "").lower() in {"1", "true", "yes"},
+    start_background=os.environ.get("TESTING", "").lower() not in {"1", "true", "yes"}
+)
 
 
 if __name__ == '__main__':

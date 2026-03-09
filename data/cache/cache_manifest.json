@@ -1,0 +1,981 @@
+{
+  "generated_at": "2026-03-09T12:41:15.346254",
+  "datasets": [
+    {
+      "id": "basketball-acb-snapshot_history",
+      "sport": "basketball",
+      "league": "ACB",
+      "source": "flashscore_scrape",
+      "kind": "snapshot_history",
+      "format": "flashscore_matches_json",
+      "files": [
+        "data/cache/basketball/ACB_matches.json"
+      ],
+      "seasons": [],
+      "records": 100,
+      "date_min": null,
+      "date_max": null,
+      "has_odds": false,
+      "for_training": false,
+      "for_runtime": true,
+      "status": "ok",
+      "issues": []
+    },
+    {
+      "id": "basketball-bbl-snapshot_history",
+      "sport": "basketball",
+      "league": "BBL",
+      "source": "flashscore_scrape",
+      "kind": "snapshot_history",
+      "format": "flashscore_matches_json",
+      "files": [
+        "data/cache/basketball/BBL_matches.json"
+      ],
+      "seasons": [],
+      "records": 100,
+      "date_min": null,
+      "date_max": null,
+      "has_odds": false,
+      "for_training": false,
+      "for_runtime": true,
+      "status": "ok",
+      "issues": []
+    },
+    {
+      "id": "basketball-euroleague-snapshot_history",
+      "sport": "basketball",
+      "league": "EuroLeague",
+      "source": "flashscore_scrape",
+      "kind": "snapshot_history",
+      "format": "flashscore_matches_json",
+      "files": [
+        "data/cache/basketball/EuroLeague_matches.json"
+      ],
+      "seasons": [],
+      "records": 100,
+      "date_min": null,
+      "date_max": null,
+      "has_odds": false,
+      "for_training": false,
+      "for_runtime": true,
+      "status": "ok",
+      "issues": []
+    },
+    {
+      "id": "basketball-nba-snapshot_history",
+      "sport": "basketball",
+      "league": "NBA",
+      "source": "flashscore_scrape",
+      "kind": "snapshot_history",
+      "format": "flashscore_matches_json",
+      "files": [
+        "data/cache/basketball/NBA_matches.json"
+      ],
+      "seasons": [],
+      "records": 100,
+      "date_min": null,
+      "date_max": null,
+      "has_odds": false,
+      "for_training": false,
+      "for_runtime": true,
+      "status": "ok",
+      "issues": []
+    },
+    {
+      "id": "basketball-nba-snapshot_with_odds",
+      "sport": "basketball",
+      "league": "NBA",
+      "source": "flashscore_scrape",
+      "kind": "snapshot_with_odds",
+      "format": "flashscore_matches_json",
+      "files": [
+        "data/cache/basketball/NBA_with_odds_matches.json"
+      ],
+      "seasons": [],
+      "records": 203,
+      "date_min": null,
+      "date_max": null,
+      "has_odds": true,
+      "for_training": false,
+      "for_runtime": true,
+      "status": "ok",
+      "issues": []
+    },
+    {
+      "id": "basketball-vtb-league-auxiliary",
+      "sport": "basketball",
+      "league": "VTB League",
+      "source": "flashscore_scrape",
+      "kind": "auxiliary",
+      "format": "flashscore_matches_json",
+      "files": [
+        "data/cache/basketball/VTB_test_matches.json"
+      ],
+      "seasons": [],
+      "records": 100,
+      "date_min": null,
+      "date_max": null,
+      "has_odds": false,
+      "for_training": false,
+      "for_runtime": false,
+      "status": "partial",
+      "issues": [
+        "test snapshot"
+      ]
+    },
+    {
+      "id": "football-bundesliga-snapshot_history",
+      "sport": "football",
+      "league": "Bundesliga",
+      "source": "flashscore_scrape",
+      "kind": "snapshot_history",
+      "format": "flashscore_matches_json",
+      "files": [
+        "data/cache/football/Bundesliga_matches.json"
+      ],
+      "seasons": [],
+      "records": 100,
+      "date_min": null,
+      "date_max": null,
+      "has_odds": false,
+      "for_training": false,
+      "for_runtime": true,
+      "status": "ok",
+      "issues": []
+    },
+    {
+      "id": "football-bundesliga-snapshot_with_odds",
+      "sport": "football",
+      "league": "Bundesliga",
+      "source": "flashscore_scrape",
+      "kind": "snapshot_with_odds",
+      "format": "flashscore_matches_json",
+      "files": [
+        "data/cache/football/Bundesliga_with_odds_matches.json"
+      ],
+      "seasons": [],
+      "records": 159,
+      "date_min": null,
+      "date_max": null,
+      "has_odds": true,
+      "for_training": false,
+      "for_runtime": true,
+      "status": "ok",
+      "issues": []
+    },
+    {
+      "id": "football-epl-snapshot_history",
+      "sport": "football",
+      "league": "EPL",
+      "source": "flashscore_scrape",
+      "kind": "snapshot_history",
+      "format": "flashscore_matches_json",
+      "files": [
+        "data/cache/football/EPL_matches.json"
+      ],
+      "seasons": [],
+      "records": 100,
+      "date_min": null,
+      "date_max": null,
+      "has_odds": false,
+      "for_training": false,
+      "for_runtime": true,
+      "status": "ok",
+      "issues": []
+    },
+    {
+      "id": "football-epl-snapshot_with_odds",
+      "sport": "football",
+      "league": "EPL",
+      "source": "flashscore_scrape",
+      "kind": "snapshot_with_odds",
+      "format": "flashscore_matches_json",
+      "files": [
+        "data/cache/football/EPL_with_odds_matches.json"
+      ],
+      "seasons": [],
+      "records": 200,
+      "date_min": null,
+      "date_max": null,
+      "has_odds": true,
+      "for_training": false,
+      "for_runtime": true,
+      "status": "ok",
+      "issues": []
+    },
+    {
+      "id": "football-la-liga-snapshot_history",
+      "sport": "football",
+      "league": "La Liga",
+      "source": "flashscore_scrape",
+      "kind": "snapshot_history",
+      "format": "flashscore_matches_json",
+      "files": [
+        "data/cache/football/LaLiga_matches.json"
+      ],
+      "seasons": [],
+      "records": 100,
+      "date_min": null,
+      "date_max": null,
+      "has_odds": false,
+      "for_training": false,
+      "for_runtime": true,
+      "status": "ok",
+      "issues": []
+    },
+    {
+      "id": "football-la-liga-snapshot_with_odds",
+      "sport": "football",
+      "league": "La Liga",
+      "source": "flashscore_scrape",
+      "kind": "snapshot_with_odds",
+      "format": "flashscore_matches_json",
+      "files": [
+        "data/cache/football/LaLiga_with_odds_matches.json"
+      ],
+      "seasons": [],
+      "records": 198,
+      "date_min": null,
+      "date_max": null,
+      "has_odds": true,
+      "for_training": false,
+      "for_runtime": true,
+      "status": "ok",
+      "issues": []
+    },
+    {
+      "id": "football-ligue-1-snapshot_history",
+      "sport": "football",
+      "league": "Ligue 1",
+      "source": "flashscore_scrape",
+      "kind": "snapshot_history",
+      "format": "flashscore_matches_json",
+      "files": [
+        "data/cache/football/Ligue1_matches.json"
+      ],
+      "seasons": [],
+      "records": 100,
+      "date_min": null,
+      "date_max": null,
+      "has_odds": false,
+      "for_training": false,
+      "for_runtime": true,
+      "status": "ok",
+      "issues": []
+    },
+    {
+      "id": "football-ligue-1-snapshot_with_odds",
+      "sport": "football",
+      "league": "Ligue 1",
+      "source": "flashscore_scrape",
+      "kind": "snapshot_with_odds",
+      "format": "flashscore_matches_json",
+      "files": [
+        "data/cache/football/Ligue1_with_odds_matches.json"
+      ],
+      "seasons": [],
+      "records": 162,
+      "date_min": null,
+      "date_max": null,
+      "has_odds": true,
+      "for_training": false,
+      "for_runtime": true,
+      "status": "ok",
+      "issues": []
+    },
+    {
+      "id": "football-serie-a-snapshot_history",
+      "sport": "football",
+      "league": "Serie A",
+      "source": "flashscore_scrape",
+      "kind": "snapshot_history",
+      "format": "flashscore_matches_json",
+      "files": [
+        "data/cache/football/SerieA_matches.json"
+      ],
+      "seasons": [],
+      "records": 100,
+      "date_min": null,
+      "date_max": null,
+      "has_odds": false,
+      "for_training": false,
+      "for_runtime": true,
+      "status": "ok",
+      "issues": []
+    },
+    {
+      "id": "football-serie-a-snapshot_with_odds",
+      "sport": "football",
+      "league": "Serie A",
+      "source": "flashscore_scrape",
+      "kind": "snapshot_with_odds",
+      "format": "flashscore_matches_json",
+      "files": [
+        "data/cache/football/SerieA_with_odds_matches.json"
+      ],
+      "seasons": [],
+      "records": 200,
+      "date_min": null,
+      "date_max": null,
+      "has_odds": true,
+      "for_training": false,
+      "for_runtime": true,
+      "status": "ok",
+      "issues": []
+    },
+    {
+      "id": "hockey-del-auxiliary",
+      "sport": "hockey",
+      "league": "DEL",
+      "source": "flashscore_scrape",
+      "kind": "auxiliary",
+      "format": "flashscore_matches_json",
+      "files": [
+        "data/cache/hockey/DEL_matches.json",
+        "data/cache/hockey/DEL_test_matches.json"
+      ],
+      "seasons": [],
+      "records": 104,
+      "date_min": null,
+      "date_max": null,
+      "has_odds": false,
+      "for_training": false,
+      "for_runtime": false,
+      "status": "partial",
+      "issues": [
+        "test snapshot"
+      ]
+    },
+    {
+      "id": "hockey-del-seasonal_history",
+      "sport": "hockey",
+      "league": "DEL",
+      "source": "api_sports_hockey",
+      "kind": "seasonal_history",
+      "format": "api_sports_games_json",
+      "files": [
+        "data/cache/leagues/games_19_2022.json",
+        "data/cache/leagues/games_19_2023.json",
+        "data/cache/leagues/games_19_2024.json"
+      ],
+      "seasons": [
+        "2022",
+        "2023",
+        "2024"
+      ],
+      "records": 1276,
+      "date_min": "2022-09-15T17:30:00",
+      "date_max": "2025-04-25T17:30:00",
+      "has_odds": false,
+      "for_training": true,
+      "for_runtime": true,
+      "status": "partial",
+      "issues": [
+        "metadata seasons without cached games: 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2025"
+      ]
+    },
+    {
+      "id": "hockey-khl-auxiliary",
+      "sport": "hockey",
+      "league": "KHL",
+      "source": "flashscore_scrape",
+      "kind": "auxiliary",
+      "format": "flashscore_matches_json",
+      "files": [
+        "data/cache/hockey/KHL_matches.json",
+        "data/cache/hockey/KHL_test_matches.json"
+      ],
+      "seasons": [],
+      "records": 102,
+      "date_min": null,
+      "date_max": null,
+      "has_odds": false,
+      "for_training": false,
+      "for_runtime": false,
+      "status": "partial",
+      "issues": [
+        "test snapshot"
+      ]
+    },
+    {
+      "id": "hockey-khl-seasonal_history",
+      "sport": "hockey",
+      "league": "KHL",
+      "source": "api_sports_hockey",
+      "kind": "seasonal_history",
+      "format": "api_sports_games_json",
+      "files": [
+        "data/cache/leagues/games_35_2022.json",
+        "data/cache/leagues/games_35_2023.json",
+        "data/cache/leagues/games_35_2024.json"
+      ],
+      "seasons": [
+        "2022",
+        "2023",
+        "2024"
+      ],
+      "records": 2576,
+      "date_min": "2022-09-01T16:00:00",
+      "date_max": "2025-05-21T16:30:00",
+      "has_odds": false,
+      "for_training": true,
+      "for_runtime": true,
+      "status": "partial",
+      "issues": [
+        "metadata seasons without cached games: 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2025"
+      ]
+    },
+    {
+      "id": "hockey-liiga-auxiliary",
+      "sport": "hockey",
+      "league": "Liiga",
+      "source": "flashscore_scrape",
+      "kind": "auxiliary",
+      "format": "flashscore_matches_json",
+      "files": [
+        "data/cache/hockey/Liiga_matches.json"
+      ],
+      "seasons": [],
+      "records": 100,
+      "date_min": null,
+      "date_max": null,
+      "has_odds": false,
+      "for_training": false,
+      "for_runtime": false,
+      "status": "ok",
+      "issues": []
+    },
+    {
+      "id": "hockey-liiga-seasonal_history",
+      "sport": "hockey",
+      "league": "Liiga",
+      "source": "api_sports_hockey",
+      "kind": "seasonal_history",
+      "format": "api_sports_games_json",
+      "files": [
+        "data/cache/leagues/games_16_2022.json",
+        "data/cache/leagues/games_16_2023.json",
+        "data/cache/leagues/games_16_2024.json"
+      ],
+      "seasons": [
+        "2022",
+        "2023",
+        "2024"
+      ],
+      "records": 1535,
+      "date_min": "2022-09-13T15:30:00",
+      "date_max": "2025-05-03T15:30:00",
+      "has_odds": false,
+      "for_training": true,
+      "for_runtime": true,
+      "status": "partial",
+      "issues": [
+        "metadata seasons without cached games: 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2025"
+      ]
+    },
+    {
+      "id": "hockey-nhl-aux-period-data",
+      "sport": "hockey",
+      "league": "NHL",
+      "source": "nhl_api",
+      "kind": "auxiliary",
+      "format": "period_data_json",
+      "files": [
+        "data/cache/period_data.json"
+      ],
+      "seasons": [],
+      "records": 2499,
+      "date_min": null,
+      "date_max": null,
+      "has_odds": false,
+      "for_training": false,
+      "for_runtime": false,
+      "status": "ok",
+      "issues": [
+        "auxiliary period data only"
+      ]
+    },
+    {
+      "id": "hockey-nhl-auxiliary",
+      "sport": "hockey",
+      "league": "NHL",
+      "source": "flashscore_scrape",
+      "kind": "auxiliary",
+      "format": "flashscore_matches_json",
+      "files": [
+        "data/cache/hockey/NHL_matches.json",
+        "data/cache/hockey/NHL_test_matches.json"
+      ],
+      "seasons": [],
+      "records": 103,
+      "date_min": null,
+      "date_max": null,
+      "has_odds": false,
+      "for_training": false,
+      "for_runtime": false,
+      "status": "partial",
+      "issues": [
+        "test snapshot"
+      ]
+    },
+    {
+      "id": "hockey-nhl-seasonal_history",
+      "sport": "hockey",
+      "league": "NHL",
+      "source": "nhl_api",
+      "kind": "seasonal_history",
+      "format": "nhl_season_json",
+      "files": [
+        "data/cache/season_20162017.json",
+        "data/cache/season_20172018.json",
+        "data/cache/season_20182019.json",
+        "data/cache/season_20192020.json",
+        "data/cache/season_20202021.json",
+        "data/cache/season_20212022.json",
+        "data/cache/season_20222023.json",
+        "data/cache/season_20232024.json",
+        "data/cache/season_20242025.json",
+        "data/cache/season_20252026.json"
+      ],
+      "seasons": [
+        "20162017",
+        "20172018",
+        "20182019",
+        "20192020",
+        "20202021",
+        "20212022",
+        "20222023",
+        "20232024",
+        "20242025",
+        "20252026"
+      ],
+      "records": 13472,
+      "date_min": "2016-09-25T00:00:00",
+      "date_max": "2026-01-10T00:00:00",
+      "has_odds": false,
+      "for_training": true,
+      "for_runtime": true,
+      "status": "ok",
+      "issues": []
+    },
+    {
+      "id": "hockey-shl-auxiliary",
+      "sport": "hockey",
+      "league": "SHL",
+      "source": "flashscore_scrape",
+      "kind": "auxiliary",
+      "format": "flashscore_matches_json",
+      "files": [
+        "data/cache/hockey/SHL_matches.json"
+      ],
+      "seasons": [],
+      "records": 100,
+      "date_min": null,
+      "date_max": null,
+      "has_odds": false,
+      "for_training": false,
+      "for_runtime": false,
+      "status": "ok",
+      "issues": []
+    },
+    {
+      "id": "hockey-shl-seasonal_history",
+      "sport": "hockey",
+      "league": "SHL",
+      "source": "api_sports_hockey",
+      "kind": "seasonal_history",
+      "format": "api_sports_games_json",
+      "files": [
+        "data/cache/leagues/games_47_2022.json",
+        "data/cache/leagues/games_47_2023.json",
+        "data/cache/leagues/games_47_2024.json"
+      ],
+      "seasons": [
+        "2022",
+        "2023",
+        "2024"
+      ],
+      "records": 1245,
+      "date_min": "2022-09-17T13:15:00",
+      "date_max": "2025-05-01T12:00:00",
+      "has_odds": false,
+      "for_training": true,
+      "for_runtime": true,
+      "status": "partial",
+      "issues": [
+        "metadata seasons without cached games: 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2025"
+      ]
+    },
+    {
+      "id": "volleyball-cev-champions-snapshot_history",
+      "sport": "volleyball",
+      "league": "CEV Champions",
+      "source": "flashscore_scrape",
+      "kind": "snapshot_history",
+      "format": "flashscore_matches_json",
+      "files": [
+        "data/cache/volleyball/CEV_matches.json"
+      ],
+      "seasons": [],
+      "records": 46,
+      "date_min": null,
+      "date_max": null,
+      "has_odds": false,
+      "for_training": false,
+      "for_runtime": true,
+      "status": "ok",
+      "issues": []
+    },
+    {
+      "id": "volleyball-plusliga-snapshot_history",
+      "sport": "volleyball",
+      "league": "PlusLiga",
+      "source": "flashscore_scrape",
+      "kind": "snapshot_history",
+      "format": "flashscore_matches_json",
+      "files": [
+        "data/cache/volleyball/PlusLiga_matches.json"
+      ],
+      "seasons": [],
+      "records": 100,
+      "date_min": null,
+      "date_max": null,
+      "has_odds": false,
+      "for_training": false,
+      "for_runtime": true,
+      "status": "ok",
+      "issues": []
+    },
+    {
+      "id": "volleyball-serie-a-italy-snapshot_history",
+      "sport": "volleyball",
+      "league": "Serie A Italy",
+      "source": "flashscore_scrape",
+      "kind": "snapshot_history",
+      "format": "flashscore_matches_json",
+      "files": [
+        "data/cache/volleyball/SerieA_matches.json"
+      ],
+      "seasons": [],
+      "records": 100,
+      "date_min": null,
+      "date_max": null,
+      "has_odds": false,
+      "for_training": false,
+      "for_runtime": true,
+      "status": "ok",
+      "issues": []
+    },
+    {
+      "id": "volleyball-superliga-russia-snapshot_history",
+      "sport": "volleyball",
+      "league": "Superliga Russia",
+      "source": "flashscore_scrape",
+      "kind": "snapshot_history",
+      "format": "flashscore_matches_json",
+      "files": [
+        "data/cache/volleyball/Superliga_matches.json"
+      ],
+      "seasons": [],
+      "records": 100,
+      "date_min": null,
+      "date_max": null,
+      "has_odds": false,
+      "for_training": false,
+      "for_runtime": true,
+      "status": "ok",
+      "issues": []
+    }
+  ],
+  "summary": {
+    "basketball": {
+      "ACB": {
+        "sport": "basketball",
+        "league": "ACB",
+        "full_cache_matches": 100,
+        "date_min": null,
+        "date_max": null,
+        "dataset_count": 1,
+        "has_training_history": false,
+        "has_runtime_history": true,
+        "issues": [],
+        "source": "flashscore_scrape",
+        "kind": "snapshot_history",
+        "status": "ok"
+      },
+      "BBL": {
+        "sport": "basketball",
+        "league": "BBL",
+        "full_cache_matches": 100,
+        "date_min": null,
+        "date_max": null,
+        "dataset_count": 1,
+        "has_training_history": false,
+        "has_runtime_history": true,
+        "issues": [],
+        "source": "flashscore_scrape",
+        "kind": "snapshot_history",
+        "status": "ok"
+      },
+      "EuroLeague": {
+        "sport": "basketball",
+        "league": "EuroLeague",
+        "full_cache_matches": 100,
+        "date_min": null,
+        "date_max": null,
+        "dataset_count": 1,
+        "has_training_history": false,
+        "has_runtime_history": true,
+        "issues": [],
+        "source": "flashscore_scrape",
+        "kind": "snapshot_history",
+        "status": "ok"
+      },
+      "NBA": {
+        "sport": "basketball",
+        "league": "NBA",
+        "full_cache_matches": 203,
+        "date_min": null,
+        "date_max": null,
+        "dataset_count": 2,
+        "has_training_history": false,
+        "has_runtime_history": true,
+        "issues": [],
+        "source": "flashscore_scrape",
+        "kind": "snapshot_with_odds",
+        "status": "ok"
+      },
+      "VTB League": {
+        "sport": "basketball",
+        "league": "VTB League",
+        "full_cache_matches": 0,
+        "date_min": null,
+        "date_max": null,
+        "dataset_count": 1,
+        "has_training_history": false,
+        "has_runtime_history": false,
+        "issues": [
+          "test snapshot"
+        ],
+        "source": null,
+        "kind": null,
+        "status": "empty"
+      }
+    },
+    "football": {
+      "Bundesliga": {
+        "sport": "football",
+        "league": "Bundesliga",
+        "full_cache_matches": 159,
+        "date_min": null,
+        "date_max": null,
+        "dataset_count": 2,
+        "has_training_history": false,
+        "has_runtime_history": true,
+        "issues": [],
+        "source": "flashscore_scrape",
+        "kind": "snapshot_with_odds",
+        "status": "ok"
+      },
+      "EPL": {
+        "sport": "football",
+        "league": "EPL",
+        "full_cache_matches": 200,
+        "date_min": null,
+        "date_max": null,
+        "dataset_count": 2,
+        "has_training_history": false,
+        "has_runtime_history": true,
+        "issues": [],
+        "source": "flashscore_scrape",
+        "kind": "snapshot_with_odds",
+        "status": "ok"
+      },
+      "La Liga": {
+        "sport": "football",
+        "league": "La Liga",
+        "full_cache_matches": 198,
+        "date_min": null,
+        "date_max": null,
+        "dataset_count": 2,
+        "has_training_history": false,
+        "has_runtime_history": true,
+        "issues": [],
+        "source": "flashscore_scrape",
+        "kind": "snapshot_with_odds",
+        "status": "ok"
+      },
+      "Ligue 1": {
+        "sport": "football",
+        "league": "Ligue 1",
+        "full_cache_matches": 162,
+        "date_min": null,
+        "date_max": null,
+        "dataset_count": 2,
+        "has_training_history": false,
+        "has_runtime_history": true,
+        "issues": [],
+        "source": "flashscore_scrape",
+        "kind": "snapshot_with_odds",
+        "status": "ok"
+      },
+      "Serie A": {
+        "sport": "football",
+        "league": "Serie A",
+        "full_cache_matches": 200,
+        "date_min": null,
+        "date_max": null,
+        "dataset_count": 2,
+        "has_training_history": false,
+        "has_runtime_history": true,
+        "issues": [],
+        "source": "flashscore_scrape",
+        "kind": "snapshot_with_odds",
+        "status": "ok"
+      }
+    },
+    "hockey": {
+      "DEL": {
+        "sport": "hockey",
+        "league": "DEL",
+        "full_cache_matches": 1276,
+        "date_min": "2022-09-15T17:30:00",
+        "date_max": "2025-04-25T17:30:00",
+        "dataset_count": 2,
+        "has_training_history": true,
+        "has_runtime_history": true,
+        "issues": [
+          "metadata seasons without cached games: 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2025",
+          "test snapshot"
+        ],
+        "source": "api_sports_hockey",
+        "kind": "seasonal_history",
+        "status": "partial"
+      },
+      "KHL": {
+        "sport": "hockey",
+        "league": "KHL",
+        "full_cache_matches": 2576,
+        "date_min": "2022-09-01T16:00:00",
+        "date_max": "2025-05-21T16:30:00",
+        "dataset_count": 2,
+        "has_training_history": true,
+        "has_runtime_history": true,
+        "issues": [
+          "metadata seasons without cached games: 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2025",
+          "test snapshot"
+        ],
+        "source": "api_sports_hockey",
+        "kind": "seasonal_history",
+        "status": "partial"
+      },
+      "Liiga": {
+        "sport": "hockey",
+        "league": "Liiga",
+        "full_cache_matches": 1535,
+        "date_min": "2022-09-13T15:30:00",
+        "date_max": "2025-05-03T15:30:00",
+        "dataset_count": 2,
+        "has_training_history": true,
+        "has_runtime_history": true,
+        "issues": [
+          "metadata seasons without cached games: 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2025"
+        ],
+        "source": "api_sports_hockey",
+        "kind": "seasonal_history",
+        "status": "partial"
+      },
+      "NHL": {
+        "sport": "hockey",
+        "league": "NHL",
+        "full_cache_matches": 13472,
+        "date_min": "2016-09-25T00:00:00",
+        "date_max": "2026-01-10T00:00:00",
+        "dataset_count": 3,
+        "has_training_history": true,
+        "has_runtime_history": true,
+        "issues": [
+          "auxiliary period data only",
+          "test snapshot"
+        ],
+        "source": "nhl_api",
+        "kind": "seasonal_history",
+        "status": "ok"
+      },
+      "SHL": {
+        "sport": "hockey",
+        "league": "SHL",
+        "full_cache_matches": 1245,
+        "date_min": "2022-09-17T13:15:00",
+        "date_max": "2025-05-01T12:00:00",
+        "dataset_count": 2,
+        "has_training_history": true,
+        "has_runtime_history": true,
+        "issues": [
+          "metadata seasons without cached games: 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2025"
+        ],
+        "source": "api_sports_hockey",
+        "kind": "seasonal_history",
+        "status": "partial"
+      }
+    },
+    "volleyball": {
+      "CEV Champions": {
+        "sport": "volleyball",
+        "league": "CEV Champions",
+        "full_cache_matches": 46,
+        "date_min": null,
+        "date_max": null,
+        "dataset_count": 1,
+        "has_training_history": false,
+        "has_runtime_history": true,
+        "issues": [],
+        "source": "flashscore_scrape",
+        "kind": "snapshot_history",
+        "status": "ok"
+      },
+      "PlusLiga": {
+        "sport": "volleyball",
+        "league": "PlusLiga",
+        "full_cache_matches": 100,
+        "date_min": null,
+        "date_max": null,
+        "dataset_count": 1,
+        "has_training_history": false,
+        "has_runtime_history": true,
+        "issues": [],
+        "source": "flashscore_scrape",
+        "kind": "snapshot_history",
+        "status": "ok"
+      },
+      "Serie A Italy": {
+        "sport": "volleyball",
+        "league": "Serie A Italy",
+        "full_cache_matches": 100,
+        "date_min": null,
+        "date_max": null,
+        "dataset_count": 1,
+        "has_training_history": false,
+        "has_runtime_history": true,
+        "issues": [],
+        "source": "flashscore_scrape",
+        "kind": "snapshot_history",
+        "status": "ok"
+      },
+      "Superliga Russia": {
+        "sport": "volleyball",
+        "league": "Superliga Russia",
+        "full_cache_matches": 100,
+        "date_min": null,
+        "date_max": null,
+        "dataset_count": 1,
+        "has_training_history": false,
+        "has_runtime_history": true,
+        "issues": [],
+        "source": "flashscore_scrape",
+        "kind": "snapshot_history",
+        "status": "ok"
+      }
+    }
+  }
+}

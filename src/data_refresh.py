@@ -23,19 +23,19 @@ LEAGUES_CONFIG = {
     },
     'SHL': {
         'loader': 'multi_league',
-        'league_id': 16,
+        'league_id': 47,
         'cache_dir': 'data/cache/leagues',
         'current_season': 2024
     },
     'Liiga': {
         'loader': 'multi_league',
-        'league_id': 19,
+        'league_id': 16,
         'cache_dir': 'data/cache/leagues',
         'current_season': 2024
     },
     'DEL': {
         'loader': 'multi_league',
-        'league_id': 47,
+        'league_id': 19,
         'cache_dir': 'data/cache/leagues',
         'current_season': 2024
     }
@@ -151,10 +151,13 @@ def refresh_all_historical_data(force: bool = False) -> Dict:
     last_refresh = state.get('last_refresh')
     
     if last_refresh and not force:
-        last_dt = datetime.fromisoformat(last_refresh)
-        if datetime.utcnow() - last_dt < timedelta(hours=20):
-            logger.info("Skipping refresh: last update was less than 20 hours ago")
-            return {'skipped': True, 'last_refresh': last_refresh}
+        try:
+            last_dt = datetime.fromisoformat(last_refresh)
+            if datetime.utcnow() - last_dt < timedelta(hours=20):
+                logger.info("Skipping refresh: last update was less than 20 hours ago")
+                return {'skipped': True, 'last_refresh': last_refresh}
+        except (TypeError, ValueError):
+            logger.warning("Invalid last_refresh timestamp, forcing refresh")
     
     log_system("Начало обновления исторических данных всех лиг", 'INFO')
     
@@ -171,9 +174,18 @@ def refresh_all_historical_data(force: bool = False) -> Dict:
     success_count = sum(1 for r in results['leagues'].values() if r.get('success'))
     total_matches = sum(r.get('matches', 0) for r in results['leagues'].values())
     
-    state['last_refresh'] = results['timestamp']
-    state['last_results'] = results['leagues']
+    from src.cache_catalog import build_cache_manifest, save_manifest
+
+    manifest = build_cache_manifest()
+    save_manifest(manifest)
+    state = build_refresh_state_from_manifest(
+        manifest,
+        refreshed_results=results['leagues'],
+        timestamp=results['timestamp'],
+        source='refresh',
+    )
     save_refresh_state(state)
+    results['cache_manifest_generated_at'] = manifest.get('generated_at')
     
     log_system(
         f"Обновление завершено: {success_count}/5 лиг, {total_matches} матчей",
@@ -182,6 +194,89 @@ def refresh_all_historical_data(force: bool = False) -> Dict:
     )
     
     return results
+
+
+def build_refresh_state_from_manifest(
+    manifest: Dict,
+    refreshed_results: Optional[Dict] = None,
+    timestamp: Optional[str] = None,
+    source: str = 'cache_rebuild',
+) -> Dict:
+    """Собрать refresh-state из cache manifest и результатов последнего refresh."""
+    from src.cache_catalog import get_cache_summary
+
+    summary = get_cache_summary(manifest=manifest)
+    refreshed_results = refreshed_results or {}
+    state_results = {}
+
+    for league_name in LEAGUES_CONFIG:
+        league_summary = summary.get('hockey', {}).get(league_name)
+        refresh_result = refreshed_results.get(league_name, {})
+        issues = []
+        if league_summary:
+            issues = list(league_summary.get('issues', []))
+        else:
+            issues = ['missing from manifest']
+
+        success = refresh_result.get('success')
+        if success is None:
+            success = bool(league_summary and league_summary.get('status') not in {'corrupt', 'empty'})
+
+        error = refresh_result.get('error')
+        if error is None and league_summary and league_summary.get('status') in {'partial', 'corrupt', 'empty'} and issues:
+            error = issues[0]
+
+        state_results[league_name] = {
+            'league': league_name,
+            'sport': 'hockey',
+            'success': bool(success),
+            'matches': int(league_summary.get('full_cache_matches', 0) if league_summary else 0),
+            'refreshed_matches': int(refresh_result.get('matches', 0) or 0),
+            'error': error,
+            'date_min': league_summary.get('date_min') if league_summary else None,
+            'date_max': league_summary.get('date_max') if league_summary else None,
+            'source': league_summary.get('source') if league_summary else None,
+            'kind': league_summary.get('kind') if league_summary else None,
+            'issues_count': len(issues),
+        }
+
+    return {
+        'last_refresh': timestamp or datetime.utcnow().isoformat(),
+        'last_results': state_results,
+        'source': source,
+        'manifest_generated_at': manifest.get('generated_at'),
+    }
+
+
+def rebuild_refresh_state_from_cache() -> Dict:
+    """Пересобрать refresh-state по cache manifest без сетевых запросов."""
+    from src.cache_catalog import load_manifest
+    from src.system_logger import log_system
+
+    manifest = load_manifest()
+    results = build_refresh_state_from_manifest(
+        manifest,
+        refreshed_results=None,
+        timestamp=datetime.utcnow().isoformat(),
+        source='cache_rebuild',
+    )
+
+    save_refresh_state(results)
+
+    success_count = sum(1 for item in results['last_results'].values() if item.get('success'))
+    total_matches = sum(item.get('matches', 0) for item in results['last_results'].values())
+    log_system(
+        f"Refresh-state rebuilt from cache: {success_count}/{len(results['last_results'])} лиг, {total_matches} матчей",
+        'INFO',
+        {'results': results['last_results']}
+    )
+
+    return {
+        'timestamp': results['last_refresh'],
+        'source': results['source'],
+        'manifest_generated_at': results.get('manifest_generated_at'),
+        'leagues': results['last_results'],
+    }
 
 
 def should_refresh() -> bool:
@@ -202,9 +297,20 @@ def should_refresh() -> bool:
 def get_last_refresh_info() -> Optional[Dict]:
     """Получить информацию о последнем обновлении"""
     state = get_refresh_state()
-    if state.get('last_refresh'):
-        return {
-            'last_refresh': state['last_refresh'],
+    last_refresh = state.get('last_refresh')
+    if last_refresh:
+        info = {
+            'last_refresh': last_refresh,
             'results': state.get('last_results', {})
         }
+        try:
+            last_dt = datetime.fromisoformat(last_refresh)
+            hours_since = (datetime.utcnow() - last_dt).total_seconds() / 3600
+            info['hours_since'] = round(hours_since, 2)
+            info['needs_refresh'] = hours_since >= 20
+        except (TypeError, ValueError):
+            info['hours_since'] = None
+            info['needs_refresh'] = True
+            info['invalid_timestamp'] = True
+        return info
     return None

@@ -56,6 +56,7 @@ SPORTS_CONFIG = {
         'leagues': {
             'EPL': {
                 'keywords': ['england: premier league', 'england. premier', 'premier league', 'epl'],
+                'exclude_keywords': ['premier league 2', 'u21', 'u23', 'reserve'],
                 'country': 'England',
                 'priority': 1
             },
@@ -189,8 +190,22 @@ def match_league(league_name: str, sport_type: SportType) -> str:
     league_name_lower = league_name.lower()
     
     for league, league_config in config.get('leagues', {}).items():
+        country = league_config.get('country', '').lower()
+        excluded = [value.lower() for value in league_config.get('exclude_keywords', [])]
+        if any(value in league_name_lower for value in excluded):
+            continue
         for keyword in league_config['keywords']:
-            if keyword.lower() in league_name_lower:
+            keyword_lower = keyword.lower()
+            if keyword_lower not in league_name_lower:
+                continue
+
+            # Для общих названий вроде "Premier League" или "Bundesliga"
+            # требуем совпадение страны, иначе ловим ложные срабатывания
+            keyword_is_generic = not any(separator in keyword_lower for separator in (':', '.', '-'))
+            if keyword_is_generic and country and country not in league_name_lower:
+                continue
+
+            if keyword_lower in league_name_lower:
                 return league
     
     return 'Unknown'

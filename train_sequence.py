@@ -202,7 +202,7 @@ def main():
     parser.add_argument('--seq-length', type=int, default=10, help='Sequence length')
     parser.add_argument('--hidden', type=int, default=64, help='LSTM hidden dimension')
     parser.add_argument('--batch-size', type=int, default=32, help='Batch size')
-    parser.add_argument('--seasons', type=int, default=5, help='Number of seasons')
+    parser.add_argument('--seasons', type=int, default=0, help='Number of seasons (0 = all cached seasons)')
     parser.add_argument('--load-periods', action='store_true', help='Load period data from API')
     parser.add_argument('--max-period-games', type=int, default=1000, help='Max games for period data')
     parser.add_argument('--with-odds', action='store_true', help='Include odds features in training')
@@ -215,20 +215,23 @@ def main():
     print(f"  Sequence Length: {args.seq_length}")
     print(f"  Hidden Dim: {args.hidden}")
     print(f"  Batch Size: {args.batch_size}")
-    print(f"  Seasons: {args.seasons}")
+    print(f"  Seasons: {'all cached' if args.seasons == 0 else args.seasons}")
     print(f"  With Odds: {args.with_odds}")
     print("  Prediction Heads: Regulation (1X2) + Final (Money Line)")
     print("=" * 60)
     
     loader = NHLDataLoader()
-    seasons = loader.get_default_seasons(n_seasons=args.seasons)
+    if args.seasons == 0:
+        seasons = loader.get_cached_seasons() or loader.get_default_seasons(n_seasons=10)
+    else:
+        seasons = loader.get_default_seasons(n_seasons=args.seasons)
     df = loader.load_all_data(seasons=seasons)
     
     if df.empty:
         logger.error("No data loaded!")
         return
     
-    print(f"\n📊 Loaded {len(df)} matches from {args.seasons} seasons")
+    print(f"\n📊 Loaded {len(df)} matches from {len(seasons)} seasons")
     
     overtime_pct = df['overtime'].mean() * 100
     print(f"   Overtime games: {overtime_pct:.1f}%")

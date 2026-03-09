@@ -18,6 +18,21 @@ class NHLDataLoader:
         
     def _get_cache_path(self, season):
         return os.path.join(self.cache_dir, f"season_{season}.json")
+
+    def get_cached_seasons(self):
+        """Получить все доступные сезоны из локального кэша в хронологическом порядке."""
+        seasons = []
+        if not os.path.exists(self.cache_dir):
+            return seasons
+
+        for filename in os.listdir(self.cache_dir):
+            if not (filename.startswith('season_') and filename.endswith('.json')):
+                continue
+            season = filename.replace('season_', '').replace('.json', '')
+            if season.isdigit():
+                seasons.append(season)
+
+        return sorted(set(seasons))
     
     def _load_from_cache(self, season):
         cache_path = self._get_cache_path(season)

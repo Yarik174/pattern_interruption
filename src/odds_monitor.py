@@ -115,7 +115,10 @@ class OddsMonitor:
         }
         
         try:
-            matches = self.odds_loader.get_upcoming_games(days_ahead=2)
+            if hasattr(self.odds_loader, 'get_matches_with_odds'):
+                matches = self.odds_loader.get_matches_with_odds(days_ahead=2)
+            else:
+                matches = self.odds_loader.get_upcoming_games(days_ahead=2)
             result['matches_found'] = len(matches)
             self._stats['matches_found'] += len(matches)
             
@@ -257,9 +260,7 @@ class AutoMonitor:
         }
         
         try:
-            from src.flashlive_loader import FlashLiveLoader
-            
-            loader = FlashLiveLoader()
+            loader = self._get_live_loader()
             if not loader.is_configured():
                 logger.warning("FlashLive not configured, skipping check")
                 return result
@@ -301,6 +302,11 @@ class AutoMonitor:
             self._log_error(f"Check error: {e}")
         
         return result
+
+    def _get_live_loader(self):
+        """Получить live loader для всех поддерживаемых видов спорта."""
+        from src.flashlive_loader import MultiSportFlashLiveLoader
+        return MultiSportFlashLiveLoader()
     
     def _process_match(self, match: dict) -> Optional[dict]:
         """Обработать матч и создать прогноз если нужно"""
@@ -368,9 +374,8 @@ class AutoMonitor:
         try:
             from app import app, db
             from models import Prediction
-            from src.flashlive_loader import FlashLiveLoader
             
-            loader = FlashLiveLoader()
+            loader = self._get_live_loader()
             if not loader.is_configured():
                 logger.warning("FlashLive not configured for result checking")
                 return result
@@ -392,7 +397,11 @@ class AutoMonitor:
                         if not event_id:
                             continue
                         
-                        match_result = loader.get_match_result(event_id)
+                        match_result = loader.get_match_result(
+                            event_id,
+                            sport=getattr(pred, 'sport_type', None),
+                            league=pred.league
+                        )
                         
                         if not match_result:
                             continue
@@ -461,7 +470,12 @@ class MonitorGuard:
             self.fd.flush()
             return True
         except Exception:
-            pass
+            if self.fd:
+                try:
+                    self.fd.close()
+                except Exception:
+                    pass
+                self.fd = None
         try:
             if os.path.exists(self.lock_path):
                 try:
@@ -479,6 +493,11 @@ class MonitorGuard:
                             os.unlink(self.lock_path)
                         except Exception:
                             pass
+                else:
+                    try:
+                        os.unlink(self.lock_path)
+                    except Exception:
+                        pass
             fd = os.open(self.lock_path, os.O_CREAT | os.O_EXCL | os.O_RDWR)
             os.write(fd, str(self.pid).encode())
             os.close(fd)

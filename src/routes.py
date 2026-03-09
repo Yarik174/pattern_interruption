@@ -26,6 +26,26 @@ def set_odds_loader(loader):
     odds_loader = loader
 
 
+def _resolve_sport_type_from_league(league: str):
+    """Определить вид спорта по коду лиги."""
+    if not league:
+        return SportType.HOCKEY
+    for sport_type in (SportType.HOCKEY, SportType.FOOTBALL, SportType.BASKETBALL, SportType.VOLLEYBALL):
+        if league in get_leagues_for_sport(sport_type):
+            return sport_type
+    return SportType.HOCKEY
+
+
+def _get_odds_loader_for_sport(sport):
+    """Вернуть loader для вида спорта.
+
+    Поддерживает как старый single-loader, так и новый callable manager.
+    """
+    if callable(odds_loader):
+        return odds_loader(sport)
+    return odds_loader
+
+
 def init_routes(database, models):
     """Инициализация маршрутов с моделями базы данных"""
     global db, Prediction, UserDecision, UserWatchlist, ModelVersion, TelegramSettings
@@ -47,6 +67,50 @@ def set_telegram(notifier):
     """Установить Telegram нотификатор"""
     global telegram_notifier
     telegram_notifier = notifier
+
+
+def _get_prediction_by_id(prediction_id):
+    """Без legacy Query.get/get_or_404 API SQLAlchemy."""
+    if not Prediction or not db:
+        return None
+    return db.session.get(Prediction, prediction_id)
+
+
+def _get_prediction_target_odds(prediction):
+    """Вытащить целевой коэффициент из данных прогноза без несуществующего поля odds."""
+    import json
+
+    patterns = prediction.patterns_data or {}
+    if isinstance(patterns, str):
+        try:
+            patterns = json.loads(patterns)
+        except Exception:
+            patterns = {}
+
+    target_odds = patterns.get('target_odds')
+    if isinstance(target_odds, (int, float)) and target_odds > 0:
+        return float(target_odds)
+
+    bet_on = patterns.get('bet_on') or patterns.get('target')
+    if bet_on == 'home' and prediction.home_odds:
+        return prediction.home_odds
+    if bet_on == 'away' and prediction.away_odds:
+        return prediction.away_odds
+
+    if prediction.predicted_outcome == prediction.home_team and prediction.home_odds:
+        return prediction.home_odds
+    if prediction.predicted_outcome == prediction.away_team and prediction.away_odds:
+        return prediction.away_odds
+
+    return prediction.home_odds or prediction.away_odds or 2.0
+
+
+def _get_prediction_sport_slug(prediction) -> str:
+    """Получить slug вида спорта из prediction или вывести по лиге."""
+    sport_slug = getattr(prediction, 'sport_type', None)
+    if sport_slug:
+        return str(sport_slug).lower()
+    return _resolve_sport_type_from_league(getattr(prediction, 'league', None)).name.lower()
 
 
 @routes_bp.route('/predictions')
@@ -127,7 +191,9 @@ def prediction_detail(prediction_id):
     
     if Prediction and db:
         try:
-            prediction = Prediction.query.get_or_404(prediction_id)
+            prediction = _get_prediction_by_id(prediction_id)
+            if prediction is None:
+                return "Прогноз не найден", 404
             
             event_id = prediction.flashlive_event_id
             if not event_id and prediction.patterns_data:
@@ -135,9 +201,13 @@ def prediction_detail(prediction_id):
                 if event_id:
                     event_id = event_id.replace('flash_', '')
             
-            if event_id and odds_loader:
+            loader = _get_odds_loader_for_sport(
+                getattr(prediction, 'sport_type', None) or _resolve_sport_type_from_league(prediction.league)
+            )
+
+            if event_id and loader:
                 try:
-                    h2h_data = odds_loader.get_h2h_data(event_id)
+                    h2h_data = loader.get_h2h_data(event_id)
                     if h2h_data:
                         home_history = h2h_data.get('home_team_matches', [])
                         away_history = h2h_data.get('away_team_matches', [])
@@ -179,7 +249,9 @@ def prediction_decide(prediction_id):
         return redirect(url_for('routes.predictions_page'))
     
     try:
-        prediction = Prediction.query.get_or_404(prediction_id)
+        prediction = _get_prediction_by_id(prediction_id)
+        if prediction is None:
+            return redirect(url_for('routes.predictions_page'))
         
         decision = request.form.get('decision')
         comment = request.form.get('comment', '')
@@ -252,6 +324,7 @@ def statistics_page():
     model_stats = {'total': 0, 'wins': 0, 'losses': 0, 'pending': 0, 'win_rate': 0, 'roi': 0}
     rl_stats = {'total': 0, 'wins': 0, 'losses': 0, 'win_rate': 0, 'roi': 0, 'bet_count': 0, 'skip_count': 0}
     manual_stats = {'total': 0, 'wins': 0, 'win_rate': 0, 'roi': 0}
+    sport_stats = {}
     league_stats = {}
     monthly_stats = []
     confidence_stats = {}
@@ -270,7 +343,7 @@ def statistics_page():
             model_stats['pending'] = len(pending)
             model_stats['win_rate'] = (model_stats['wins'] / model_stats['total'] * 100) if model_stats['total'] else 0
             
-            profit = sum((p.odds or 2.0) - 1 for p in completed if p.is_win) - model_stats['losses']
+            profit = sum(_get_prediction_target_odds(p) - 1 for p in completed if p.is_win) - model_stats['losses']
             if model_stats['total'] > 0:
                 model_stats['roi'] = (profit / model_stats['total']) * 100
             
@@ -283,7 +356,7 @@ def statistics_page():
             manual_stats['losses'] = len(accepted) - manual_stats['wins']
             manual_stats['win_rate'] = (manual_stats['wins'] / manual_stats['total'] * 100) if manual_stats['total'] else 0
             
-            manual_profit = sum((p.odds or 2.0) - 1 for p in accepted if p.is_win) - manual_stats['losses']
+            manual_profit = sum(_get_prediction_target_odds(p) - 1 for p in accepted if p.is_win) - manual_stats['losses']
             if manual_stats['total'] > 0:
                 manual_stats['roi'] = (manual_profit / manual_stats['total']) * 100
             
@@ -307,23 +380,61 @@ def statistics_page():
             skip_would_lose = sum(1 for p in rl_skip_completed if not p.is_win)
             rl_stats['skip_saved'] = skip_would_lose
             
-            rl_profit = sum((p.odds or 2.0) - 1 for p in rl_bet_completed if p.is_win) - rl_stats['losses']
+            rl_profit = sum(_get_prediction_target_odds(p) - 1 for p in rl_bet_completed if p.is_win) - rl_stats['losses']
             if rl_stats['total'] > 0:
                 rl_stats['roi'] = (rl_profit / rl_stats['total']) * 100
             
-            for league in ['NHL', 'KHL', 'SHL', 'Liiga', 'DEL']:
+            sport_order = ['hockey', 'football', 'basketball', 'volleyball']
+
+            for sport_slug in sport_order:
+                sport_preds = [p for p in completed if _get_prediction_sport_slug(p) == sport_slug]
+                if sport_preds:
+                    wins = sum(1 for p in sport_preds if p.is_win)
+                    losses = len(sport_preds) - wins
+                    sport_profit = sum(_get_prediction_target_odds(p) - 1 for p in sport_preds if p.is_win) - losses
+                    sport_type = {
+                        'hockey': SportType.HOCKEY,
+                        'football': SportType.FOOTBALL,
+                        'basketball': SportType.BASKETBALL,
+                        'volleyball': SportType.VOLLEYBALL,
+                    }[sport_slug]
+                    sport_config = get_sport_config(sport_type)
+                    sport_stats[sport_slug] = {
+                        'slug': sport_slug,
+                        'name': sport_config.get('name', sport_slug.title()),
+                        'name_ru': sport_config.get('name_ru', sport_slug.title()),
+                        'icon': sport_config.get('icon', '🎯'),
+                        'total': len(sport_preds),
+                        'wins': wins,
+                        'losses': losses,
+                        'win_rate': wins / len(sport_preds) * 100,
+                        'roi': (sport_profit / len(sport_preds)) * 100 if sport_preds else 0,
+                    }
+
+            for league in sorted({p.league for p in completed if p.league}):
                 league_preds = [p for p in completed if p.league == league]
                 if league_preds:
                     wins = sum(1 for p in league_preds if p.is_win)
                     losses = len(league_preds) - wins
-                    league_profit = sum((p.odds or 2.0) - 1 for p in league_preds if p.is_win) - losses
+                    league_profit = sum(_get_prediction_target_odds(p) - 1 for p in league_preds if p.is_win) - losses
                     roi = (league_profit / len(league_preds)) * 100 if league_preds else 0
+                    sport_slug = _get_prediction_sport_slug(league_preds[0])
+                    sport_type = {
+                        'hockey': SportType.HOCKEY,
+                        'football': SportType.FOOTBALL,
+                        'basketball': SportType.BASKETBALL,
+                        'volleyball': SportType.VOLLEYBALL,
+                    }.get(sport_slug, SportType.HOCKEY)
+                    sport_config = get_sport_config(sport_type)
                     league_stats[league] = {
                         'total': len(league_preds),
                         'wins': wins,
                         'losses': losses,
                         'win_rate': wins / len(league_preds) * 100,
-                        'roi': roi
+                        'roi': roi,
+                        'sport_slug': sport_slug,
+                        'sport_name': sport_config.get('name_ru', sport_slug.title()),
+                        'sport_icon': sport_config.get('icon', '🎯'),
                     }
             
             for conf_level in range(1, 11):
@@ -389,7 +500,7 @@ def statistics_page():
                 month_preds = [p for p in completed if p.match_date and p.match_date.strftime('%Y-%m') == month]
                 month_wins = [p for p in month_preds if p.is_win]
                 month_losses = len(month_preds) - len(month_wins)
-                month_profit = sum((p.odds or 2.0) - 1 for p in month_wins) - month_losses
+                month_profit = sum(_get_prediction_target_odds(p) - 1 for p in month_wins) - month_losses
                 roi = (month_profit / len(month_preds)) * 100 if month_preds else 0
                 
                 monthly_stats.append({
@@ -417,7 +528,7 @@ def statistics_page():
                 month_preds = [p for p in completed if p.match_date and p.match_date.strftime('%Y-%m') == month]
                 month_wins = [p for p in month_preds if p.is_win]
                 month_losses = len(month_preds) - len(month_wins)
-                month_profit = sum((p.odds or 2.0) - 1 for p in month_wins) - month_losses
+                month_profit = sum(_get_prediction_target_odds(p) - 1 for p in month_wins) - month_losses
                 
                 cumulative_profit += month_profit
                 cumulative_total += len(month_preds)
@@ -434,7 +545,9 @@ def statistics_page():
                          model_stats=model_stats,
                          rl_stats=rl_stats,
                          manual_stats=manual_stats,
+                         sport_stats=sport_stats,
                          league_stats=league_stats,
+                         league_order=list(league_stats.keys()),
                          monthly_stats=monthly_stats,
                          confidence_stats=confidence_stats,
                          pattern_stats=pattern_stats,
@@ -530,10 +643,11 @@ def api_monitor_stats():
         stats = odds_monitor.get_stats()
     
     # Количество матчей (5 лиг)
-    if odds_loader:
-        if hasattr(odds_loader, 'get_upcoming_games'):
+    loader = _get_odds_loader_for_sport(SportType.HOCKEY)
+    if loader:
+        if hasattr(loader, 'get_upcoming_games'):
             try:
-                matches = odds_loader.get_upcoming_games(days_ahead=1)
+                matches = loader.get_upcoming_games(days_ahead=1)
                 stats['matches_available'] = len(matches)
             except Exception:
                 stats['matches_available'] = 0
@@ -584,7 +698,9 @@ def api_prediction_detail(prediction_id):
     """API: Детали прогноза"""
     if Prediction and db:
         try:
-            prediction = Prediction.query.get_or_404(prediction_id)
+            prediction = _get_prediction_by_id(prediction_id)
+            if prediction is None:
+                return jsonify({'error': 'Not found'}), 404
             return jsonify(prediction.to_dict())
         except Exception as e:
             return jsonify({'error': str(e)}), 404

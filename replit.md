@@ -145,7 +145,6 @@ ROI = (profit / N_total) × 100%
 ## External Dependencies
 - **FlashLive Sports API (RapidAPI)** — основной источник данных
 - **NHL API** — исторические данные NHL
-- **AllBestBets API** — fallback для value bets
 - **Telegram Bot API** — уведомления
 - **PostgreSQL** — база данных
 - **Python:** Flask, SQLAlchemy, PyTorch, Scikit-learn

@@ -4,6 +4,7 @@
 from datetime import datetime
 from typing import Optional, Dict, Any
 import logging
+import sys
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +15,20 @@ LOG_TYPES = {
     'ERROR': 'error',
     'SYSTEM': 'system'
 }
+
+
+def _get_runtime_context():
+    """Получить уже загруженные app/db без импортных side effects."""
+    app_module = sys.modules.get('app')
+    if app_module is None:
+        return None, None
+
+    app = getattr(app_module, 'app', None)
+    db = getattr(app_module, 'db', None)
+    if app is None or db is None:
+        return None, None
+
+    return app, db
 
 LOG_LEVELS = {
     'DEBUG': 'DEBUG',
@@ -35,7 +50,11 @@ def log_to_db(log_type: str, message: str, level: str = 'INFO', details: Optiona
         details: Дополнительные данные (JSON)
     """
     try:
-        from app import app, db
+        app, db = _get_runtime_context()
+        if app is None or db is None:
+            logger.info(f"[{log_type}] {message}")
+            return
+
         from models import SystemLog
         
         with app.app_context():
@@ -117,7 +136,10 @@ def log_system(message: str, level: str = 'INFO', details: Optional[Dict] = None
 def get_recent_logs(limit: int = 50, log_type: Optional[str] = None, level: Optional[str] = None):
     """Получить последние логи из БД"""
     try:
-        from app import app, db
+        app, db = _get_runtime_context()
+        if app is None or db is None:
+            return []
+
         from models import SystemLog
         
         with app.app_context():
