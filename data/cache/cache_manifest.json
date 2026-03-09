@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-03-09T13:19:14.347943",
+  "generated_at": "2026-03-09T19:32:18.520536",
   "datasets": [
     {
       "id": "basketball-acb-snapshot_history",
@@ -19,7 +19,12 @@
       "for_training": false,
       "for_runtime": true,
       "status": "ok",
-      "issues": []
+      "issues": [],
+      "coverage_policy": {
+        "mode": "accepted_runtime_snapshot",
+        "accepted_dataset_kind": "snapshot_history",
+        "note": "Локальный snapshot без odds принят как рабочая runtime-база."
+      }
     },
     {
       "id": "basketball-bbl-snapshot_history",
@@ -39,7 +44,12 @@
       "for_training": false,
       "for_runtime": true,
       "status": "ok",
-      "issues": []
+      "issues": [],
+      "coverage_policy": {
+        "mode": "accepted_runtime_snapshot",
+        "accepted_dataset_kind": "snapshot_history",
+        "note": "Локальный snapshot без odds принят как рабочая runtime-база."
+      }
     },
     {
       "id": "basketball-euroleague-snapshot_history",
@@ -59,7 +69,12 @@
       "for_training": false,
       "for_runtime": true,
       "status": "ok",
-      "issues": []
+      "issues": [],
+      "coverage_policy": {
+        "mode": "accepted_runtime_snapshot",
+        "accepted_dataset_kind": "snapshot_history",
+        "note": "Локальный snapshot без odds принят как рабочая runtime-база."
+      }
     },
     {
       "id": "basketball-nba-snapshot_history",
@@ -99,7 +114,12 @@
       "for_training": false,
       "for_runtime": true,
       "status": "ok",
-      "issues": []
+      "issues": [],
+      "coverage_policy": {
+        "mode": "accepted_runtime_snapshot",
+        "accepted_dataset_kind": "snapshot_with_odds",
+        "note": "Локальный snapshot с коэффициентами принят как рабочая runtime-база."
+      }
     },
     {
       "id": "football-bundesliga-snapshot_history",
@@ -139,7 +159,12 @@
       "for_training": false,
       "for_runtime": true,
       "status": "ok",
-      "issues": []
+      "issues": [],
+      "coverage_policy": {
+        "mode": "accepted_runtime_snapshot",
+        "accepted_dataset_kind": "snapshot_with_odds",
+        "note": "Локальный snapshot с коэффициентами принят как рабочая runtime-база."
+      }
     },
     {
       "id": "football-epl-snapshot_history",
@@ -179,7 +204,12 @@
       "for_training": false,
       "for_runtime": true,
       "status": "ok",
-      "issues": []
+      "issues": [],
+      "coverage_policy": {
+        "mode": "accepted_runtime_snapshot",
+        "accepted_dataset_kind": "snapshot_with_odds",
+        "note": "Локальный snapshot с коэффициентами принят как рабочая runtime-база."
+      }
     },
     {
       "id": "football-la-liga-snapshot_history",
@@ -219,7 +249,12 @@
       "for_training": false,
       "for_runtime": true,
       "status": "ok",
-      "issues": []
+      "issues": [],
+      "coverage_policy": {
+        "mode": "accepted_runtime_snapshot",
+        "accepted_dataset_kind": "snapshot_with_odds",
+        "note": "Локальный snapshot с коэффициентами принят как рабочая runtime-база."
+      }
     },
     {
       "id": "football-ligue-1-snapshot_history",
@@ -259,7 +294,12 @@
       "for_training": false,
       "for_runtime": true,
       "status": "ok",
-      "issues": []
+      "issues": [],
+      "coverage_policy": {
+        "mode": "accepted_runtime_snapshot",
+        "accepted_dataset_kind": "snapshot_with_odds",
+        "note": "Локальный snapshot с коэффициентами принят как рабочая runtime-база."
+      }
     },
     {
       "id": "football-serie-a-snapshot_history",
@@ -299,7 +339,12 @@
       "for_training": false,
       "for_runtime": true,
       "status": "ok",
-      "issues": []
+      "issues": [],
+      "coverage_policy": {
+        "mode": "accepted_runtime_snapshot",
+        "accepted_dataset_kind": "snapshot_with_odds",
+        "note": "Локальный snapshot с коэффициентами принят как рабочая runtime-база."
+      }
     },
     {
       "id": "hockey-del-auxiliary",
@@ -621,7 +666,12 @@
       "for_training": false,
       "for_runtime": true,
       "status": "ok",
-      "issues": []
+      "issues": [],
+      "coverage_policy": {
+        "mode": "accepted_runtime_snapshot",
+        "accepted_dataset_kind": "snapshot_history",
+        "note": "Локальный snapshot без odds принят как рабочая runtime-база."
+      }
     },
     {
       "id": "volleyball-plusliga-snapshot_history",
@@ -641,7 +691,12 @@
       "for_training": false,
       "for_runtime": true,
       "status": "ok",
-      "issues": []
+      "issues": [],
+      "coverage_policy": {
+        "mode": "accepted_runtime_snapshot",
+        "accepted_dataset_kind": "snapshot_history",
+        "note": "Локальный snapshot без odds принят как рабочая runtime-база."
+      }
     },
     {
       "id": "volleyball-serie-a-italy-snapshot_history",
@@ -661,7 +716,12 @@
       "for_training": false,
       "for_runtime": true,
       "status": "ok",
-      "issues": []
+      "issues": [],
+      "coverage_policy": {
+        "mode": "accepted_runtime_snapshot",
+        "accepted_dataset_kind": "snapshot_history",
+        "note": "Локальный snapshot без odds принят как рабочая runtime-база."
+      }
     },
     {
       "id": "volleyball-superliga-russia-snapshot_history",
@@ -681,7 +741,12 @@
       "for_training": false,
       "for_runtime": true,
       "status": "ok",
-      "issues": []
+      "issues": [],
+      "coverage_policy": {
+        "mode": "accepted_runtime_snapshot",
+        "accepted_dataset_kind": "snapshot_history",
+        "note": "Локальный snapshot без odds принят как рабочая runtime-база."
+      }
     }
   ],
   "summary": {
@@ -698,7 +763,12 @@
         "issues": [],
         "source": "flashscore_scrape",
         "kind": "snapshot_history",
-        "status": "ok"
+        "status": "ok",
+        "coverage_policy": {
+          "mode": "accepted_runtime_snapshot",
+          "accepted_dataset_kind": "snapshot_history",
+          "note": "Локальный snapshot без odds принят как рабочая runtime-база."
+        }
       },
       "BBL": {
         "sport": "basketball",
@@ -712,7 +782,12 @@
         "issues": [],
         "source": "flashscore_scrape",
         "kind": "snapshot_history",
-        "status": "ok"
+        "status": "ok",
+        "coverage_policy": {
+          "mode": "accepted_runtime_snapshot",
+          "accepted_dataset_kind": "snapshot_history",
+          "note": "Локальный snapshot без odds принят как рабочая runtime-база."
+        }
       },
       "EuroLeague": {
         "sport": "basketball",
@@ -726,7 +801,12 @@
         "issues": [],
         "source": "flashscore_scrape",
         "kind": "snapshot_history",
-        "status": "ok"
+        "status": "ok",
+        "coverage_policy": {
+          "mode": "accepted_runtime_snapshot",
+          "accepted_dataset_kind": "snapshot_history",
+          "note": "Локальный snapshot без odds принят как рабочая runtime-база."
+        }
       },
       "NBA": {
         "sport": "basketball",
@@ -740,7 +820,12 @@
         "issues": [],
         "source": "flashscore_scrape",
         "kind": "snapshot_with_odds",
-        "status": "ok"
+        "status": "ok",
+        "coverage_policy": {
+          "mode": "accepted_runtime_snapshot",
+          "accepted_dataset_kind": "snapshot_with_odds",
+          "note": "Локальный snapshot с коэффициентами принят как рабочая runtime-база."
+        }
       }
     },
     "football": {
@@ -756,7 +841,12 @@
         "issues": [],
         "source": "flashscore_scrape",
         "kind": "snapshot_with_odds",
-        "status": "ok"
+        "status": "ok",
+        "coverage_policy": {
+          "mode": "accepted_runtime_snapshot",
+          "accepted_dataset_kind": "snapshot_with_odds",
+          "note": "Локальный snapshot с коэффициентами принят как рабочая runtime-база."
+        }
       },
       "EPL": {
         "sport": "football",
@@ -770,7 +860,12 @@
         "issues": [],
         "source": "flashscore_scrape",
         "kind": "snapshot_with_odds",
-        "status": "ok"
+        "status": "ok",
+        "coverage_policy": {
+          "mode": "accepted_runtime_snapshot",
+          "accepted_dataset_kind": "snapshot_with_odds",
+          "note": "Локальный snapshot с коэффициентами принят как рабочая runtime-база."
+        }
       },
       "La Liga": {
         "sport": "football",
@@ -784,7 +879,12 @@
         "issues": [],
         "source": "flashscore_scrape",
         "kind": "snapshot_with_odds",
-        "status": "ok"
+        "status": "ok",
+        "coverage_policy": {
+          "mode": "accepted_runtime_snapshot",
+          "accepted_dataset_kind": "snapshot_with_odds",
+          "note": "Локальный snapshot с коэффициентами принят как рабочая runtime-база."
+        }
       },
       "Ligue 1": {
         "sport": "football",
@@ -798,7 +898,12 @@
         "issues": [],
         "source": "flashscore_scrape",
         "kind": "snapshot_with_odds",
-        "status": "ok"
+        "status": "ok",
+        "coverage_policy": {
+          "mode": "accepted_runtime_snapshot",
+          "accepted_dataset_kind": "snapshot_with_odds",
+          "note": "Локальный snapshot с коэффициентами принят как рабочая runtime-база."
+        }
       },
       "Serie A": {
         "sport": "football",
@@ -812,7 +917,12 @@
         "issues": [],
         "source": "flashscore_scrape",
         "kind": "snapshot_with_odds",
-        "status": "ok"
+        "status": "ok",
+        "coverage_policy": {
+          "mode": "accepted_runtime_snapshot",
+          "accepted_dataset_kind": "snapshot_with_odds",
+          "note": "Локальный snapshot с коэффициентами принят как рабочая runtime-база."
+        }
       }
     },
     "hockey": {
@@ -936,7 +1046,12 @@
         "issues": [],
         "source": "flashscore_scrape",
         "kind": "snapshot_history",
-        "status": "ok"
+        "status": "ok",
+        "coverage_policy": {
+          "mode": "accepted_runtime_snapshot",
+          "accepted_dataset_kind": "snapshot_history",
+          "note": "Локальный snapshot без odds принят как рабочая runtime-база."
+        }
       },
       "PlusLiga": {
         "sport": "volleyball",
@@ -950,7 +1065,12 @@
         "issues": [],
         "source": "flashscore_scrape",
         "kind": "snapshot_history",
-        "status": "ok"
+        "status": "ok",
+        "coverage_policy": {
+          "mode": "accepted_runtime_snapshot",
+          "accepted_dataset_kind": "snapshot_history",
+          "note": "Локальный snapshot без odds принят как рабочая runtime-база."
+        }
       },
       "Serie A Italy": {
         "sport": "volleyball",
@@ -964,7 +1084,12 @@
         "issues": [],
         "source": "flashscore_scrape",
         "kind": "snapshot_history",
-        "status": "ok"
+        "status": "ok",
+        "coverage_policy": {
+          "mode": "accepted_runtime_snapshot",
+          "accepted_dataset_kind": "snapshot_history",
+          "note": "Локальный snapshot без odds принят как рабочая runtime-база."
+        }
       },
       "Superliga Russia": {
         "sport": "volleyball",
@@ -978,7 +1103,12 @@
         "issues": [],
         "source": "flashscore_scrape",
         "kind": "snapshot_history",
-        "status": "ok"
+        "status": "ok",
+        "coverage_policy": {
+          "mode": "accepted_runtime_snapshot",
+          "accepted_dataset_kind": "snapshot_history",
+          "note": "Локальный snapshot без odds принят как рабочая runtime-база."
+        }
       }
     }
   }

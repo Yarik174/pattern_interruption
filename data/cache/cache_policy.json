@@ -23,5 +23,82 @@
         "note": "API-Sports backfill недоступен без подписки; текущий локальный корпус принят как рабочая историческая база."
       }
     }
+  },
+  "snapshot_with_odds": {
+    "football": {
+      "Bundesliga": {
+        "mode": "accepted_runtime_snapshot",
+        "accepted_dataset_kind": "snapshot_with_odds",
+        "note": "Локальный snapshot с коэффициентами принят как рабочая runtime-база."
+      },
+      "EPL": {
+        "mode": "accepted_runtime_snapshot",
+        "accepted_dataset_kind": "snapshot_with_odds",
+        "note": "Локальный snapshot с коэффициентами принят как рабочая runtime-база."
+      },
+      "La Liga": {
+        "mode": "accepted_runtime_snapshot",
+        "accepted_dataset_kind": "snapshot_with_odds",
+        "note": "Локальный snapshot с коэффициентами принят как рабочая runtime-база."
+      },
+      "Ligue 1": {
+        "mode": "accepted_runtime_snapshot",
+        "accepted_dataset_kind": "snapshot_with_odds",
+        "note": "Локальный snapshot с коэффициентами принят как рабочая runtime-база."
+      },
+      "Serie A": {
+        "mode": "accepted_runtime_snapshot",
+        "accepted_dataset_kind": "snapshot_with_odds",
+        "note": "Локальный snapshot с коэффициентами принят как рабочая runtime-база."
+      }
+    },
+    "basketball": {
+      "NBA": {
+        "mode": "accepted_runtime_snapshot",
+        "accepted_dataset_kind": "snapshot_with_odds",
+        "note": "Локальный snapshot с коэффициентами принят как рабочая runtime-база."
+      }
+    }
+  },
+  "snapshot_history": {
+    "basketball": {
+      "ACB": {
+        "mode": "accepted_runtime_snapshot",
+        "accepted_dataset_kind": "snapshot_history",
+        "note": "Локальный snapshot без odds принят как рабочая runtime-база."
+      },
+      "BBL": {
+        "mode": "accepted_runtime_snapshot",
+        "accepted_dataset_kind": "snapshot_history",
+        "note": "Локальный snapshot без odds принят как рабочая runtime-база."
+      },
+      "EuroLeague": {
+        "mode": "accepted_runtime_snapshot",
+        "accepted_dataset_kind": "snapshot_history",
+        "note": "Локальный snapshot без odds принят как рабочая runtime-база."
+      }
+    },
+    "volleyball": {
+      "CEV Champions": {
+        "mode": "accepted_runtime_snapshot",
+        "accepted_dataset_kind": "snapshot_history",
+        "note": "Локальный snapshot без odds принят как рабочая runtime-база."
+      },
+      "PlusLiga": {
+        "mode": "accepted_runtime_snapshot",
+        "accepted_dataset_kind": "snapshot_history",
+        "note": "Локальный snapshot без odds принят как рабочая runtime-база."
+      },
+      "Serie A Italy": {
+        "mode": "accepted_runtime_snapshot",
+        "accepted_dataset_kind": "snapshot_history",
+        "note": "Локальный snapshot без odds принят как рабочая runtime-база."
+      },
+      "Superliga Russia": {
+        "mode": "accepted_runtime_snapshot",
+        "accepted_dataset_kind": "snapshot_history",
+        "note": "Локальный snapshot без odds принят как рабочая runtime-база."
+      }
+    }
   }
 }

@@ -45,6 +45,19 @@ def _flatten_summary(summary):
     return rows
 
 
+def _format_policy(policy) -> str:
+    if not policy:
+        return ""
+    parts = [policy.get("mode", "accepted_local_baseline")]
+    seasons = policy.get("accepted_seasons", [])
+    if seasons:
+        parts.append(f"seasons={','.join(str(season) for season in seasons)}")
+    dataset_kind = policy.get("accepted_dataset_kind")
+    if dataset_kind:
+        parts.append(f"dataset={dataset_kind}")
+    return " ".join(parts)
+
+
 def _format_audit_report(manifest) -> str:
     lines = []
     lines.append("CACHE AUDIT")
@@ -70,8 +83,7 @@ def _format_audit_report(manifest) -> str:
         )
         if item.get("coverage_policy"):
             policy = item["coverage_policy"]
-            seasons = ",".join(str(season) for season in policy.get("accepted_seasons", [])) or "-"
-            lines.append(f"  policy: {policy.get('mode', 'accepted_local_baseline')} seasons={seasons}")
+            lines.append(f"  policy: {_format_policy(policy)}")
             if policy.get("note"):
                 lines.append(f"  note: {policy['note']}")
         if item.get("issues"):
@@ -87,9 +99,7 @@ def _format_audit_report(manifest) -> str:
         )
         lines.append(f"  files: {', '.join(dataset.get('files', [])) or '-'}")
         if dataset.get("coverage_policy"):
-            policy = dataset["coverage_policy"]
-            seasons = ",".join(str(season) for season in policy.get("accepted_seasons", [])) or "-"
-            lines.append(f"  policy: {policy.get('mode', 'accepted_local_baseline')} seasons={seasons}")
+            lines.append(f"  policy: {_format_policy(dataset['coverage_policy'])}")
         if dataset.get("issues"):
             lines.append(f"  issues: {'; '.join(dataset['issues'])}")
 

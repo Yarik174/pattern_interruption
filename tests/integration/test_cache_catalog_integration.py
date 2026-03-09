@@ -22,3 +22,6 @@ def test_real_cache_manifest_no_longer_contains_test_snapshot_warnings():
     assert all("test dataset present" not in warning for warning in verification["warnings"])
     assert all("partial dataset: hockey/" not in warning for warning in verification["warnings"])
     assert manifest["summary"]["hockey"]["KHL"]["coverage_policy"]["accepted_seasons"] == [2022, 2023, 2024]
+    assert manifest["summary"]["football"]["EPL"]["coverage_policy"]["accepted_dataset_kind"] == "snapshot_with_odds"
+    assert manifest["summary"]["basketball"]["NBA"]["coverage_policy"]["accepted_dataset_kind"] == "snapshot_with_odds"
+    assert manifest["summary"]["volleyball"]["PlusLiga"]["coverage_policy"]["accepted_dataset_kind"] == "snapshot_history"

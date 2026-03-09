@@ -368,7 +368,7 @@ def _canonical_snapshot_league(sport: str, raw_league: str) -> str:
     return SNAPSHOT_LEAGUE_ALIASES.get(sport, {}).get(raw_league, raw_league)
 
 
-def _build_snapshot_datasets(cache_root: Path) -> List[Dict[str, Any]]:
+def _build_snapshot_datasets(cache_root: Path, cache_policy: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
     grouped: Dict[Tuple[str, str, str], List[Path]] = defaultdict(list)
     kind_meta: Dict[Tuple[str, str, str], Dict[str, Any]] = {}
 
@@ -422,6 +422,12 @@ def _build_snapshot_datasets(cache_root: Path) -> List[Dict[str, Any]]:
                 for_training=kind_meta[(sport, league, kind)]["for_training"],
                 for_runtime=kind_meta[(sport, league, kind)]["for_runtime"],
                 extra_issues=["test snapshot"] if kind == "auxiliary" and any("test" in file.name for file in files) else [],
+                coverage_policy=_get_coverage_policy(
+                    cache_policy,
+                    sport=sport,
+                    league=league,
+                    kind=kind,
+                ),
             )
         )
     return datasets
@@ -549,7 +555,7 @@ def build_cache_manifest(cache_root: Path | str | None = None) -> Dict[str, Any]
     datasets = [
         _build_nhl_dataset(cache_root),
         *_build_euro_hockey_datasets(cache_root, cache_policy=cache_policy),
-        *_build_snapshot_datasets(cache_root),
+        *_build_snapshot_datasets(cache_root, cache_policy=cache_policy),
         *_build_auxiliary_datasets(cache_root),
     ]
     datasets.sort(key=lambda item: (item["sport"], item["league"], item["kind"], item["id"]))

@@ -225,3 +225,40 @@ def test_build_cache_manifest_honors_local_coverage_policy(tmp_path):
     assert khl_summary["issues"] == []
     assert khl_summary["coverage_policy"]["accepted_seasons"] == [2024]
     assert khl_dataset["coverage_policy"]["mode"] == "accepted_local_baseline"
+
+
+def test_build_cache_manifest_attaches_snapshot_policy_to_runtime_dataset(tmp_path):
+    cache_root = tmp_path / "data" / "cache"
+    _build_primary_hockey_cache(cache_root)
+    _write_json(
+        cache_root / "football" / "EPL_matches.json",
+        [_match("2025-01-01", "Arsenal", "Chelsea", 2, 1, game_id="epl-raw")],
+    )
+    _write_json(
+        cache_root / "football" / "EPL_with_odds_matches.json",
+        [_match("2025-01-02", "Arsenal", "Chelsea", 2, 0, game_id="epl-odds", home_odds=2.1, away_odds=3.2)],
+    )
+    _write_json(
+        cache_root / "cache_policy.json",
+        {
+            "snapshot_with_odds": {
+                "football": {
+                    "EPL": {
+                        "mode": "accepted_runtime_snapshot",
+                        "accepted_dataset_kind": "snapshot_with_odds",
+                        "note": "runtime baseline",
+                    }
+                }
+            }
+        },
+    )
+
+    manifest = build_cache_manifest(cache_root=cache_root)
+    epl_summary = manifest["summary"]["football"]["EPL"]
+    epl_dataset = next(
+        item for item in manifest["datasets"]
+        if item["sport"] == "football" and item["league"] == "EPL" and item["kind"] == "snapshot_with_odds"
+    )
+
+    assert epl_summary["coverage_policy"]["accepted_dataset_kind"] == "snapshot_with_odds"
+    assert epl_dataset["coverage_policy"]["mode"] == "accepted_runtime_snapshot"

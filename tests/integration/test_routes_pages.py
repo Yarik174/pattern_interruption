@@ -57,17 +57,18 @@ def test_dashboard_page_reports_live_stats(app_module, app, authenticated_client
     monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "token")
     monkeypatch.setenv("TELEGRAM_CHAT_ID", "chat")
     monkeypatch.setattr(routes_module, "odds_monitor", SimpleNamespace(get_stats=lambda: {"is_running": True}))
+    now_local = datetime.now()
 
     today_prediction = _seed_prediction(
         app_module,
         app,
-        created_at=datetime.utcnow(),
+        created_at=now_local,
         confidence_1_10=8,
     )
     old_prediction = _seed_prediction(
         app_module,
         app,
-        created_at=datetime.utcnow() - timedelta(days=1),
+        created_at=now_local - timedelta(days=1),
         confidence_1_10=6,
         home_team="Calgary Flames",
         away_team="Edmonton Oilers",
