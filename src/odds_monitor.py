@@ -170,8 +170,9 @@ class AutoMonitor:
     - Логированием в БД
     """
     
-    def __init__(self, check_interval: int = 43200):  # 12 часов вместо 4
+    def __init__(self, check_interval: int = 43200, dry_run: bool = False):  # 12 часов вместо 4
         self.check_interval = check_interval
+        self.dry_run = dry_run
         self._running = False
         self._thread: Optional[threading.Thread] = None
         self._last_check = None
@@ -182,7 +183,8 @@ class AutoMonitor:
             'predictions_created': 0,
             'notifications_sent': 0,
             'data_refreshes': 0,
-            'errors': 0
+            'errors': 0,
+            'dry_run_candidates': 0
         }
     
     def start(self):
@@ -210,6 +212,7 @@ class AutoMonitor:
         return {
             **self._stats,
             'is_running': self._running,
+            'dry_run': self.dry_run,
             'last_check': self._last_check.isoformat() if self._last_check else None,
             'last_data_refresh': self._last_data_refresh.isoformat() if self._last_data_refresh else None,
             'check_interval_hours': self.check_interval // 3600
@@ -232,6 +235,8 @@ class AutoMonitor:
     
     def _maybe_refresh_data(self):
         """Обновить исторические данные если нужно"""
+        if self.dry_run:
+            return
         try:
             from src.data_refresh import should_refresh, refresh_all_historical_data
             
@@ -258,6 +263,9 @@ class AutoMonitor:
             'predictions_created': 0,
             'notifications_sent': 0
         }
+        if self.dry_run:
+            result['dry_run'] = True
+            result['decisions'] = []
         
         try:
             loader = self._get_live_loader()
@@ -271,6 +279,15 @@ class AutoMonitor:
             
             for match in matches:
                 try:
+                    if self.dry_run:
+                        decision = self.evaluate_match(match)
+                        result['decisions'].append(decision)
+                        if decision['status'] == 'candidate':
+                            result['predictions_created'] += 1
+                            self._stats['predictions_created'] += 1
+                            self._stats['dry_run_candidates'] += 1
+                        continue
+
                     prediction = self._process_match(match)
                     if prediction:
                         result['predictions_created'] += 1
@@ -292,10 +309,11 @@ class AutoMonitor:
                        f"{result['predictions_created']} predictions")
             
             # Также проверяем результаты прошедших матчей
-            try:
-                self.check_results()
-            except Exception as e:
-                logger.error(f"Results check error in _check_matches: {e}")
+            if not self.dry_run:
+                try:
+                    self.check_results()
+                except Exception as e:
+                    logger.error(f"Results check error in _check_matches: {e}")
             
         except Exception as e:
             logger.error(f"AutoMonitor check error: {e}")
@@ -310,24 +328,19 @@ class AutoMonitor:
     
     def _process_match(self, match: dict) -> Optional[dict]:
         """Обработать матч и создать прогноз если нужно"""
-        home_odds = match.get('home_odds')
-        away_odds = match.get('away_odds')
-        
-        if not home_odds and not away_odds:
+        decision = self.evaluate_match(match)
+        if decision['status'] != 'candidate':
             return None
-        
-        min_odds, max_odds = 2.0, 3.5
-        target_odds = None
-        bet_on = None
-        
-        if home_odds and min_odds <= home_odds <= max_odds:
-            target_odds = home_odds
-            bet_on = 'home'
-        elif away_odds and min_odds <= away_odds <= max_odds:
-            target_odds = away_odds
-            bet_on = 'away'
-        else:
-            return None
+
+        if self.dry_run:
+            return {
+                **decision,
+                'dry_run': True,
+                'created': False,
+            }
+
+        target_odds = decision['target_odds']
+        bet_on = decision['bet_on']
         
         try:
             from src.prediction_service import create_prediction_from_match
@@ -337,6 +350,45 @@ class AutoMonitor:
         except Exception as e:
             logger.error(f"Prediction creation error: {e}")
             return None
+
+    def evaluate_match(self, match: dict) -> dict:
+        """Оценить матч без побочных эффектов и объяснить решение."""
+        home_odds = match.get('home_odds')
+        away_odds = match.get('away_odds')
+
+        decision = {
+            'event_id': match.get('event_id'),
+            'sport_type': match.get('sport_type'),
+            'league': match.get('league'),
+            'home_team': match.get('home_team'),
+            'away_team': match.get('away_team'),
+            'home_odds': home_odds,
+            'away_odds': away_odds,
+            'status': 'skipped',
+            'reason': None,
+            'bet_on': None,
+            'target_odds': None,
+        }
+
+        if not home_odds and not away_odds:
+            decision['reason'] = 'missing_odds'
+            return decision
+        
+        min_odds, max_odds = 2.0, 3.5
+        
+        if home_odds and min_odds <= home_odds <= max_odds:
+            decision['target_odds'] = home_odds
+            decision['bet_on'] = 'home'
+        elif away_odds and min_odds <= away_odds <= max_odds:
+            decision['target_odds'] = away_odds
+            decision['bet_on'] = 'away'
+        else:
+            decision['reason'] = 'odds_out_of_range'
+            return decision
+
+        decision['status'] = 'candidate'
+        decision['reason'] = 'odds_in_target_range'
+        return decision
     
     def _send_notification(self, prediction: dict) -> bool:
         """Отправить уведомление в Telegram"""
@@ -536,6 +588,13 @@ def get_auto_monitor() -> AutoMonitor:
     global _global_monitor
     if _global_monitor is None:
         _global_monitor = AutoMonitor(check_interval=43200)  # 12 часов
+    return _global_monitor
+
+
+def set_auto_monitor(monitor: Optional[AutoMonitor]) -> Optional[AutoMonitor]:
+    """Явно установить глобальный экземпляр AutoMonitor."""
+    global _global_monitor
+    _global_monitor = monitor
     return _global_monitor
 
 

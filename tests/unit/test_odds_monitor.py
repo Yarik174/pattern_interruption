@@ -145,6 +145,21 @@ def test_auto_monitor_process_match_selects_home_or_away_target(monkeypatch):
     assert calls == [("evt-1", "home", 2.4), ("evt-2", "away", 2.6)]
 
 
+def test_auto_monitor_evaluate_match_explains_skip_and_candidate():
+    auto = AutoMonitor(dry_run=True)
+
+    missing = auto.evaluate_match({"event_id": "evt-1"})
+    out_of_range = auto.evaluate_match({"event_id": "evt-2", "home_odds": 1.8, "away_odds": 1.9})
+    candidate = auto.evaluate_match({"event_id": "evt-3", "home_odds": 2.2, "away_odds": 1.7, "league": "NHL"})
+
+    assert missing["reason"] == "missing_odds"
+    assert missing["status"] == "skipped"
+    assert out_of_range["reason"] == "odds_out_of_range"
+    assert candidate["status"] == "candidate"
+    assert candidate["bet_on"] == "home"
+    assert candidate["target_odds"] == 2.2
+
+
 def test_auto_monitor_send_notification_uses_telegram_helper(monkeypatch):
     auto = AutoMonitor()
     sent = []
@@ -229,6 +244,62 @@ def test_auto_monitor_check_matches_logs_and_checks_results(monkeypatch):
     assert auto._stats["matches_found"] == 2
     assert auto._stats["predictions_created"] == 1
     assert auto._stats["notifications_sent"] == 1
+
+
+def test_auto_monitor_check_matches_dry_run_collects_decisions_without_notifications(monkeypatch):
+    auto = AutoMonitor(dry_run=True)
+    logged = []
+    checks = []
+
+    class _Loader:
+        @staticmethod
+        def is_configured():
+            return True
+
+        @staticmethod
+        def get_matches_with_odds(days_ahead=2):
+            return [
+                {"event_id": "evt-1", "league": "NHL", "home_team": "AAA", "away_team": "BBB", "home_odds": 2.4, "away_odds": 1.5},
+                {"event_id": "evt-2", "league": "NBA", "home_team": "CCC", "away_team": "DDD", "home_odds": 1.6, "away_odds": 1.7},
+            ]
+
+    monkeypatch.setitem(
+        sys.modules,
+        "src.system_logger",
+        SimpleNamespace(log_monitoring=lambda matches, created, sent: logged.append((matches, created, sent))),
+    )
+    monkeypatch.setattr(auto, "_get_live_loader", lambda: _Loader())
+    monkeypatch.setattr(auto, "check_results", lambda: checks.append("done") or {"updated": 0})
+
+    result = auto._check_matches()
+
+    assert result["dry_run"] is True
+    assert result["matches_found"] == 2
+    assert result["predictions_created"] == 1
+    assert result["notifications_sent"] == 0
+    assert result["decisions"][0]["status"] == "candidate"
+    assert result["decisions"][1]["reason"] == "odds_out_of_range"
+    assert logged == [(2, 1, 0)]
+    assert checks == []
+    assert auto.get_stats()["dry_run"] is True
+
+
+def test_auto_monitor_maybe_refresh_data_skips_in_dry_run(monkeypatch):
+    auto = AutoMonitor(dry_run=True)
+    called = []
+
+    monkeypatch.setitem(
+        sys.modules,
+        "src.data_refresh",
+        SimpleNamespace(
+            should_refresh=lambda: called.append("refresh-check") or True,
+            refresh_all_historical_data=lambda: called.append("refresh-run") or {"skipped": False},
+        ),
+    )
+
+    auto._maybe_refresh_data()
+
+    assert called == []
 
 
 def test_auto_monitor_check_matches_returns_empty_when_loader_not_configured(monkeypatch):

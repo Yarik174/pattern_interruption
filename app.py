@@ -61,6 +61,13 @@ SPORT_NAME_MAP = {
 }
 
 
+def _env_flag(name: str, default: bool) -> bool:
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return str(value).strip().lower() not in {"0", "false", "no", "off"}
+
+
 def resolve_sport_type(sport, default: Optional[SportType] = SportType.HOCKEY):
     """Преобразовать строку/query param в SportType."""
     if isinstance(sport, SportType):
@@ -1766,7 +1773,10 @@ def startup_initialization():
 
 create_app(
     testing=os.environ.get("TESTING", "").lower() in {"1", "true", "yes"},
-    start_background=os.environ.get("TESTING", "").lower() not in {"1", "true", "yes"}
+    start_background=_env_flag(
+        "START_BACKGROUND",
+        os.environ.get("TESTING", "").lower() not in {"1", "true", "yes"}
+    )
 )
 
 
