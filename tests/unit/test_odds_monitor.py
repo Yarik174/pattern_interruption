@@ -125,14 +125,24 @@ def test_auto_monitor_process_match_selects_home_or_away_target(monkeypatch):
     auto = AutoMonitor()
     calls = []
 
-    def _fake_create_prediction(match, bet_on, target_odds):
-        calls.append((match["event_id"], bet_on, target_odds))
+    def _fake_create_prediction(match, bet_on, target_odds, decision=None):
+        calls.append((match["event_id"], bet_on, target_odds, decision["status"]))
         return {"ok": True}
 
     monkeypatch.setitem(
         sys.modules,
         "src.prediction_service",
         SimpleNamespace(create_prediction_from_match=_fake_create_prediction),
+    )
+    monkeypatch.setattr(
+        auto,
+        "evaluate_match",
+        lambda match: {
+            "event_id": match["event_id"],
+            "status": "candidate" if match["event_id"] != "evt-3" else "rejected",
+            "bet_on": "home" if match["event_id"] == "evt-1" else "away",
+            "target_odds": 2.4 if match["event_id"] == "evt-1" else 2.6,
+        },
     )
 
     home_result = auto._process_match({"event_id": "evt-1", "home_odds": 2.4, "away_odds": 1.5})
@@ -142,19 +152,69 @@ def test_auto_monitor_process_match_selects_home_or_away_target(monkeypatch):
     assert home_result == {"ok": True}
     assert away_result == {"ok": True}
     assert skipped is None
-    assert calls == [("evt-1", "home", 2.4), ("evt-2", "away", 2.6)]
+    assert calls == [("evt-1", "home", 2.4, "candidate"), ("evt-2", "away", 2.6, "candidate")]
 
 
-def test_auto_monitor_evaluate_match_explains_skip_and_candidate():
+def test_auto_monitor_evaluate_match_explains_reject_shadow_and_candidate(monkeypatch):
     auto = AutoMonitor(dry_run=True)
 
-    missing = auto.evaluate_match({"event_id": "evt-1"})
-    out_of_range = auto.evaluate_match({"event_id": "evt-2", "home_odds": 1.8, "away_odds": 1.9})
-    candidate = auto.evaluate_match({"event_id": "evt-3", "home_odds": 2.2, "away_odds": 1.7, "league": "NHL"})
+    missing = auto.evaluate_match({"event_id": "evt-1", "league": "NHL", "home_team": "AAA", "away_team": "BBB"})
+    out_of_range = auto.evaluate_match({"event_id": "evt-2", "league": "NHL", "home_team": "AAA", "away_team": "BBB", "home_odds": 1.8, "away_odds": 1.9})
+
+    monkeypatch.setattr(
+        auto,
+        "_evaluate_history_verdict",
+        lambda match, sport_type: {
+            "status": "pass",
+            "reason": "history_ready",
+            "normalized_home_team": match["home_team"],
+            "normalized_away_team": match["away_team"],
+        },
+    )
+    monkeypatch.setattr(
+        auto,
+        "_evaluate_pattern_and_model",
+        lambda match, sport_type, history_verdict: (
+            {"status": "pass", "reason": "pattern_signal_ready", "signal_side": "home", "confidence": 0.71},
+            {"status": "unsupported", "reason": "model_not_implemented_for_sport", "signal_side": None, "confidence": None},
+        ),
+    )
+    shadow = auto.evaluate_match(
+        {
+            "event_id": "evt-3",
+            "sport_type": "basketball",
+            "league": "NBA",
+            "home_team": "AAA",
+            "away_team": "BBB",
+            "home_odds": 2.2,
+            "away_odds": 1.7,
+        }
+    )
+    monkeypatch.setattr(
+        auto,
+        "_evaluate_pattern_and_model",
+        lambda match, sport_type, history_verdict: (
+            {"status": "pass", "reason": "pattern_signal_ready", "signal_side": "home", "confidence": 0.71},
+            {"status": "pass", "reason": "model_signal_ready", "signal_side": "home", "confidence": 0.64},
+        ),
+    )
+    candidate = auto.evaluate_match(
+        {
+            "event_id": "evt-4",
+            "sport_type": "hockey",
+            "league": "NHL",
+            "home_team": "AAA",
+            "away_team": "BBB",
+            "home_odds": 2.2,
+            "away_odds": 1.7,
+        }
+    )
 
     assert missing["reason"] == "missing_odds"
-    assert missing["status"] == "skipped"
+    assert missing["status"] == "rejected"
     assert out_of_range["reason"] == "odds_out_of_range"
+    assert shadow["status"] == "shadow_only"
+    assert shadow["reason"] == "model_not_implemented_for_sport"
     assert candidate["status"] == "candidate"
     assert candidate["bet_on"] == "home"
     assert candidate["target_odds"] == 2.2
@@ -229,17 +289,28 @@ def test_auto_monitor_check_matches_logs_and_checks_results(monkeypatch):
     monkeypatch.setitem(
         sys.modules,
         "src.system_logger",
-        SimpleNamespace(log_monitoring=lambda matches, created, sent: logged.append((matches, created, sent))),
+        SimpleNamespace(log_monitoring=lambda matches, created, sent, details=None: logged.append((matches, created, sent, details))),
     )
     monkeypatch.setattr(auto, "_get_live_loader", lambda: _Loader())
-    monkeypatch.setattr(auto, "_process_match", lambda match: {"id": match["event_id"]} if match["event_id"] == "evt-1" else None)
+    monkeypatch.setattr(
+        auto,
+        "evaluate_match",
+        lambda match: {"event_id": match["event_id"], "status": "candidate" if match["event_id"] == "evt-1" else "rejected", "reason": "quality_gate_passed" if match["event_id"] == "evt-1" else "missing_odds", "bet_on": "home", "target_odds": 2.4},
+    )
+    monkeypatch.setattr(auto, "_log_match_decision", lambda decision: None)
+    monkeypatch.setattr(auto, "_process_match", lambda match, decision=None: {"id": match["event_id"]} if match["event_id"] == "evt-1" else None)
     monkeypatch.setattr(auto, "_send_notification", lambda prediction: True)
     monkeypatch.setattr(auto, "check_results", lambda: checks.append("done") or {"updated": 0})
 
     result = auto._check_matches()
 
-    assert result == {"matches_found": 2, "predictions_created": 1, "notifications_sent": 1}
-    assert logged == [(2, 1, 1)]
+    assert result == {
+        "matches_found": 2,
+        "predictions_created": 1,
+        "notifications_sent": 1,
+        "decision_breakdown": {"candidate": 1, "shadow_only": 0, "rejected": 1},
+    }
+    assert logged == [(2, 1, 1, {"decision_breakdown": {"candidate": 1, "shadow_only": 0, "rejected": 1}, "dry_run": False})]
     assert checks == ["done"]
     assert auto._stats["matches_found"] == 2
     assert auto._stats["predictions_created"] == 1
@@ -266,9 +337,23 @@ def test_auto_monitor_check_matches_dry_run_collects_decisions_without_notificat
     monkeypatch.setitem(
         sys.modules,
         "src.system_logger",
-        SimpleNamespace(log_monitoring=lambda matches, created, sent: logged.append((matches, created, sent))),
+        SimpleNamespace(log_monitoring=lambda matches, created, sent, details=None: logged.append((matches, created, sent, details))),
     )
     monkeypatch.setattr(auto, "_get_live_loader", lambda: _Loader())
+    monkeypatch.setattr(
+        auto,
+        "evaluate_match",
+        lambda match: {
+            "event_id": match["event_id"],
+            "status": "candidate" if match["event_id"] == "evt-1" else "shadow_only",
+            "reason": "quality_gate_passed" if match["event_id"] == "evt-1" else "model_not_implemented_for_sport",
+            "bet_on": "home" if match["event_id"] == "evt-1" else None,
+            "target_odds": 2.4 if match["event_id"] == "evt-1" else None,
+            "pattern_verdict": {"status": "pass", "reason": "pattern_signal_ready"},
+            "model_verdict": {"status": "pass" if match["event_id"] == "evt-1" else "unsupported", "reason": "model_signal_ready" if match["event_id"] == "evt-1" else "model_not_implemented_for_sport"},
+        },
+    )
+    monkeypatch.setattr(auto, "_log_match_decision", lambda decision: None)
     monkeypatch.setattr(auto, "check_results", lambda: checks.append("done") or {"updated": 0})
 
     result = auto._check_matches()
@@ -278,8 +363,9 @@ def test_auto_monitor_check_matches_dry_run_collects_decisions_without_notificat
     assert result["predictions_created"] == 1
     assert result["notifications_sent"] == 0
     assert result["decisions"][0]["status"] == "candidate"
-    assert result["decisions"][1]["reason"] == "odds_out_of_range"
-    assert logged == [(2, 1, 0)]
+    assert result["decisions"][1]["reason"] == "model_not_implemented_for_sport"
+    assert result["decision_breakdown"] == {"candidate": 1, "shadow_only": 1, "rejected": 0}
+    assert logged == [(2, 1, 0, {"decision_breakdown": {"candidate": 1, "shadow_only": 1, "rejected": 0}, "dry_run": True})]
     assert checks == []
     assert auto.get_stats()["dry_run"] is True
 
@@ -319,7 +405,12 @@ def test_auto_monitor_check_matches_returns_empty_when_loader_not_configured(mon
 
     result = auto._check_matches()
 
-    assert result == {"matches_found": 0, "predictions_created": 0, "notifications_sent": 0}
+    assert result == {
+        "matches_found": 0,
+        "predictions_created": 0,
+        "notifications_sent": 0,
+        "decision_breakdown": {"candidate": 0, "shadow_only": 0, "rejected": 0},
+    }
 
 
 def test_auto_monitor_main_loop_tracks_errors_and_logs(monkeypatch):

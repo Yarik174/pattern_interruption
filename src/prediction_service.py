@@ -46,6 +46,7 @@ def create_prediction_from_match(
     match: dict,
     bet_on: str,
     target_odds: float,
+    decision: Optional[dict] = None,
     flask_app=None
 ) -> Optional[dict]:
     """
@@ -93,7 +94,11 @@ def create_prediction_from_match(
                 return None
             
             predicted_team = home_team if bet_on == 'home' else away_team
-            confidence = calculate_confidence(target_odds)
+            decision = decision or {}
+            model_verdict = decision.get('model_verdict', {})
+            confidence = model_verdict.get('confidence')
+            if confidence is None:
+                confidence = calculate_confidence(target_odds)
             sport_type = infer_sport_type_from_league(league)
             sport_slug = SPORT_SLUGS.get(sport_type, 'hockey')
             
@@ -137,11 +142,18 @@ def create_prediction_from_match(
                     'event_id': event_id,
                     'bet_on': bet_on,
                     'target_odds': target_odds,
-                    'source': 'AutoMonitor',
+                    'source': 'AutoMonitorQualityGate',
                     'odds_filter': '[2.0-3.5]',
                     'sport_type': sport_slug,
+                    'decision_status': decision.get('status'),
+                    'decision_reason': decision.get('reason'),
+                    'pattern_verdict': decision.get('pattern_verdict'),
+                    'model_verdict': model_verdict,
+                    'history_verdict': decision.get('history_verdict'),
+                    'odds_verdict': decision.get('odds_verdict'),
+                    'agreement_verdict': decision.get('agreement_verdict'),
                 },
-                model_version='AutoMonitor_v1',
+                model_version='AutoMonitor_v2',
                 flashlive_event_id=flashlive_event_id,
                 rl_recommendation=rl_action,
                 rl_confidence=rl_conf,

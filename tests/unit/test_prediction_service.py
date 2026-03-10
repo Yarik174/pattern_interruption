@@ -148,6 +148,15 @@ def test_create_prediction_from_match_sets_multisport_fields(app):
         },
         bet_on="home",
         target_odds=1.8,
+        decision={
+            "status": "candidate",
+            "reason": "quality_gate_passed",
+            "pattern_verdict": {"status": "pass", "reason": "pattern_signal_ready", "signal_side": "home", "confidence": 0.68},
+            "model_verdict": {"status": "pass", "reason": "model_signal_ready", "signal_side": "home", "confidence": 0.77},
+            "history_verdict": {"status": "pass", "reason": "history_ready"},
+            "odds_verdict": {"status": "pass", "reason": "odds_in_target_range", "bet_on": "home", "target_odds": 1.8},
+            "agreement_verdict": {"status": "pass", "reason": "signals_aligned"},
+        },
         flask_app=app,
     )
 
@@ -158,3 +167,6 @@ def test_create_prediction_from_match_sets_multisport_fields(app):
         assert prediction.sport_type == "basketball"
         assert prediction.bet_type == "winner"
         assert prediction.bookmaker == "bet365"
+        assert prediction.confidence == pytest.approx(0.77)
+        assert prediction.patterns_data["decision_status"] == "candidate"
+        assert prediction.patterns_data["source"] == "AutoMonitorQualityGate"

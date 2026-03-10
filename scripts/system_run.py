@@ -38,6 +38,14 @@ def _format_dry_run_result(result: dict) -> str:
     lines.append("=" * 72)
     lines.append(f"matches_found: {result.get('matches_found', 0)}")
     lines.append(f"candidates: {result.get('predictions_created', 0)}")
+    breakdown = result.get("decision_breakdown") or {}
+    if breakdown:
+        lines.append(
+            "breakdown: "
+            f"candidate={breakdown.get('candidate', 0)} "
+            f"shadow_only={breakdown.get('shadow_only', 0)} "
+            f"rejected={breakdown.get('rejected', 0)}"
+        )
     lines.append("")
     for decision in result.get("decisions", []):
         match_line = f"{decision.get('league') or '-'} | {decision.get('home_team') or '-'} vs {decision.get('away_team') or '-'}"
@@ -45,8 +53,15 @@ def _format_dry_run_result(result: dict) -> str:
             f"  status={decision.get('status')} reason={decision.get('reason')} "
             f"bet_on={decision.get('bet_on')} odds={decision.get('target_odds')}"
         )
+        pattern_line = (
+            f"  pattern={decision.get('pattern_verdict', {}).get('status')} "
+            f"pattern_reason={decision.get('pattern_verdict', {}).get('reason')} "
+            f"model={decision.get('model_verdict', {}).get('status')} "
+            f"model_reason={decision.get('model_verdict', {}).get('reason')}"
+        )
         lines.append(match_line)
         lines.append(detail_line)
+        lines.append(pattern_line)
     return "\n".join(lines)
 
 
@@ -149,9 +164,10 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--port", type=int, default=int(os.environ.get("PORT", 5001)), help="Bind port")
     run.add_argument("--debug", action="store_true", help="Enable Flask debug mode")
     run.add_argument("--no-monitor", dest="with_monitor", action="store_false", help="Start web without monitor")
-    run.add_argument("--dry-run-monitor", action="store_true", help="Start monitor in dry-run mode")
+    run.add_argument("--dry-run-monitor", dest="dry_run_monitor", action="store_true", help="Start monitor in dry-run mode")
+    run.add_argument("--live-monitor", dest="dry_run_monitor", action="store_false", help="Start monitor in live mode with DB writes and Telegram notifications")
     run.add_argument("--interval", type=int, default=43200, help="Monitor interval in seconds")
-    run.set_defaults(with_monitor=True, func=cmd_run)
+    run.set_defaults(with_monitor=True, dry_run_monitor=True, func=cmd_run)
 
     return parser
 

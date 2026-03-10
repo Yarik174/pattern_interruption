@@ -119,3 +119,14 @@ def test_system_run_doctor_and_monitor_once_dry_run(monkeypatch, capsys):
     output = capsys.readouterr().out
     assert "DRY RUN MONITOR" in output
     assert "status=candidate" in output
+
+
+def test_system_run_parser_uses_dry_run_monitor_by_default():
+    module = _load_system_run_module()
+    parser = module.build_parser()
+
+    args = parser.parse_args(["run"])
+    live_args = parser.parse_args(["run", "--live-monitor"])
+
+    assert args.dry_run_monitor is True
+    assert live_args.dry_run_monitor is False
