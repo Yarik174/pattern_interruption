@@ -86,7 +86,7 @@ def create_prediction_from_match(
             existing = Prediction.query.filter(
                 Prediction.home_team == home_team,
                 Prediction.away_team == away_team,
-                Prediction.match_date >= datetime.utcnow().replace(hour=0, minute=0, second=0)
+                Prediction.match_date >= datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
             ).first()
             
             if existing:

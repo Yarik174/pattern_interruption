@@ -10,6 +10,7 @@ User=appuser
 Group=appuser
 WorkingDirectory=/opt/pattern_interruption
 EnvironmentFile=/opt/pattern_interruption/.env
+Environment=START_BACKGROUND=0
 
 ExecStart=/opt/pattern_interruption/venv/bin/gunicorn \
     app:app \

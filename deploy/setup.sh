@@ -105,6 +105,7 @@ fi
 # --- 7. Systemd service ---
 echo "[7/8] Installing systemd service..."
 cp "$APP_DIR/deploy/pattern-interruption.service" /etc/systemd/system/
+cp "$APP_DIR/deploy/pattern-interruption-monitor-dryrun.service" /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable pattern-interruption
 
@@ -150,7 +151,9 @@ echo ""
 echo "Next steps:"
 echo "  1. Edit API keys: nano $APP_DIR/.env"
 echo "  2. Restart app:   systemctl restart pattern-interruption"
-echo "  3. View logs:     journalctl -u pattern-interruption -f"
-echo "  4. Test:          curl http://localhost:$GUNICORN_PORT"
+echo "  3. Dry-run monitor: systemctl start pattern-interruption-monitor-dryrun"
+echo "  4. View app logs:  journalctl -u pattern-interruption -f"
+echo "  5. View monitor:   journalctl -u pattern-interruption-monitor-dryrun -f"
+echo "  6. Test:           curl http://localhost:$GUNICORN_PORT"
 echo ""
 echo "  DB Password (сохрани!): $DB_PASS"

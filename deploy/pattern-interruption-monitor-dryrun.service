@@ -1,0 +1,23 @@
+[Unit]
+Description=Pattern Interruption — Dry Run Monitor
+Documentation=https://github.com/Yarik174/pattern_interruption
+After=network.target pattern-interruption.service
+Requires=pattern-interruption.service
+
+[Service]
+Type=simple
+User=appuser
+Group=appuser
+WorkingDirectory=/opt/pattern_interruption
+EnvironmentFile=/opt/pattern_interruption/.env
+Environment=START_BACKGROUND=0
+
+ExecStart=/opt/pattern_interruption/venv/bin/python /opt/pattern_interruption/scripts/system_run.py monitor --dry-run --interval 21600
+
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/log/pattern_monitor_dryrun.log
+StandardError=append:/var/log/pattern_monitor_dryrun.log
+
+[Install]
+WantedBy=multi-user.target
