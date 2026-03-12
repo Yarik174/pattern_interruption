@@ -12,7 +12,7 @@ WorkingDirectory=/opt/pattern_interruption
 EnvironmentFile=/opt/pattern_interruption/.env
 Environment=START_BACKGROUND=0
 
-ExecStart=/opt/pattern_interruption/venv/bin/python /opt/pattern_interruption/scripts/system_run.py monitor --dry-run --interval 21600
+ExecStart=/opt/pattern_interruption/venv/bin/python /opt/pattern_interruption/scripts/system_run.py monitor --dry-run --interval 3600
 
 Restart=always
 RestartSec=5

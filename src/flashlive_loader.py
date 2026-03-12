@@ -77,6 +77,7 @@ class FlashLiveLoader:
         self.api_key = api_key or RAPIDAPI_KEY
         self.sport_type = sport_type
         self.sport_config = get_sport_config(sport_type)
+        self.proxy_url = self._resolve_proxy_url()
         self._cache = {}
         self._cache_time = {}
         self._cache_ttl = 3600  # 60 минут (экономия API запросов)
@@ -101,6 +102,31 @@ class FlashLiveLoader:
     def is_configured(self) -> bool:
         """Проверка настроен ли API"""
         return bool(self.api_key)
+
+    @staticmethod
+    def _resolve_proxy_url() -> Optional[str]:
+        """Найти proxy только для Flash API или взять системный fallback."""
+        for key in (
+            'FLASH_API_PROXY_URL',
+            'FLASH_PROXY_URL',
+            'HTTPS_PROXY',
+            'https_proxy',
+            'ALL_PROXY',
+            'all_proxy',
+        ):
+            value = os.environ.get(key, '').strip()
+            if value:
+                return value
+        return None
+
+    def _get_request_proxies(self) -> Optional[Dict[str, str]]:
+        """Подготовить requests-compatible proxies dict."""
+        if not self.proxy_url:
+            return None
+        return {
+            'http': self.proxy_url,
+            'https': self.proxy_url,
+        }
     
     def _request_with_retry(self, url: str, params: Dict, max_retries: int = 3, 
                            base_delay: float = 1.0, allow_not_found: bool = False) -> Optional[requests.Response]:
@@ -124,7 +150,8 @@ class FlashLiveLoader:
                     url,
                     headers=self._get_headers(),
                     params=params,
-                    timeout=30
+                    timeout=30,
+                    proxies=self._get_request_proxies(),
                 )
                 
                 # Успешный ответ

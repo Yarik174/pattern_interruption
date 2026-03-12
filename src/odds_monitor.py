@@ -664,12 +664,7 @@ class AutoMonitor:
                 'away_win_pct': analysis.get('away_win_pct'),
             },
         }
-        model_verdict = {
-            'status': 'unsupported',
-            'reason': 'model_not_implemented_for_sport',
-            'signal_side': None,
-            'confidence': None,
-        }
+        model_verdict = self._build_basketball_model_verdict(analysis)
         return pattern_verdict, model_verdict
 
     def _evaluate_volleyball_signals(self, league: str, home_team: str, away_team: str) -> tuple[dict, dict]:
@@ -695,12 +690,7 @@ class AutoMonitor:
                 'away_win_pct': analysis.get('away_win_pct'),
             },
         }
-        model_verdict = {
-            'status': 'unsupported',
-            'reason': 'model_not_implemented_for_sport',
-            'signal_side': None,
-            'confidence': None,
-        }
+        model_verdict = self._build_volleyball_model_verdict(analysis)
         return pattern_verdict, model_verdict
 
     def _evaluate_football_signals(self, league: str, home_team: str, away_team: str) -> tuple[dict, dict]:
@@ -731,6 +721,120 @@ class AutoMonitor:
             'confidence': None,
         }
         return pattern_verdict, model_verdict
+
+    def _build_basketball_model_verdict(self, analysis: dict) -> dict:
+        signal_side = analysis.get('bet_on')
+        confidence = analysis.get('confidence')
+        if not signal_side or confidence is None:
+            return {
+                'status': 'unavailable',
+                'reason': 'model_unavailable',
+                'signal_side': None,
+                'confidence': None,
+            }
+
+        home_win_pct = float(analysis.get('home_win_pct') or 0.5)
+        away_win_pct = float(analysis.get('away_win_pct') or 0.5)
+        home_streak = int(analysis.get('home_streak') or 0)
+        away_streak = int(analysis.get('away_streak') or 0)
+        h2h_matches = int(analysis.get('h2h_matches') or 0)
+
+        if signal_side == 'home':
+            edge = home_win_pct - away_win_pct
+            streak = max(0, home_streak)
+        else:
+            edge = away_win_pct - home_win_pct
+            streak = max(0, away_streak)
+
+        calibrated_confidence = min(
+            0.9,
+            confidence
+            + max(0.0, edge) * 0.30
+            + min(streak, 5) * 0.015
+            + (0.02 if h2h_matches >= 3 else 0.0),
+        )
+        threshold = 0.68
+        if calibrated_confidence >= threshold and edge >= 0.05:
+            return {
+                'status': 'pass',
+                'reason': 'model_signal_ready',
+                'signal_side': signal_side,
+                'confidence': calibrated_confidence,
+                'details': {
+                    'edge': round(edge, 4),
+                    'h2h_matches': h2h_matches,
+                    'streak': streak,
+                },
+            }
+        return {
+            'status': 'fail',
+            'reason': 'model_below_threshold',
+            'signal_side': signal_side,
+            'confidence': calibrated_confidence,
+            'details': {
+                'edge': round(edge, 4),
+                'h2h_matches': h2h_matches,
+                'streak': streak,
+            },
+        }
+
+    def _build_volleyball_model_verdict(self, analysis: dict) -> dict:
+        signal_side = analysis.get('bet_on')
+        confidence = analysis.get('confidence')
+        if not signal_side or confidence is None:
+            return {
+                'status': 'unavailable',
+                'reason': 'model_unavailable',
+                'signal_side': None,
+                'confidence': None,
+            }
+
+        home_win_pct = float(analysis.get('home_win_pct') or 0.5)
+        away_win_pct = float(analysis.get('away_win_pct') or 0.5)
+        home_form_pct = float(analysis.get('home_form_pct') or 0.5)
+        away_form_pct = float(analysis.get('away_form_pct') or 0.5)
+        patterns = analysis.get('patterns') or []
+
+        home_strength = home_win_pct * 0.6 + home_form_pct * 0.4
+        away_strength = away_win_pct * 0.6 + away_form_pct * 0.4
+
+        if signal_side == 'home':
+            edge = home_strength - away_strength
+            target_strength = home_strength
+        else:
+            edge = away_strength - home_strength
+            target_strength = away_strength
+
+        calibrated_confidence = min(
+            0.88,
+            confidence
+            + max(0.0, edge) * 0.35
+            + min(len(patterns), 2) * 0.02,
+        )
+        threshold = 0.66
+        if calibrated_confidence >= threshold and edge >= 0.04 and target_strength >= 0.58:
+            return {
+                'status': 'pass',
+                'reason': 'model_signal_ready',
+                'signal_side': signal_side,
+                'confidence': calibrated_confidence,
+                'details': {
+                    'edge': round(edge, 4),
+                    'target_strength': round(target_strength, 4),
+                    'pattern_count': len(patterns),
+                },
+            }
+        return {
+            'status': 'fail',
+            'reason': 'model_below_threshold',
+            'signal_side': signal_side,
+            'confidence': calibrated_confidence,
+            'details': {
+                'edge': round(edge, 4),
+                'target_strength': round(target_strength, 4),
+                'pattern_count': len(patterns),
+            },
+        }
 
     def _evaluate_agreement_verdict(self, target_side: Optional[str], pattern_verdict: dict, model_verdict: dict) -> dict:
         if not target_side:

@@ -17,6 +17,7 @@ instance/
 
 # Logs
 *.log
+.firecrawl/
 
 # macOS
 .DS_Store

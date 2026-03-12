@@ -83,11 +83,24 @@ def create_prediction_from_match(
         context = nullcontext() if has_app_context() else app_obj.app_context()
 
         with context:
-            existing = Prediction.query.filter(
-                Prediction.home_team == home_team,
-                Prediction.away_team == away_team,
-                Prediction.match_date >= datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-            ).first()
+            match_dt = parse_match_date(match)
+            event_lookup_id = event_id.replace('flash_', '') if isinstance(event_id, str) else event_id
+
+            existing = None
+            if event_lookup_id:
+                existing = Prediction.query.filter(
+                    Prediction.flashlive_event_id == str(event_lookup_id)
+                ).first()
+
+            if existing is None:
+                day_start = match_dt.replace(hour=0, minute=0, second=0, microsecond=0)
+                day_end = day_start.replace(hour=23, minute=59, second=59, microsecond=999999)
+                existing = Prediction.query.filter(
+                    Prediction.home_team == home_team,
+                    Prediction.away_team == away_team,
+                    Prediction.match_date >= day_start,
+                    Prediction.match_date <= day_end,
+                ).first()
             
             if existing:
                 logger.debug(f"Prediction already exists: {home_team} vs {away_team}")
@@ -102,7 +115,7 @@ def create_prediction_from_match(
             sport_type = infer_sport_type_from_league(league)
             sport_slug = SPORT_SLUGS.get(sport_type, 'hockey')
             
-            flashlive_event_id = event_id.replace('flash_', '') if isinstance(event_id, str) else event_id
+            flashlive_event_id = event_lookup_id
             
             # Получаем рекомендацию RL-агента
             rl_rec = None
@@ -124,7 +137,7 @@ def create_prediction_from_match(
             
             prediction = Prediction(
                 created_at=datetime.utcnow(),
-                match_date=parse_match_date(match),
+                match_date=match_dt,
                 sport_type=sport_slug,
                 bet_type=match.get('bet_type') or 'winner',
                 league=match.get('league', 'Unknown'),

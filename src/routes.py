@@ -4,6 +4,7 @@
 from flask import Blueprint, render_template, jsonify, request, redirect, url_for
 from datetime import datetime, timedelta
 import os
+from collections import Counter
 from src.sports_config import SportType, get_leagues_for_sport, get_sport_config
 
 routes_bp = Blueprint('routes', __name__)
@@ -111,6 +112,94 @@ def _get_prediction_sport_slug(prediction) -> str:
     if sport_slug:
         return str(sport_slug).lower()
     return _resolve_sport_type_from_league(getattr(prediction, 'league', None)).name.lower()
+
+
+def _extract_decision_traces(limit: int = 100,
+                             status: str = '',
+                             reason: str = '',
+                             sport: str = '',
+                             league: str = '') -> list[dict]:
+    """Собрать explainability-решения из monitoring system logs."""
+    from models import SystemLog
+
+    query = (
+        SystemLog.query
+        .filter(SystemLog.log_type == 'monitoring')
+        .order_by(SystemLog.timestamp.desc())
+        .limit(max(limit * 5, 200))
+    )
+
+    items = []
+    for log in query.all():
+        details = log.details or {}
+        decision = details.get('decision')
+        if not isinstance(decision, dict):
+            continue
+
+        item = {
+            'log_id': log.id,
+            'timestamp': log.timestamp,
+            'message': log.message,
+            'status': decision.get('status') or 'unknown',
+            'reason': decision.get('reason') or 'unknown',
+            'sport_type': decision.get('sport_type') or 'unknown',
+            'league': decision.get('league') or '-',
+            'home_team': decision.get('home_team') or '-',
+            'away_team': decision.get('away_team') or '-',
+            'bet_on': decision.get('bet_on'),
+            'target_odds': decision.get('target_odds'),
+            'home_odds': decision.get('home_odds'),
+            'away_odds': decision.get('away_odds'),
+            'technical_verdict': decision.get('technical_verdict') or {},
+            'odds_verdict': decision.get('odds_verdict') or {},
+            'history_verdict': decision.get('history_verdict') or {},
+            'pattern_verdict': decision.get('pattern_verdict') or {},
+            'model_verdict': decision.get('model_verdict') or {},
+            'agreement_verdict': decision.get('agreement_verdict') or {},
+        }
+
+        if status and item['status'] != status:
+            continue
+        if reason and item['reason'] != reason:
+            continue
+        if sport and item['sport_type'] != sport:
+            continue
+        if league and item['league'] != league:
+            continue
+
+        items.append(item)
+        if len(items) >= limit:
+            break
+
+    return items
+
+
+def _build_decision_trace_summary(items: list[dict]) -> dict:
+    """Построить summary по explainability-решениям."""
+    status_counts = Counter()
+    reason_counts = Counter()
+    sport_counts = Counter()
+    league_counts = Counter()
+    pattern_counts = Counter()
+    model_counts = Counter()
+
+    for item in items:
+        status_counts[item['status']] += 1
+        reason_counts[item['reason']] += 1
+        sport_counts[item['sport_type']] += 1
+        league_counts[item['league']] += 1
+        pattern_counts[item['pattern_verdict'].get('reason') or 'unknown'] += 1
+        model_counts[item['model_verdict'].get('reason') or 'unknown'] += 1
+
+    return {
+        'total': len(items),
+        'status_counts': dict(status_counts),
+        'reason_counts': reason_counts.most_common(8),
+        'sport_counts': dict(sport_counts),
+        'league_counts': league_counts.most_common(8),
+        'pattern_reason_counts': pattern_counts.most_common(8),
+        'model_reason_counts': model_counts.most_common(8),
+    }
 
 
 @routes_bp.route('/predictions')
@@ -747,6 +836,40 @@ def logs_page():
                           refresh_info=refresh_info)
 
 
+@routes_bp.route('/explainability')
+def explainability_page():
+    """Страница explainability: как gate принимает решение по матчам."""
+    status = request.args.get('status', '')
+    reason = request.args.get('reason', '')
+    sport = request.args.get('sport', '')
+    league = request.args.get('league', '')
+    limit = request.args.get('limit', 50, type=int)
+
+    items = _extract_decision_traces(
+        limit=limit,
+        status=status,
+        reason=reason,
+        sport=sport,
+        league=league,
+    )
+    summary = _build_decision_trace_summary(items)
+
+    return render_template(
+        'explainability.html',
+        items=items,
+        summary=summary,
+        selected_status=status,
+        selected_reason=reason,
+        selected_sport=sport,
+        selected_league=league,
+        limit=limit,
+        statuses=['candidate', 'shadow_only', 'rejected'],
+        sports=['hockey', 'football', 'basketball', 'volleyball'],
+        reasons=[reason_name for reason_name, _ in summary['reason_counts']],
+        leagues=[league_name for league_name, _ in summary['league_counts']],
+    )
+
+
 @routes_bp.route('/api/logs')
 def api_logs():
     """API: Получить логи"""
@@ -764,8 +887,34 @@ def api_logs():
         query = query.filter(SystemLog.level == level)
     
     logs = [log.to_dict() for log in query.limit(limit).all()]
-    
+
     return jsonify({'logs': logs})
+
+
+@routes_bp.route('/api/explainability/decisions')
+def api_explainability_decisions():
+    """API: recent decision traces with filters."""
+    status = request.args.get('status', '')
+    reason = request.args.get('reason', '')
+    sport = request.args.get('sport', '')
+    league = request.args.get('league', '')
+    limit = request.args.get('limit', 50, type=int)
+
+    items = _extract_decision_traces(
+        limit=limit,
+        status=status,
+        reason=reason,
+        sport=sport,
+        league=league,
+    )
+
+    payload = []
+    for item in items:
+        serialized = dict(item)
+        serialized['timestamp'] = item['timestamp'].isoformat() if item['timestamp'] else None
+        payload.append(serialized)
+
+    return jsonify({'items': payload, 'summary': _build_decision_trace_summary(items)})
 
 
 @routes_bp.route('/api/auto-monitor/stats')

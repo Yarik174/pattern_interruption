@@ -397,3 +397,112 @@ def test_logs_and_auto_monitor_routes_apply_filters(app_module, app, authenticat
         "ok": True,
         "result": {"matches_found": 3, "predictions_created": 1},
     }
+
+
+def test_explainability_page_builds_summary_and_applies_filters(app_module, app, authenticated_client, monkeypatch):
+    captured = _capture_template(monkeypatch)
+
+    with app.app_context():
+        app_module.db.session.add_all(
+            [
+                SystemLog(
+                    log_type="monitoring",
+                    level="WARNING",
+                    message="Match gate: NHL | A vs B -> rejected (no_pattern_signal)",
+                    details={
+                        "decision": {
+                            "status": "rejected",
+                            "reason": "no_pattern_signal",
+                            "sport_type": "hockey",
+                            "league": "NHL",
+                            "home_team": "A",
+                            "away_team": "B",
+                            "bet_on": "home",
+                            "target_odds": 2.2,
+                            "home_odds": 2.2,
+                            "away_odds": 1.8,
+                            "history_verdict": {"status": "pass", "reason": "history_ready"},
+                            "pattern_verdict": {"status": "fail", "reason": "no_pattern_signal"},
+                            "model_verdict": {"status": "fail", "reason": "model_below_threshold"},
+                            "agreement_verdict": {"status": "pending", "reason": None},
+                        }
+                    },
+                ),
+                SystemLog(
+                    log_type="monitoring",
+                    level="INFO",
+                    message="Match gate: NBA | C vs D -> shadow_only (model_not_implemented_for_sport)",
+                    details={
+                        "decision": {
+                            "status": "shadow_only",
+                            "reason": "model_not_implemented_for_sport",
+                            "sport_type": "basketball",
+                            "league": "NBA",
+                            "home_team": "C",
+                            "away_team": "D",
+                            "bet_on": "away",
+                            "target_odds": 2.6,
+                            "home_odds": 1.5,
+                            "away_odds": 2.6,
+                            "history_verdict": {"status": "pass", "reason": "history_ready"},
+                            "pattern_verdict": {"status": "pass", "reason": "pattern_signal_ready"},
+                            "model_verdict": {"status": "unsupported", "reason": "model_not_implemented_for_sport"},
+                            "agreement_verdict": {"status": "pass", "reason": "signals_aligned"},
+                        }
+                    },
+                ),
+                SystemLog(log_type="monitoring", level="INFO", message="Мониторинг: 2 матчей, 0 прогнозов, 0 уведомлений", details={"matches_found": 2}),
+            ]
+        )
+        app_module.db.session.commit()
+
+    response = authenticated_client.get("/explainability?status=shadow_only&sport=basketball&limit=10")
+
+    assert response.status_code == 200
+    assert captured["template"] == "explainability.html"
+    assert len(captured["context"]["items"]) == 1
+    assert captured["context"]["items"][0]["league"] == "NBA"
+    assert captured["context"]["summary"]["total"] == 1
+    assert captured["context"]["summary"]["status_counts"] == {"shadow_only": 1}
+    assert captured["context"]["selected_status"] == "shadow_only"
+    assert captured["context"]["selected_sport"] == "basketball"
+
+
+def test_api_explainability_decisions_returns_items_and_summary(app_module, app, authenticated_client):
+    with app.app_context():
+        app_module.db.session.add(
+            SystemLog(
+                log_type="monitoring",
+                level="INFO",
+                message="Match gate: Serie A | Torino vs Parma -> shadow_only (market_mismatch)",
+                details={
+                    "decision": {
+                        "status": "shadow_only",
+                        "reason": "market_mismatch",
+                        "sport_type": "football",
+                        "league": "Serie A",
+                        "home_team": "Torino",
+                        "away_team": "Parma",
+                        "bet_on": "home",
+                        "target_odds": 2.15,
+                        "home_odds": 2.15,
+                        "away_odds": 3.4,
+                        "history_verdict": {"status": "pass", "reason": "history_ready"},
+                        "pattern_verdict": {"status": "fail", "reason": "market_mismatch"},
+                        "model_verdict": {"status": "unsupported", "reason": "model_not_implemented_for_sport"},
+                        "agreement_verdict": {"status": "pass", "reason": "signals_aligned"},
+                    }
+                },
+            )
+        )
+        app_module.db.session.commit()
+
+    response = authenticated_client.get("/api/explainability/decisions?status=shadow_only&league=Serie%20A&limit=5")
+    payload = response.get_json()
+
+    assert response.status_code == 200
+    assert len(payload["items"]) == 1
+    assert payload["items"][0]["reason"] == "market_mismatch"
+    assert payload["items"][0]["sport_type"] == "football"
+    assert payload["summary"]["status_counts"] == {"shadow_only": 1}
+    assert payload["summary"]["reason_counts"][0] == ["market_mismatch", 1]

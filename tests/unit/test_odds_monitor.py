@@ -220,6 +220,157 @@ def test_auto_monitor_evaluate_match_explains_reject_shadow_and_candidate(monkey
     assert candidate["target_odds"] == 2.2
 
 
+def test_auto_monitor_basketball_can_promote_supported_signal_to_candidate(monkeypatch):
+    auto = AutoMonitor(dry_run=True)
+
+    monkeypatch.setattr(
+        auto,
+        "_evaluate_history_verdict",
+        lambda match, sport_type: {
+            "status": "pass",
+            "reason": "history_ready",
+            "normalized_home_team": match["home_team"],
+            "normalized_away_team": match["away_team"],
+        },
+    )
+    monkeypatch.setattr(
+        auto,
+        "_get_history_context",
+        lambda sport_type, league: {
+            "analyzer": SimpleNamespace(
+                analyze_match=lambda home, away: {
+                    "bet_on": "home",
+                    "confidence": 0.72,
+                    "patterns": [{"type": "HOME_DOMINANT"}],
+                    "home_win_pct": 0.74,
+                    "away_win_pct": 0.56,
+                    "home_streak": 4,
+                    "away_streak": -2,
+                    "h2h_matches": 5,
+                }
+            )
+        },
+    )
+
+    decision = auto.evaluate_match(
+        {
+            "event_id": "bball-1",
+            "sport_type": "basketball",
+            "league": "NBA",
+            "home_team": "AAA",
+            "away_team": "BBB",
+            "home_odds": 2.3,
+            "away_odds": 1.6,
+        }
+    )
+
+    assert decision["status"] == "candidate"
+    assert decision["reason"] == "quality_gate_passed"
+    assert decision["pattern_verdict"]["status"] == "pass"
+    assert decision["model_verdict"]["status"] == "pass"
+    assert decision["model_verdict"]["reason"] == "model_signal_ready"
+
+
+def test_auto_monitor_volleyball_can_promote_supported_signal_to_candidate(monkeypatch):
+    auto = AutoMonitor(dry_run=True)
+
+    monkeypatch.setattr(
+        auto,
+        "_evaluate_history_verdict",
+        lambda match, sport_type: {
+            "status": "pass",
+            "reason": "history_ready",
+            "normalized_home_team": match["home_team"],
+            "normalized_away_team": match["away_team"],
+        },
+    )
+    monkeypatch.setattr(
+        auto,
+        "_get_history_context",
+        lambda sport_type, league: {
+            "analyzer": SimpleNamespace(
+                analyze_match=lambda home, away: {
+                    "bet_on": "home",
+                    "confidence": 0.68,
+                    "patterns": [{"type": "HOME_FAVORITE"}],
+                    "home_win_pct": 0.70,
+                    "away_win_pct": 0.52,
+                    "home_form_pct": 0.80,
+                    "away_form_pct": 0.45,
+                }
+            )
+        },
+    )
+
+    decision = auto.evaluate_match(
+        {
+            "event_id": "vball-1",
+            "sport_type": "volleyball",
+            "league": "PlusLiga",
+            "home_team": "AAA",
+            "away_team": "BBB",
+            "home_odds": 2.25,
+            "away_odds": 1.65,
+        }
+    )
+
+    assert decision["status"] == "candidate"
+    assert decision["reason"] == "quality_gate_passed"
+    assert decision["pattern_verdict"]["status"] == "pass"
+    assert decision["model_verdict"]["status"] == "pass"
+    assert decision["agreement_verdict"]["status"] == "pass"
+
+
+def test_auto_monitor_basketball_weak_model_stays_shadow_only(monkeypatch):
+    auto = AutoMonitor(dry_run=True)
+
+    monkeypatch.setattr(
+        auto,
+        "_evaluate_history_verdict",
+        lambda match, sport_type: {
+            "status": "pass",
+            "reason": "history_ready",
+            "normalized_home_team": match["home_team"],
+            "normalized_away_team": match["away_team"],
+        },
+    )
+    monkeypatch.setattr(
+        auto,
+        "_get_history_context",
+        lambda sport_type, league: {
+            "analyzer": SimpleNamespace(
+                analyze_match=lambda home, away: {
+                    "bet_on": "home",
+                    "confidence": 0.64,
+                    "patterns": [{"type": "HOME_DOMINANT"}],
+                    "home_win_pct": 0.61,
+                    "away_win_pct": 0.58,
+                    "home_streak": 1,
+                    "away_streak": 0,
+                    "h2h_matches": 1,
+                }
+            )
+        },
+    )
+
+    decision = auto.evaluate_match(
+        {
+            "event_id": "bball-2",
+            "sport_type": "basketball",
+            "league": "NBA",
+            "home_team": "AAA",
+            "away_team": "BBB",
+            "home_odds": 2.15,
+            "away_odds": 1.75,
+        }
+    )
+
+    assert decision["status"] == "shadow_only"
+    assert decision["reason"] == "model_below_threshold"
+    assert decision["pattern_verdict"]["status"] == "pass"
+    assert decision["model_verdict"]["status"] == "fail"
+
+
 def test_auto_monitor_send_notification_uses_telegram_helper(monkeypatch):
     auto = AutoMonitor()
     sent = []

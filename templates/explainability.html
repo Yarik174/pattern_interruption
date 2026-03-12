@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Explainability | ArenaPredictor</title>
+    <style>
+        :root {
+            --bg: #f6f7fb;
+            --card: #ffffff;
+            --text: #111827;
+            --muted: #6b7280;
+            --border: #e5e7eb;
+            --accent: #0f766e;
+            --warn: #b45309;
+            --danger: #b91c1c;
+            --ok: #166534;
+            --shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+            color: var(--text);
+        }
+        .app {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 24px;
+            margin-bottom: 28px;
+        }
+        .logo {
+            text-decoration: none;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .logo-icon { width: 36px; height: 36px; }
+        nav {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        nav a {
+            text-decoration: none;
+            color: var(--muted);
+            font-weight: 600;
+        }
+        nav a.active { color: var(--text); }
+        .hero {
+            background: var(--card);
+            border: 1px solid rgba(15, 118, 110, 0.12);
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
+        }
+        .hero h2 {
+            margin: 0 0 8px;
+            font-size: 30px;
+        }
+        .hero p {
+            margin: 0;
+            color: var(--muted);
+            max-width: 900px;
+            line-height: 1.5;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 16px;
+            margin: 24px 0;
+        }
+        .summary-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 18px;
+            box-shadow: var(--shadow);
+        }
+        .summary-card .label {
+            font-size: 13px;
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+        .summary-card .value {
+            font-size: 34px;
+            font-weight: 700;
+            line-height: 1;
+        }
+        .summary-card .sub {
+            margin-top: 10px;
+            font-size: 13px;
+            color: var(--muted);
+        }
+        .summary-card.ok .value { color: var(--ok); }
+        .summary-card.warn .value { color: var(--warn); }
+        .summary-card.danger .value { color: var(--danger); }
+        .filters {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 16px;
+            box-shadow: var(--shadow);
+        }
+        .filters label {
+            display: block;
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+        .filters select {
+            width: 100%;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 12px;
+            background: #fff;
+        }
+        .insights {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .panel {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 18px;
+            box-shadow: var(--shadow);
+        }
+        .panel h3 {
+            margin: 0 0 14px;
+            font-size: 16px;
+        }
+        .mini-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .mini-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            font-size: 14px;
+        }
+        .mini-row span:last-child {
+            color: var(--muted);
+            white-space: nowrap;
+        }
+        .table-wrap {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 14px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            vertical-align: top;
+            font-size: 14px;
+        }
+        th {
+            font-size: 12px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            background: #fafafa;
+        }
+        .match-title {
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .match-sub {
+            color: var(--muted);
+            font-size: 12px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .badge.candidate { background: #dcfce7; color: #166534; }
+        .badge.shadow_only { background: #fef3c7; color: #92400e; }
+        .badge.rejected { background: #fee2e2; color: #991b1b; }
+        .verdict {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-size: 12px;
+            margin-right: 6px;
+            margin-bottom: 6px;
+            background: #f3f4f6;
+        }
+        .verdict.pass { background: #dcfce7; color: #166534; }
+        .verdict.fail { background: #fee2e2; color: #991b1b; }
+        .verdict.unsupported, .verdict.unavailable, .verdict.pending {
+            background: #e5e7eb;
+            color: #4b5563;
+        }
+        .empty {
+            padding: 48px 24px;
+            text-align: center;
+            color: var(--muted);
+        }
+        @media (max-width: 1080px) {
+            .summary-grid, .insights, .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+        @media (max-width: 720px) {
+            header { flex-direction: column; align-items: flex-start; }
+            .summary-grid, .insights, .filters { grid-template-columns: 1fr; }
+            .table-wrap { overflow-x: auto; }
+            table { min-width: 980px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <header>
+            <a href="/predictions" class="logo">
+                <img src="/static/logo.svg" alt="ArenaPredictor" class="logo-icon">
+                <h1>ArenaPredictor</h1>
+            </a>
+            <nav>
+                <a href="/predictions">Прогнозы</a>
+                <a href="/dashboard">Dashboard</a>
+                <a href="/statistics">Статистика</a>
+                <a href="/watchlist">★ Отобранные</a>
+                <a href="/logs">Логи</a>
+                <a href="/explainability" class="active">Explainability</a>
+            </nav>
+        </header>
+
+        <section class="hero">
+            <h2>Почему система молчит или отправляет матч</h2>
+            <p>Это экран объяснимости решений. Он показывает не “мысли модели”, а понятную цепочку: хватило ли данных, был ли паттерн, что сказал модельный слой и почему матч попал в `rejected`, `shadow_only` или `candidate`.</p>
+        </section>
+
+        <section class="summary-grid">
+            <div class="summary-card">
+                <div class="label">Всего решений в выборке</div>
+                <div class="value">{{ summary.total }}</div>
+                <div class="sub">Последние {{ limit }} записей после фильтров</div>
+            </div>
+            <div class="summary-card ok">
+                <div class="label">Готово к бою</div>
+                <div class="value">{{ summary.status_counts.get('candidate', 0) }}</div>
+                <div class="sub">Матчи, прошедшие quality gate</div>
+            </div>
+            <div class="summary-card warn">
+                <div class="label">Наблюдать</div>
+                <div class="value">{{ summary.status_counts.get('shadow_only', 0) }}</div>
+                <div class="sub">Сигнал есть, но боевой режим пока рано</div>
+            </div>
+            <div class="summary-card danger">
+                <div class="label">Отсечено</div>
+                <div class="value">{{ summary.status_counts.get('rejected', 0) }}</div>
+                <div class="sub">Система считает сигнал слишком слабым</div>
+            </div>
+        </section>
+
+        <form class="filters" method="GET" action="/explainability">
+            <div>
+                <label for="status">Статус</label>
+                <select id="status" name="status" onchange="this.form.submit()">
+                    <option value="">Все</option>
+                    {% for value in statuses %}
+                    <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ value }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="sport">Спорт</label>
+                <select id="sport" name="sport" onchange="this.form.submit()">
+                    <option value="">Все</option>
+                    {% for value in sports %}
+                    <option value="{{ value }}" {% if selected_sport == value %}selected{% endif %}>{{ value }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="league">Лига</label>
+                <select id="league" name="league" onchange="this.form.submit()">
+                    <option value="">Все</option>
+                    {% for value in leagues %}
+                    <option value="{{ value }}" {% if selected_league == value %}selected{% endif %}>{{ value }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="reason">Главная причина</label>
+                <select id="reason" name="reason" onchange="this.form.submit()">
+                    <option value="">Все</option>
+                    {% for value in reasons %}
+                    <option value="{{ value }}" {% if selected_reason == value %}selected{% endif %}>{{ value }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="limit">Показать</label>
+                <select id="limit" name="limit" onchange="this.form.submit()">
+                    {% for value in [20, 50, 100, 200] %}
+                    <option value="{{ value }}" {% if limit == value %}selected{% endif %}>{{ value }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
+
+        <section class="insights">
+            <div class="panel">
+                <h3>Топ причин финального решения</h3>
+                <div class="mini-list">
+                    {% for label, count in summary.reason_counts %}
+                    <div class="mini-row"><span>{{ label }}</span><span>{{ count }}</span></div>
+                    {% endfor %}
+                    {% if not summary.reason_counts %}
+                    <div class="mini-row"><span>Нет данных</span><span>0</span></div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="panel">
+                <h3>Что чаще ломает паттерн</h3>
+                <div class="mini-list">
+                    {% for label, count in summary.pattern_reason_counts %}
+                    <div class="mini-row"><span>{{ label }}</span><span>{{ count }}</span></div>
+                    {% endfor %}
+                    {% if not summary.pattern_reason_counts %}
+                    <div class="mini-row"><span>Нет данных</span><span>0</span></div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="panel">
+                <h3>Что делает модельный слой</h3>
+                <div class="mini-list">
+                    {% for label, count in summary.model_reason_counts %}
+                    <div class="mini-row"><span>{{ label }}</span><span>{{ count }}</span></div>
+                    {% endfor %}
+                    {% if not summary.model_reason_counts %}
+                    <div class="mini-row"><span>Нет данных</span><span>0</span></div>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+
+        <section class="table-wrap">
+            {% if items %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Матч</th>
+                        <th>Итог</th>
+                        <th>Ставка</th>
+                        <th>Паттерн</th>
+                        <th>Модель</th>
+                        <th>Согласованность</th>
+                        <th>Когда</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr>
+                        <td>
+                            <div class="match-title">{{ item.home_team }} vs {{ item.away_team }}</div>
+                            <div class="match-sub">{{ item.sport_type }} · {{ item.league }}</div>
+                        </td>
+                        <td>
+                            <div><span class="badge {{ item.status }}">{{ item.status }}</span></div>
+                            <div class="match-sub" style="margin-top: 8px;">{{ item.reason }}</div>
+                        </td>
+                        <td>
+                            <div class="match-title">{{ item.bet_on or '—' }}</div>
+                            <div class="match-sub">target_odds: {{ item.target_odds if item.target_odds is not none else '—' }}</div>
+                            <div class="match-sub">home {{ item.home_odds if item.home_odds is not none else '—' }} / away {{ item.away_odds if item.away_odds is not none else '—' }}</div>
+                        </td>
+                        <td>
+                            <span class="verdict {{ item.pattern_verdict.get('status', 'pending') }}">{{ item.pattern_verdict.get('status', 'pending') }}</span>
+                            <div class="match-sub">{{ item.pattern_verdict.get('reason') or '—' }}</div>
+                        </td>
+                        <td>
+                            <span class="verdict {{ item.model_verdict.get('status', 'pending') }}">{{ item.model_verdict.get('status', 'pending') }}</span>
+                            <div class="match-sub">{{ item.model_verdict.get('reason') or '—' }}</div>
+                            {% if item.model_verdict.get('confidence') is not none %}
+                            <div class="match-sub">confidence: {{ '%.2f'|format(item.model_verdict.get('confidence')) }}</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="verdict {{ item.agreement_verdict.get('status', 'pending') }}">{{ item.agreement_verdict.get('status', 'pending') }}</span>
+                            <div class="match-sub">{{ item.agreement_verdict.get('reason') or '—' }}</div>
+                            <div class="match-sub" style="margin-top: 8px;">history: {{ item.history_verdict.get('reason') or '—' }}</div>
+                        </td>
+                        <td>
+                            <div class="match-title">{{ item.timestamp.strftime('%d.%m %H:%M') if item.timestamp else '—' }}</div>
+                            <div class="match-sub">log #{{ item.log_id }}</div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty">
+                Нет explainability-записей под выбранные фильтры.
+            </div>
+            {% endif %}
+        </section>
+    </div>
+</body>
+</html>

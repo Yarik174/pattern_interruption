@@ -63,6 +63,49 @@ def test_flashlive_loader_returns_empty_without_api_key():
     assert result == []
 
 
+def test_flashlive_loader_prefers_flash_specific_proxy_env(monkeypatch):
+    monkeypatch.setenv("HTTPS_PROXY", "http://system-proxy:8080")
+    monkeypatch.setenv("FLASH_PROXY_URL", "http://flash-fallback:8080")
+    monkeypatch.setenv("FLASH_API_PROXY_URL", "http://flash-primary:8080")
+
+    loader = FlashLiveLoader(api_key="token")
+
+    assert loader.proxy_url == "http://flash-primary:8080"
+    assert loader._get_request_proxies() == {
+        "http": "http://flash-primary:8080",
+        "https": "http://flash-primary:8080",
+    }
+
+
+def test_flashlive_loader_request_with_retry_passes_proxy_settings(monkeypatch):
+    monkeypatch.setenv("FLASH_API_PROXY_URL", "http://127.0.0.1:25345")
+    loader = FlashLiveLoader(api_key="token")
+    captured = {}
+
+    class _Response:
+        status_code = 200
+
+    def _get(url, headers=None, params=None, timeout=None, proxies=None):
+        captured["url"] = url
+        captured["headers"] = headers
+        captured["params"] = params
+        captured["timeout"] = timeout
+        captured["proxies"] = proxies
+        return _Response()
+
+    monkeypatch.setattr("src.flashlive_loader.requests.get", _get)
+
+    response = loader._request_with_retry("https://example.com", params={"sport_id": 4}, max_retries=1)
+
+    assert response.status_code == 200
+    assert captured["url"] == "https://example.com"
+    assert captured["params"] == {"sport_id": 4}
+    assert captured["proxies"] == {
+        "http": "http://127.0.0.1:25345",
+        "https": "http://127.0.0.1:25345",
+    }
+
+
 def test_flashlive_loader_retries_and_sends_error_alert(monkeypatch):
     loader = FlashLiveLoader(api_key="token")
     sleeps = []
