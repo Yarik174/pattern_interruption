@@ -33,7 +33,7 @@ class NotificationDispatcher:
     # -- decision logging ---------------------------------------------------
 
     @staticmethod
-    def log_match_decision(decision: dict) -> None:
+    def log_match_decision(decision: dict, prediction_id: Optional[int] = None) -> None:
         """Persist a match decision to the system log DB."""
         try:
             from src.system_logger import LOG_TYPES, log_to_db
@@ -44,13 +44,16 @@ class NotificationDispatcher:
                 f"{decision.get('home_team')} vs {decision.get('away_team')} -> "
                 f"{decision.get('status')} ({decision.get('reason')})"
             )
+            decision_copy = dict(decision)
+            if prediction_id:
+                decision_copy["prediction_id"] = prediction_id
             log_to_db(
                 log_type=LOG_TYPES["MONITORING"],
                 message=message,
                 level=level,
                 details={
                     "source": "AutoMonitor",
-                    "decision": decision,
+                    "decision": decision_copy,
                 },
             )
         except Exception as e:

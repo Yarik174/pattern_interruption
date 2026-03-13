@@ -224,6 +224,126 @@
             text-align: center;
             color: var(--muted);
         }
+        tbody tr {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        tbody tr:hover {
+            background-color: #f9fafb;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background-color: var(--card);
+            padding: 24px;
+            border-radius: 18px;
+            max-width: 800px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 16px;
+        }
+        .modal-header h3 {
+            margin: 0;
+            font-size: 20px;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--muted);
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-close:hover {
+            color: var(--text);
+        }
+        .tabs {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+        .tab-button {
+            background: none;
+            border: none;
+            padding: 12px 16px;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--muted);
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+        .tab-button.active {
+            color: var(--text);
+            border-bottom-color: var(--accent);
+        }
+        .tab-button:hover {
+            color: var(--text);
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .prediction-info {
+            background: #fafafa;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        .prediction-info .label {
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+        }
+        .prediction-info .value {
+            font-size: 16px;
+            font-weight: 600;
+        }
+        .prediction-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        .prediction-row.full {
+            grid-template-columns: 1fr;
+        }
+        .loading {
+            text-align: center;
+            color: var(--muted);
+            padding: 20px;
+        }
         @media (max-width: 1080px) {
             .summary-grid, .insights, .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
@@ -379,7 +499,7 @@
                 </thead>
                 <tbody>
                     {% for item in items %}
-                    <tr>
+                    <tr data-prediction-id="{{ item.prediction_id or '' }}" data-decision-log-id="{{ item.log_id }}">
                         <td>
                             <div class="match-title">{{ item.home_team }} vs {{ item.away_team }}</div>
                             <div class="match-sub">{{ item.sport_type }} · {{ item.league }}</div>
@@ -423,6 +543,195 @@
             </div>
             {% endif %}
         </section>
+
+        <!-- Detail Modal -->
+        <div id="detailModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modalTitle">Детали решения</h3>
+                    <button class="modal-close" onclick="closeDetailModal()">×</button>
+                </div>
+
+                <div class="tabs">
+                    <button class="tab-button active" onclick="switchTab(event, 'decisionTab')">Решение</button>
+                    <button class="tab-button" onclick="switchTab(event, 'predictionTab')">Прогноз</button>
+                </div>
+
+                <!-- Decision Tab -->
+                <div id="decisionTab" class="tab-content active">
+                    <div id="decisionContent">
+                        <div class="loading">Загружаю...</div>
+                    </div>
+                </div>
+
+                <!-- Prediction Tab -->
+                <div id="predictionTab" class="tab-content">
+                    <div id="predictionContent">
+                        <div class="loading">Загружаю...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <script>
+        let currentLogId = null;
+        let currentPredictionId = null;
+
+        // Table row click handler
+        document.querySelectorAll('tbody tr').forEach(row => {
+            row.addEventListener('click', () => {
+                const predictionId = row.dataset.predictionId;
+                const logId = row.dataset.decisionLogId;
+                if (predictionId || logId) {
+                    openDetailModal(predictionId, logId);
+                }
+            });
+        });
+
+        function openDetailModal(predictionId, logId) {
+            currentPredictionId = predictionId;
+            currentLogId = logId;
+            const modal = document.getElementById('detailModal');
+            modal.classList.add('active');
+
+            // Load decision content (always available)
+            loadDecisionContent();
+
+            // Load prediction if we have an ID
+            if (predictionId) {
+                loadPredictionContent(predictionId);
+            } else {
+                document.getElementById('predictionContent').innerHTML = '<p style="text-align: center; color: var(--muted);">Прогноз не был создан для этого решения</p>';
+            }
+        }
+
+        function closeDetailModal() {
+            const modal = document.getElementById('detailModal');
+            modal.classList.remove('active');
+            currentPredictionId = null;
+            currentLogId = null;
+        }
+
+        function switchTab(event, tabId) {
+            event.preventDefault();
+
+            // Remove active class from all buttons and contents
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            // Add active class to clicked button and corresponding content
+            event.target.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        function loadDecisionContent() {
+            const row = document.querySelector(`tr[data-decision-log-id="${currentLogId}"]`);
+            if (!row) return;
+
+            const cells = row.querySelectorAll('td');
+            const matchTitle = cells[0].textContent;
+            const status = cells[1].querySelector('.badge')?.textContent || 'unknown';
+            const reason = cells[1].querySelector('.match-sub')?.textContent || 'N/A';
+            const pattern = cells[3].querySelector('.verdict')?.textContent || 'N/A';
+            const patternReason = cells[3].querySelector('.match-sub')?.textContent || '—';
+            const model = cells[4].querySelector('.verdict')?.textContent || 'N/A';
+            const modelReason = cells[4].querySelector('.match-sub')?.textContent || '—';
+
+            const html = `
+                <div class="prediction-info">
+                    <div class="label">Матч</div>
+                    <div class="value">${matchTitle}</div>
+                </div>
+                <div class="prediction-row">
+                    <div class="prediction-info">
+                        <div class="label">Статус решения</div>
+                        <div class="value">${status}</div>
+                    </div>
+                    <div class="prediction-info">
+                        <div class="label">Причина</div>
+                        <div class="value">${reason}</div>
+                    </div>
+                </div>
+                <div class="prediction-row">
+                    <div class="prediction-info">
+                        <div class="label">Паттерн</div>
+                        <div class="value">${pattern}</div>
+                        <div class="match-sub">${patternReason}</div>
+                    </div>
+                    <div class="prediction-info">
+                        <div class="label">Модель</div>
+                        <div class="value">${model}</div>
+                        <div class="match-sub">${modelReason}</div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('decisionContent').innerHTML = html;
+        }
+
+        function loadPredictionContent(predictionId) {
+            fetch(`/api/predictions/${predictionId}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.error) {
+                        document.getElementById('predictionContent').innerHTML = '<p style="color: var(--danger);">Не удалось загрузить данные прогноза</p>';
+                        return;
+                    }
+
+                    const isWin = data.is_win === true ? 'Выигрыш ✓' : (data.is_win === false ? 'Проигрыш ✗' : 'В ожидании результата');
+                    const winClass = data.is_win === true ? 'ok' : (data.is_win === false ? 'danger' : '');
+
+                    const html = `
+                        <div class="prediction-row">
+                            <div class="prediction-info">
+                                <div class="label">Исход</div>
+                                <div class="value" style="color: ${data.is_win === true ? 'var(--ok)' : (data.is_win === false ? 'var(--danger)' : 'var(--muted)')};">${isWin}</div>
+                            </div>
+                            <div class="prediction-info">
+                                <div class="label">Уверенность модели</div>
+                                <div class="value">${data.confidence_1_10 ? data.confidence_1_10.toFixed(1) + '/10' : 'N/A'}</div>
+                            </div>
+                        </div>
+                        <div class="prediction-row">
+                            <div class="prediction-info">
+                                <div class="label">Рекомендация RL</div>
+                                <div class="value">${data.rl_recommendation || 'N/A'}</div>
+                            </div>
+                            <div class="prediction-info">
+                                <div class="label">Дата матча</div>
+                                <div class="value">${new Date(data.match_date).toLocaleDateString('ru-RU')}</div>
+                            </div>
+                        </div>
+                        <div class="prediction-row full">
+                            <div class="prediction-info">
+                                <div class="label">Предсказанный исход</div>
+                                <div class="value">${data.predicted_outcome || 'N/A'}</div>
+                            </div>
+                        </div>
+                        <div class="prediction-row full">
+                            <div class="prediction-info">
+                                <div class="label">Букмекерское решение</div>
+                                <div class="value">${data.user_decision || 'Ещё не принято'}</div>
+                                <div class="match-sub" style="margin-top: 8px;">${data.user_note ? 'Заметка: ' + data.user_note : ''}</div>
+                            </div>
+                        </div>
+                    `;
+
+                    document.getElementById('predictionContent').innerHTML = html;
+                })
+                .catch(err => {
+                    console.error(err);
+                    document.getElementById('predictionContent').innerHTML = '<p style="color: var(--danger);">Ошибка загрузки</p>';
+                });
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('detailModal').addEventListener('click', (e) => {
+            if (e.target.id === 'detailModal') {
+                closeDetailModal();
+            }
+        });
+    </script>
 </body>
 </html>

@@ -304,7 +304,6 @@ class AutoMonitor:
             for match in matches:
                 try:
                     decision = self.evaluate_match(match)
-                    self._log_match_decision(decision)
                     result["decision_breakdown"][decision["status"]] += 1
 
                     if decision["status"] == "shadow_only":
@@ -314,6 +313,7 @@ class AutoMonitor:
 
                     if self.dry_run:
                         result["decisions"].append(decision)
+                        self._log_match_decision(decision)
                         if decision["status"] == "candidate":
                             result["predictions_created"] += 1
                             self._stats["predictions_created"] += 1
@@ -321,6 +321,9 @@ class AutoMonitor:
                         continue
 
                     prediction = self._process_match(match, decision=decision)
+                    prediction_id = prediction.id if prediction else None
+                    self._log_match_decision(decision, prediction_id=prediction_id)
+
                     if prediction:
                         result["predictions_created"] += 1
                         self._stats["predictions_created"] += 1

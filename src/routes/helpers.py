@@ -157,6 +157,7 @@ def extract_decision_traces(
             'log_id': log.id,
             'timestamp': log.timestamp,
             'message': log.message,
+            'prediction_id': decision.get('prediction_id'),
             'status': decision.get('status') or 'unknown',
             'reason': decision.get('reason') or 'unknown',
             'sport_type': decision.get('sport_type') or 'unknown',
