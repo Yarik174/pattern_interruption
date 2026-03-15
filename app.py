@@ -14,7 +14,7 @@ try:
 except ImportError:
     pass
 
-from flask import Flask, request, redirect, url_for, session
+from flask import Flask
 import os
 import sys
 from sqlalchemy.pool import StaticPool
@@ -169,16 +169,6 @@ def create_app(testing: bool = False, start_background: bool = True):
 
 
 # ── Request hooks ────────────────────────────────────────────────────────────
-
-@app.before_request
-def require_login():
-    allowed = ['/auth', '/static', '/favicon', '/@vite']
-    path = request.path or '/'
-    if any(path.startswith(p) for p in allowed):
-        return None
-    if not (session.get('sb_user_id') or session.get('user_id')):
-        return redirect(url_for('auth.auth_login', next=path))
-
 
 @app.after_request
 def add_header(response):

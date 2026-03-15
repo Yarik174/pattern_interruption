@@ -269,24 +269,57 @@ class FlashLiveLoader(BaseLoader):
 
         try:
             data = resp.json()
-            result: Dict[str, List[Dict]] = {"home_team_matches": [], "away_team_matches": []}
+            result: Dict[str, List[Dict]] = {
+                "home_team_matches": [],
+                "away_team_matches": [],
+                "mutual_matches": [],
+            }
 
             groups = self._extract_h2h_groups(data)
             seen_labels: set[str] = set()
 
             for group in groups:
                 group_label = group.get("GROUP_LABEL", "") or ""
-                if "Last matches:" not in group_label or group_label in seen_labels:
+                if group_label in seen_labels:
+                    continue
+
+                items = group.get("ITEMS", [])
+                if not items:
+                    continue
+
+                # Mutual / H2H matches
+                is_mutual = any(
+                    kw in group_label.lower()
+                    for kw in ("mutual", "head", "h2h", "between")
+                )
+                if is_mutual:
+                    seen_labels.add(group_label)
+                    for item in items[:10]:
+                        dt = self._parse_match_date(item.get("START_TIME"))
+                        date_str = dt.strftime("%d.%m.%y") if dt else ""
+                        home_team, away_team = self._extract_team_names(item)
+                        if not home_team and not away_team:
+                            continue
+                        score = self._build_score_string(item)
+                        result["mutual_matches"].append({
+                            "date": date_str,
+                            "home": home_team,
+                            "away": away_team,
+                            "score": score,
+                        })
+                    continue
+
+                # Last matches per team
+                if "Last matches:" not in group_label:
                     continue
                 seen_labels.add(group_label)
 
-                items = group.get("ITEMS", [])
                 team_name = self._clean_participant_name(group_label.replace("Last matches:", "").strip())
 
                 matches: List[Dict] = []
                 for item in items[:5]:
                     dt = self._parse_match_date(item.get("START_TIME"))
-                    date_str = dt.strftime("%d.%m") if dt else ""
+                    date_str = dt.strftime("%d.%m.%y") if dt else ""
                     home_team, away_team = self._extract_team_names(item)
 
                     is_home = team_name.lower() in home_team.lower()
@@ -295,9 +328,11 @@ class FlashLiveLoader(BaseLoader):
 
                     matches.append({
                         "date": date_str,
-                        "opponent": away_team if is_home else home_team,
+                        "home": home_team,
+                        "away": away_team,
                         "score": self._build_score_string(item),
                         "result": self._resolve_h2h_result(item, is_home),
+                        "opponent": away_team if is_home else home_team,
                     })
 
                 if matches:
@@ -306,7 +341,7 @@ class FlashLiveLoader(BaseLoader):
                     elif not result["away_team_matches"]:
                         result["away_team_matches"] = matches
                     if result["home_team_matches"] and result["away_team_matches"]:
-                        break
+                        pass  # continue to collect mutual matches
 
             self._h2h_cache[raw_id] = result
             self._h2h_cache_time[raw_id] = now

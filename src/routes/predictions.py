@@ -92,6 +92,7 @@ def prediction_detail(prediction_id: int) -> str:
                     if h2h_data:
                         home_history = h2h_data.get('home_team_matches', [])
                         away_history = h2h_data.get('away_team_matches', [])
+                        h2h_history = h2h_data.get('mutual_matches', [])
                 except Exception as e:
                     print(f"Error loading H2H data: {e}")
 
