@@ -370,7 +370,6 @@
                 <a href="/watchlist">★ Отобранные</a>
                 <a href="/explainability">Explainability</a>
                 <a href="/logs">Логи</a>
-                <a href="#sports">Спорт</a>
             </nav>
         </header>
         
@@ -419,7 +418,7 @@
             </div>
             <div class="stat-card">
                 <div class="value accent">{{ stats.pending or 0 }}</div>
-                <div class="label">Ожидают решения</div>
+                <div class="label">Без результата</div>
             </div>
             <div class="stat-card">
                 <div class="value success">{{ stats.win_rate or 0 }}%</div>
@@ -432,8 +431,74 @@
                 <div class="label">ROI</div>
             </div>
         </div>
-        
-        
+
+        {% if predictions %}
+        <h2 style="font-size:1.25rem; font-weight:700; margin-bottom:16px;">Последние прогнозы</h2>
+        <table class="predictions-table">
+            <thead>
+                <tr>
+                    <th>Дата</th>
+                    <th>Спорт</th>
+                    <th>Лига</th>
+                    <th>Матч</th>
+                    <th>Прогноз</th>
+                    <th>Коэф.</th>
+                    <th>Уверенность</th>
+                    <th>Результат</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in predictions %}
+                <tr data-league="{{ p.league }}" data-sport="{{ p.sport_type }}">
+                    <td>{{ p.match_date.strftime('%d.%m') if p.match_date else '-' }}</td>
+                    <td>{{ p.sport_type or '-' }}</td>
+                    <td><span class="league-badge league-{{ p.league }}">{{ p.league }}</span></td>
+                    <td>
+                        <div class="teams">
+                            <div class="team team-home"><span class="team-name">{{ p.home_team }}</span></div>
+                            <div class="team"><span class="team-name">{{ p.away_team }}</span></div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="prediction-outcome outcome-{% if p.predicted_outcome == p.home_team %}home{% else %}away{% endif %}">
+                            {{ p.predicted_outcome }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="odds">
+                            {% if p.predicted_outcome == p.home_team %}
+                                {{ '%.2f'|format(p.home_odds) if p.home_odds else '-' }}
+                            {% else %}
+                                {{ '%.2f'|format(p.away_odds) if p.away_odds else '-' }}
+                            {% endif %}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="confidence">
+                            <div class="confidence-bar">
+                                <div class="confidence-fill" style="width: {{ (p.confidence * 100)|int }}%"></div>
+                            </div>
+                            <span class="confidence-value">{{ '%.0f'|format(p.confidence * 100) }}%</span>
+                        </div>
+                    </td>
+                    <td>
+                        {% if p.is_win is not none %}
+                            <span class="status-badge status-{{ 'win' if p.is_win else 'loss' }}">
+                                {{ p.actual_result or ('W' if p.is_win else 'L') }}
+                            </span>
+                        {% else %}
+                            <span class="status-badge status-pending">Ожидает</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="/prediction/{{ p.id }}" class="action-btn view">Детали</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
     </div>
     
     <script>

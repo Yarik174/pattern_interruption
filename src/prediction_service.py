@@ -3,7 +3,7 @@
 """
 import logging
 from contextlib import nullcontext
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional, Dict
 
 from flask import has_app_context
@@ -87,23 +87,39 @@ def create_prediction_from_match(
             event_lookup_id = event_id.replace('flash_', '') if isinstance(event_id, str) else event_id
 
             existing = None
+            # First try to find by flashlive_event_id (most reliable)
             if event_lookup_id:
                 existing = Prediction.query.filter(
                     Prediction.flashlive_event_id == str(event_lookup_id)
                 ).first()
 
+            # If not found by event_id, look for exact match by teams + match_date (not just day)
+            # Use a 1-hour window to catch re-checks within the same execution
+            if existing is None and event_lookup_id:
+                match_window_start = match_dt - timedelta(hours=1)
+                match_window_end = match_dt + timedelta(hours=1)
+                existing = Prediction.query.filter(
+                    Prediction.home_team == home_team,
+                    Prediction.away_team == away_team,
+                    Prediction.league == league,
+                    Prediction.match_date >= match_window_start,
+                    Prediction.match_date <= match_window_end,
+                ).first()
+
+            # If still not found and no event_id, check only same day (fallback for old matches)
             if existing is None:
                 day_start = match_dt.replace(hour=0, minute=0, second=0, microsecond=0)
                 day_end = day_start.replace(hour=23, minute=59, second=59, microsecond=999999)
                 existing = Prediction.query.filter(
                     Prediction.home_team == home_team,
                     Prediction.away_team == away_team,
+                    Prediction.league == league,
                     Prediction.match_date >= day_start,
                     Prediction.match_date <= day_end,
                 ).first()
-            
+
             if existing:
-                logger.debug(f"Prediction already exists: {home_team} vs {away_team}")
+                logger.debug(f"Prediction already exists: {home_team} vs {away_team} (event_id={event_lookup_id})")
                 return None
             
             predicted_team = home_team if bet_on == 'home' else away_team

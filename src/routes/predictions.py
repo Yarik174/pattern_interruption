@@ -8,6 +8,7 @@ from flask import Blueprint, redirect, request, url_for
 from src.routes.helpers import (
     get_odds_loader_for_sport,
     get_prediction_by_id,
+    get_prediction_target_odds,
     resolve_sport_type_from_league,
 )
 
@@ -33,17 +34,23 @@ def predictions_page() -> str:
             predictions = rt.Prediction.query.order_by(rt.Prediction.match_date.desc()).limit(100).all()
 
             total = rt.Prediction.query.count()
-            pending = rt.Prediction.query.filter(rt.Prediction.user_decision == None).count()  # noqa: E711
 
             completed = rt.Prediction.query.filter(rt.Prediction.is_win != None).all()  # noqa: E711
+            pending = total - len(completed)
             wins = sum(1 for p in completed if p.is_win)
+            losses = len(completed) - wins
             win_rate = (wins / len(completed) * 100) if completed else 0
+
+            profit = sum(
+                get_prediction_target_odds(p) - 1 for p in completed if p.is_win
+            ) - losses
+            roi = (profit / len(completed) * 100) if completed else 0
 
             stats = {
                 'total': total,
                 'pending': pending,
                 'win_rate': round(win_rate, 1),
-                'roi': 0,
+                'roi': round(roi, 1),
             }
         except Exception as e:
             print(f"Error loading predictions: {e}")

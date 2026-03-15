@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from flask import Blueprint, redirect, url_for
 
+from src.routes.helpers import get_prediction_target_odds
 from src.sports_config import SportType, get_leagues_for_sport, get_sport_config
 
 sports_bp = Blueprint('sports', __name__)
@@ -43,19 +44,24 @@ def sports_predictions_page(sport: str) -> str:
             predictions = query.limit(100).all()
 
             total = rt.Prediction.query.filter(rt.Prediction.league.in_(leagues)).count()
-            pending = rt.Prediction.query.filter(
-                rt.Prediction.league.in_(leagues)
-            ).filter(rt.Prediction.user_decision == None).count()  # noqa: E711
             completed = rt.Prediction.query.filter(
                 rt.Prediction.league.in_(leagues)
             ).filter(rt.Prediction.is_win != None).all()  # noqa: E711
+            pending = total - len(completed)
             wins = sum(1 for p in completed if p.is_win)
+            losses = len(completed) - wins
             win_rate = (wins / len(completed) * 100) if completed else 0
+
+            profit = sum(
+                get_prediction_target_odds(p) - 1 for p in completed if p.is_win
+            ) - losses
+            roi = (profit / len(completed) * 100) if completed else 0
+
             stats = {
                 'total': total,
                 'pending': pending,
                 'win_rate': round(win_rate, 1),
-                'roi': 0,
+                'roi': round(roi, 1),
             }
         except Exception as e:
             print(f"Error loading sport predictions: {e}")

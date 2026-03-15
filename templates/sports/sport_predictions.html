@@ -192,6 +192,7 @@
                 <a href="/dashboard">Дашборд</a>
                 <a href="/statistics">Статистика</a>
                 <a href="/watchlist">★ Отобранные</a>
+                <a href="/explainability">Explainability</a>
                 <a href="/logs">Логи</a>
             </nav>
         </header>
@@ -199,8 +200,14 @@
         <p class="page-subtitle">Прогнозы по лигам: {{ leagues|join(', ') }}</p>
         <div class="stats-row">
             <div class="stat-card"><div class="value">{{ stats.total or 0 }}</div><div class="label">Всего прогнозов</div></div>
-            <div class="stat-card"><div class="value accent">{{ stats.pending or 0 }}</div><div class="label">Ожидают решения</div></div>
+            <div class="stat-card"><div class="value accent">{{ stats.pending or 0 }}</div><div class="label">Без результата</div></div>
             <div class="stat-card"><div class="value success">{{ stats.win_rate or 0 }}%</div><div class="label">Win Rate</div></div>
+            <div class="stat-card">
+                <div class="value {% if stats.roi and stats.roi > 0 %}success{% else %}danger{% endif %}">
+                    {{ '%+.1f'|format(stats.roi or 0) }}%
+                </div>
+                <div class="label">ROI</div>
+            </div>
         </div>
         <div class="filters">
             <button class="filter-btn active" data-filter="all">Все</button>

@@ -177,6 +177,8 @@ class AutoMonitor:
         self._thread: Optional[threading.Thread] = None
         self._last_check: Optional[datetime] = None
         self._last_data_refresh: Optional[datetime] = None
+        self._check_lock = threading.Lock()  # Prevent concurrent checks
+        self._check_in_progress: bool = False
 
         # Sub-components
         self._decision_engine = DecisionEngine()
@@ -274,24 +276,36 @@ class AutoMonitor:
     # -- match checking -----------------------------------------------------
 
     def _check_matches(self) -> dict:
-        self._last_check = datetime.utcnow()
-        self._stats["total_checks"] += 1
-
-        result: dict[str, Any] = {
-            "matches_found": 0,
-            "predictions_created": 0,
-            "notifications_sent": 0,
-            "decision_breakdown": {
-                "candidate": 0,
-                "shadow_only": 0,
-                "rejected": 0,
-            },
-        }
-        if self.dry_run:
-            result["dry_run"] = True
-            result["decisions"] = []
+        # Prevent concurrent checks
+        if not self._check_lock.acquire(blocking=False):
+            logger.warning("Check already in progress, skipping concurrent request")
+            return {
+                "matches_found": 0,
+                "predictions_created": 0,
+                "notifications_sent": 0,
+                "decision_breakdown": {"candidate": 0, "shadow_only": 0, "rejected": 0},
+                "skipped": "check_in_progress",
+            }
 
         try:
+            self._check_in_progress = True
+            self._last_check = datetime.utcnow()
+            self._stats["total_checks"] += 1
+
+            result: dict[str, Any] = {
+                "matches_found": 0,
+                "predictions_created": 0,
+                "notifications_sent": 0,
+                "decision_breakdown": {
+                    "candidate": 0,
+                    "shadow_only": 0,
+                    "rejected": 0,
+                },
+            }
+            if self.dry_run:
+                result["dry_run"] = True
+                result["decisions"] = []
+
             loader = self._get_live_loader()
             if not loader.is_configured():
                 logger.warning("FlashLive not configured, skipping check")
@@ -358,6 +372,16 @@ class AutoMonitor:
         except Exception as e:
             logger.error(f"AutoMonitor check error: {e}")
             self._log_error(f"Check error: {e}")
+            result = {
+                "matches_found": 0,
+                "predictions_created": 0,
+                "notifications_sent": 0,
+                "decision_breakdown": {"candidate": 0, "shadow_only": 0, "rejected": 0},
+                "error": str(e),
+            }
+        finally:
+            self._check_in_progress = False
+            self._check_lock.release()
 
         return result
 
