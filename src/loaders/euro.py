@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import threading
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -88,7 +89,7 @@ class EuroLeagueLoader(BaseLoader):
         date, home_team, away_team, home_goals, away_goals, home_win, overtime.
         """
         if league_name not in EURO_LEAGUES:
-            print(f"Unknown league: {league_name}")
+            logger.warning("Unknown league: %s", league_name)
             return pd.DataFrame()
 
         league_id: int = EURO_LEAGUES[league_name]["id"]
@@ -107,9 +108,9 @@ class EuroLeagueLoader(BaseLoader):
                     formatted_game = self._format_game(game, league_name)
                     if formatted_game:
                         all_games.append(formatted_game)
-                print(f"  {cache_file.name}: {len(games)} games")
+                logger.info("%s: %d games", cache_file.name, len(games))
             except Exception as exc:
-                print(f"  Error loading {cache_file}: {exc}")
+                logger.error("Error loading %s: %s", cache_file, exc, exc_info=True)
 
         if not all_games:
             return pd.DataFrame()
@@ -118,7 +119,7 @@ class EuroLeagueLoader(BaseLoader):
         df["date"] = pd.to_datetime(df["date"])
         df = df.sort_values("date")
 
-        print(f"{league_name}: loaded {len(df)} games")
+        logger.info("%s: loaded %d games", league_name, len(df))
         return df
 
     def _format_game(self, game: dict, league_name: str) -> Optional[Dict]:
@@ -156,17 +157,15 @@ class EuroLeagueLoader(BaseLoader):
         n_seasons: int = 3,
     ) -> Dict[str, pd.DataFrame]:
         """Load all European leagues and store in ``self.league_data``."""
-        print("\nLoading European leagues...")
-        print("=" * 50)
+        logger.info("Loading European leagues...")
 
         for league_name in EURO_LEAGUES:
-            print(f"\n{league_name} ({EURO_LEAGUES[league_name]['country']}):")
+            logger.info("%s (%s)", league_name, EURO_LEAGUES[league_name]['country'])
             df = self.load_league_from_cache(league_name, n_seasons)
             self.league_data[league_name] = df
 
         total_games = sum(len(df) for df in self.league_data.values())
-        print(f"\n{'=' * 50}")
-        print(f"Total loaded: {total_games} games")
+        logger.info("Total loaded: %d games", total_games)
         return self.league_data
 
     def get_league_teams(self, league_name: str) -> List[str]:
@@ -198,17 +197,16 @@ class EuroLeagueLoader(BaseLoader):
 # ---------------------------------------------------------------------------
 # Standalone odds helpers (from euro_league_loader.py)
 # ---------------------------------------------------------------------------
+_euro_odds_lock: threading.Lock = threading.Lock()
 euro_odds_cache: Dict[str, Dict] = {}
 euro_odds_cache_time: Dict[str, datetime] = {}
 
 
 def fetch_european_odds(league_key: Optional[str] = None) -> Dict[str, Dict]:
     """Fetch live odds for European leagues from The Odds API."""
-    global euro_odds_cache, euro_odds_cache_time
-
     odds_api_key = os.environ.get("ODDS_API_KEY", "").strip()
     if not odds_api_key:
-        print("ODDS_API_KEY not set")
+        logger.warning("ODDS_API_KEY not set")
         return {}
 
     leagues_to_fetch: List[str]
@@ -221,10 +219,12 @@ def fetch_european_odds(league_key: Optional[str] = None) -> Dict[str, Dict]:
 
     for sport_key in leagues_to_fetch:
         cache_key = sport_key
-        if cache_key in euro_odds_cache_time:
-            if (datetime.now() - euro_odds_cache_time[cache_key]).seconds < 300:
-                all_odds[cache_key] = euro_odds_cache.get(cache_key, {})
-                continue
+
+        with _euro_odds_lock:
+            if cache_key in euro_odds_cache_time:
+                if (datetime.now() - euro_odds_cache_time[cache_key]).seconds < 300:
+                    all_odds[cache_key] = euro_odds_cache.get(cache_key, {})
+                    continue
 
         try:
             url = f"https://api.the-odds-api.com/v4/sports/{sport_key}/odds"
@@ -238,7 +238,7 @@ def fetch_european_odds(league_key: Optional[str] = None) -> Dict[str, Dict]:
 
             if response.status_code == 200:
                 data = response.json()
-                print(f"{sport_key}: got {len(data)} games with odds")
+                logger.info("%s: got %d games with odds", sport_key, len(data))
 
                 odds_dict: Dict[str, Dict] = {}
                 for game in data:
@@ -273,19 +273,20 @@ def fetch_european_odds(league_key: Optional[str] = None) -> Dict[str, Dict]:
                             "commence_time": game.get("commence_time"),
                         }
 
-                euro_odds_cache[cache_key] = odds_dict
-                euro_odds_cache_time[cache_key] = datetime.now()
+                with _euro_odds_lock:
+                    euro_odds_cache[cache_key] = odds_dict
+                    euro_odds_cache_time[cache_key] = datetime.now()
                 all_odds[cache_key] = odds_dict
 
             elif response.status_code == 404:
-                print(f"{sport_key}: league not found or no games")
+                logger.warning("%s: league not found or no games", sport_key)
                 all_odds[cache_key] = {}
             else:
-                print(f"{sport_key}: API error {response.status_code}")
+                logger.error("%s: API error %d", sport_key, response.status_code)
                 all_odds[cache_key] = {}
 
         except Exception as exc:
-            print(f"Error loading odds for {sport_key}: {exc}")
+            logger.error("Error loading odds for %s: %s", sport_key, exc, exc_info=True)
             all_odds[cache_key] = {}
 
     return all_odds

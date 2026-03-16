@@ -7,8 +7,11 @@ ORM models, and utility functions.
 from __future__ import annotations
 
 import json
+import logging
 from collections import Counter
 from typing import Any, Optional
+
+logger = logging.getLogger(__name__)
 
 from flask import render_template  # noqa: F401  (re-exported for monkeypatching)
 from src.sports_config import SportType, get_leagues_for_sport, get_sport_config
@@ -98,7 +101,8 @@ def get_prediction_target_odds(prediction: Any) -> float:
     if isinstance(patterns, str):
         try:
             patterns = json.loads(patterns)
-        except Exception:
+        except Exception as e:
+            logger.error(f"Error in get_prediction_target_odds (JSON parse): {e}", exc_info=True)
             patterns = {}
 
     target_odds = patterns.get('target_odds')

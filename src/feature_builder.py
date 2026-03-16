@@ -91,6 +91,8 @@ class FeatureBuilder:
             
             home_expected = self._predict_from_pattern(home_features)
             away_expected = self._predict_from_pattern(away_features)
+            # TODO: pattern_agreement is always 1 by construction (home_expected + away_expected = 1)
+            # Remove this feature after next model retrain to clean up feature space
             combined_features['pattern_agreement'] = 1 if home_expected == (1 - away_expected) else 0
             combined_features['critical_pattern_exists'] = 1 if (
                 home_features.get('total_critical_patterns', 0) > 0 or

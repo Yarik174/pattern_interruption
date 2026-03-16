@@ -4,11 +4,14 @@ Dashboard and statistics routes.
 from __future__ import annotations
 
 import json
+import logging
 import os
 from collections import defaultdict
 from datetime import datetime
 
 from flask import Blueprint, request
+
+logger = logging.getLogger(__name__)
 
 from src.routes.helpers import (
     extract_decision_traces,
@@ -56,14 +59,14 @@ def dashboard_page() -> str:
             ).count()
 
             pending_decisions = rt.Prediction.query.filter(
-                rt.Prediction.user_decision == None  # noqa: E711
+                rt.Prediction.user_decision.is_(None)
             ).count()
 
-            all_preds = rt.Prediction.query.filter(rt.Prediction.confidence_1_10 != None).all()  # noqa: E711
+            all_preds = rt.Prediction.query.filter(rt.Prediction.confidence_1_10.isnot(None)).all()
             if all_preds:
                 avg_confidence = sum(p.confidence_1_10 for p in all_preds) / len(all_preds)
         except Exception as e:
-            print(f"Error loading dashboard stats: {e}")
+            logger.error(f"Error in dashboard_page: {e}", exc_info=True)
 
     return rt.render_template(
         'dashboard.html',
@@ -93,6 +96,8 @@ def statistics_page() -> str:
 
     if rt.Prediction and rt.UserDecision and rt.db:
         try:
+            # TODO: Replace with SQL-level aggregation (COUNT, AVG, GROUP BY) to avoid loading entire table
+            # Current query loads all N predictions into memory on every dashboard request
             all_predictions = rt.Prediction.query.all()
             completed = [p for p in all_predictions if p.is_win is not None]
             pending = [p for p in all_predictions if p.is_win is None]
@@ -109,7 +114,7 @@ def statistics_page() -> str:
 
             accepted = rt.Prediction.query.join(rt.UserDecision).filter(
                 rt.UserDecision.decision == 'accepted',
-                rt.Prediction.is_win != None  # noqa: E711
+                rt.Prediction.is_win.isnot(None)
             ).all()
             manual_stats['total'] = len(accepted)
             manual_stats['wins'] = sum(1 for p in accepted if p.is_win)
@@ -300,9 +305,7 @@ def statistics_page() -> str:
                 chart_data['cumulative_roi'].append(round(cum_roi, 1))
 
         except Exception as e:
-            print(f"Error loading statistics: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error(f"Error in statistics_page: {e}", exc_info=True)
 
     return rt.render_template(
         'statistics.html',
@@ -407,5 +410,5 @@ def watchlist_page() -> str:
         try:
             entries = rt.UserWatchlist.query.order_by(rt.UserWatchlist.created_at.desc()).all()
         except Exception as e:
-            print(f"Error loading watchlist: {e}")
+            logger.error(f"Error in watchlist_page: {e}", exc_info=True)
     return rt.render_template('watchlist.html', entries=entries)

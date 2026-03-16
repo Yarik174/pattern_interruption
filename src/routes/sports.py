@@ -3,7 +3,11 @@ Sport-specific view routes.
 """
 from __future__ import annotations
 
+import logging
+
 from flask import Blueprint, redirect, url_for
+
+logger = logging.getLogger(__name__)
 
 from src.routes.helpers import get_prediction_target_odds
 from src.sports_config import SportType, get_leagues_for_sport, get_sport_config
@@ -46,7 +50,7 @@ def sports_predictions_page(sport: str) -> str:
             total = rt.Prediction.query.filter(rt.Prediction.league.in_(leagues)).count()
             completed = rt.Prediction.query.filter(
                 rt.Prediction.league.in_(leagues)
-            ).filter(rt.Prediction.is_win != None).all()  # noqa: E711
+            ).filter(rt.Prediction.is_win.isnot(None)).all()
             pending = total - len(completed)
             wins = sum(1 for p in completed if p.is_win)
             losses = len(completed) - wins
@@ -64,7 +68,7 @@ def sports_predictions_page(sport: str) -> str:
                 'roi': round(roi, 1),
             }
         except Exception as e:
-            print(f"Error loading sport predictions: {e}")
+            logger.error(f"Error in sports_predictions_page (sport={sport}): {e}", exc_info=True)
 
     sport_config = get_sport_config(sport_type)
     return rt.render_template(

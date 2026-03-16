@@ -1,834 +1,621 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-    <title>Explainability | ArenaPredictor</title>
-    <style>
-        :root {
-            --bg-primary: #F5F5EB;
-            --bg-secondary: #EBEBDF;
-            --bg-card: #FFFFFF;
-            --accent: #BEFF50;
-            --accent-dark: #9FDF00;
-            --link: #216BA5;
-            --success: #22C55E;
-            --warning: #F59E0B;
-            --danger: #EF4444;
-            --text-primary: #14140F;
-            --text-secondary: #5A5A52;
-            --text-muted: #8A8A7A;
-            --border: #D4D4C8;
-            --border-light: #E8E8DC;
-            --shadow: 0 2px 8px rgba(0,0,0,0.06);
-            --shadow-lg: 0 8px 24px rgba(0,0,0,0.1);
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            min-height: 100vh;
-        }
-        .app { max-width: 1400px; margin: 0 auto; padding: 24px; }
+{% extends "base.html" %}
 
-        /* Header */
-        header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 16px 0 24px;
-            margin-bottom: 24px;
-            border-bottom: 1px solid var(--border);
-        }
-        .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
-        .logo-icon {
-            width: 40px; height: 40px;
-            background: var(--accent);
-            border-radius: 10px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 20px;
-            box-shadow: var(--shadow);
-        }
-        .logo h1 { font-size: 1.25rem; font-weight: 700; color: var(--text-primary); }
-        nav { display: flex; gap: 4px; overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; width: 100%; position: relative; white-space: nowrap; }
-        nav a {
-            padding: 10px 18px;
-            border-radius: 8px;
-            text-decoration: none;
-            color: var(--text-secondary);
-            font-weight: 500;
-            font-size: 0.9rem;
-            transition: all 0.2s;
-            display: inline-flex;
-            align-items: center;
-            min-height: 44px;
-            flex: 0 0 auto;
-        }
-        nav a:hover { background: var(--bg-card); color: var(--text-primary); }
-        nav a.active { background: var(--accent); color: var(--text-primary); font-weight: 600; }
-        nav::before, nav::after {
-            content: "";
-            position: absolute;
-            top: 0;
-            width: 20px;
-            height: 100%;
-            pointer-events: none;
-            z-index: 1;
-        }
-        nav::before { left: 0; background: linear-gradient(to right, var(--bg-primary), rgba(255,255,255,0)); }
-        nav::after { right: 0; background: linear-gradient(to left, var(--bg-primary), rgba(255,255,255,0)); }
+{% block title %}Explainability | ArenaPredictor{% endblock %}
 
-        /* Page title */
-        .page-title {
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: 8px;
-            color: var(--text-primary);
-        }
-        .page-subtitle {
-            color: var(--text-muted);
-            margin-bottom: 24px;
-            max-width: 900px;
-            line-height: 1.5;
-        }
+{% block extra_css %}
+<style>
+    /* Hero / intro card */
+    .hero {
+        background: var(--bg-card);
+        border: 1px solid var(--border-light);
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: var(--shadow);
+        margin-bottom: 24px;
+    }
+    .hero h2 { margin: 0 0 8px; font-size: 2rem; font-weight: 700; color: var(--text-primary); }
+    .hero p  { margin: 0; color: var(--text-muted); max-width: 900px; line-height: 1.5; }
 
-        /* Hero / intro card */
-        .hero {
-            background: var(--bg-card);
-            border: 1px solid var(--border-light);
-            border-radius: 12px;
-            padding: 24px;
-            box-shadow: var(--shadow);
-            margin-bottom: 24px;
-        }
-        .hero h2 {
-            margin: 0 0 8px;
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--text-primary);
-        }
-        .hero p {
-            margin: 0;
-            color: var(--text-muted);
-            max-width: 900px;
-            line-height: 1.5;
-        }
+    /* Summary cards */
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+        margin: 24px 0;
+    }
+    .summary-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-light);
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: var(--shadow);
+    }
+    .summary-card .label { font-size: 0.875rem; color: var(--text-muted); margin-bottom: 8px; }
+    .summary-card .value { font-size: 2rem; font-weight: 700; line-height: 1; color: var(--text-primary); }
+    .summary-card .sub   { margin-top: 10px; font-size: 0.8rem; color: var(--text-muted); }
+    .summary-card.ok     .value { color: var(--success); }
+    .summary-card.warn   .value { color: var(--warning); }
+    .summary-card.danger .value { color: var(--danger); }
 
-        /* Summary cards */
-        .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 16px;
-            margin: 24px 0;
-        }
-        .summary-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-light);
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: var(--shadow);
-        }
-        .summary-card .label {
-            font-size: 0.875rem;
-            color: var(--text-muted);
-            margin-bottom: 8px;
-        }
-        .summary-card .value {
-            font-size: 2rem;
-            font-weight: 700;
-            line-height: 1;
-            color: var(--text-primary);
-        }
-        .summary-card .sub {
-            margin-top: 10px;
-            font-size: 0.8rem;
-            color: var(--text-muted);
-        }
-        .summary-card.ok .value { color: var(--success); }
-        .summary-card.warn .value { color: var(--warning); }
-        .summary-card.danger .value { color: var(--danger); }
+    /* Filters */
+    .filters {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 20px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-light);
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: var(--shadow);
+    }
+    .filters label {
+        display: block;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-bottom: 6px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .filters select {
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px 12px;
+        background: var(--bg-card);
+        color: var(--text-primary);
+        font-size: 0.875rem;
+        transition: border-color 0.2s;
+        appearance: auto;
+    }
+    .filters select:focus { outline: none; border-color: var(--accent-dark); }
 
-        /* Filters */
-        .filters {
-            display: grid;
-            grid-template-columns: repeat(5, minmax(0, 1fr));
-            gap: 12px;
-            margin-bottom: 20px;
-            background: var(--bg-card);
-            border: 1px solid var(--border-light);
-            border-radius: 12px;
-            padding: 16px;
-            box-shadow: var(--shadow);
-        }
-        .filters label {
-            display: block;
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            margin-bottom: 6px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .filters select {
-            width: 100%;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 10px 12px;
-            background: var(--bg-card);
-            color: var(--text-primary);
-            font-size: 0.875rem;
-            transition: border-color 0.2s;
-            appearance: auto;
-        }
-        .filters select:focus {
-            outline: none;
-            border-color: var(--accent-dark);
-        }
+    /* Insights panels */
+    .insights {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+    .panel {
+        background: var(--bg-card);
+        border: 1px solid var(--border-light);
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: var(--shadow);
+    }
+    .panel h3 { margin: 0 0 14px; font-size: 1rem; font-weight: 700; color: var(--text-primary); }
+    .mini-list { display: flex; flex-direction: column; gap: 10px; }
+    .mini-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+    }
+    .mini-row span:last-child { color: var(--text-muted); white-space: nowrap; }
 
-        /* Insights panels */
-        .insights {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-        .panel {
-            background: var(--bg-card);
-            border: 1px solid var(--border-light);
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: var(--shadow);
-        }
-        .panel h3 {
-            margin: 0 0 14px;
-            font-size: 1rem;
-            font-weight: 700;
-            color: var(--text-primary);
-        }
-        .mini-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .mini-row {
-            display: flex;
-            justify-content: space-between;
-            gap: 12px;
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-        }
-        .mini-row span:last-child {
-            color: var(--text-muted);
-            white-space: nowrap;
-        }
+    /* Table */
+    .table-wrap {
+        background: var(--bg-card);
+        border: 1px solid var(--border-light);
+        border-radius: 12px;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th, td {
+        padding: 14px 16px;
+        text-align: left;
+        border-bottom: 1px solid var(--border-light);
+        vertical-align: top;
+        font-size: 0.9rem;
+    }
+    th {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+        background: var(--bg-secondary);
+    }
+    .match-title { font-weight: 700; margin-bottom: 4px; color: var(--text-primary); }
+    .match-sub   { color: var(--text-muted); font-size: 0.75rem; }
 
-        /* Table */
-        .table-wrap {
-            background: var(--bg-card);
-            border: 1px solid var(--border-light);
-            border-radius: 12px;
-            box-shadow: var(--shadow);
-            overflow: hidden;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th, td {
-            padding: 14px 16px;
-            text-align: left;
-            border-bottom: 1px solid var(--border-light);
-            vertical-align: top;
-            font-size: 0.9rem;
-        }
-        th {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-weight: 600;
-            background: var(--bg-secondary);
-        }
-        .match-title {
-            font-weight: 700;
-            margin-bottom: 4px;
-            color: var(--text-primary);
-        }
-        .match-sub {
-            color: var(--text-muted);
-            font-size: 0.75rem;
-        }
+    /* Badges */
+    .badge {
+        display: inline-block;
+        padding: 6px 10px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    .badge.candidate   { background: #DCFCE7; color: #166534; }
+    .badge.shadow_only { background: #FEF3E2; color: #92400E; }
+    .badge.rejected    { background: #FEE2E2; color: #991B1B; }
 
-        /* Badges */
-        .badge {
-            display: inline-block;
-            padding: 6px 10px;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-        .badge.candidate { background: #DCFCE7; color: #166534; }
-        .badge.shadow_only { background: #FEF3E2; color: #92400E; }
-        .badge.rejected { background: #FEE2E2; color: #991B1B; }
+    /* Verdicts */
+    .verdict {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-right: 6px;
+        margin-bottom: 6px;
+        background: var(--bg-secondary);
+        color: var(--text-secondary);
+    }
+    .verdict.pass { background: #DCFCE7; color: #166534; }
+    .verdict.fail { background: #FEE2E2; color: #991B1B; }
+    .verdict.unsupported, .verdict.unavailable, .verdict.pending {
+        background: var(--bg-secondary);
+        color: var(--text-muted);
+    }
 
-        /* Verdicts */
-        .verdict {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            margin-right: 6px;
-            margin-bottom: 6px;
-            background: var(--bg-secondary);
-            color: var(--text-secondary);
-        }
-        .verdict.pass { background: #DCFCE7; color: #166534; }
-        .verdict.fail { background: #FEE2E2; color: #991B1B; }
-        .verdict.unsupported, .verdict.unavailable, .verdict.pending {
-            background: var(--bg-secondary);
-            color: var(--text-muted);
-        }
+    /* Empty state */
+    .empty { padding: 80px 24px; text-align: center; color: var(--text-muted); font-size: 0.9rem; }
 
-        /* Empty state */
-        .empty {
-            padding: 80px 24px;
-            text-align: center;
-            color: var(--text-muted);
-            font-size: 0.9rem;
-        }
+    /* Table rows */
+    tbody tr { cursor: pointer; transition: background-color 0.2s; }
+    tbody tr:hover { background-color: var(--bg-secondary); }
+    tbody tr:last-child td { border-bottom: none; }
 
-        /* Table rows */
-        tbody tr {
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        tbody tr:hover {
-            background-color: var(--bg-secondary);
-        }
-        tbody tr:last-child td { border-bottom: none; }
+    /* Modal */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0; top: 0;
+        width: 100%; height: 100%;
+        background-color: rgba(0,0,0,0.4);
+    }
+    .modal.active { display: flex; align-items: center; justify-content: center; }
+    .modal-content {
+        background-color: var(--bg-card);
+        padding: 24px;
+        border-radius: 12px;
+        max-width: 800px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: var(--shadow-lg);
+    }
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        border-bottom: 1px solid var(--border-light);
+        padding-bottom: 16px;
+    }
+    .modal-header h3 { margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--text-primary); }
+    .modal-close {
+        background: none; border: none;
+        font-size: 24px; color: var(--text-muted);
+        cursor: pointer; padding: 0;
+        width: 32px; height: 32px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 8px; transition: all 0.2s;
+    }
+    .modal-close:hover { color: var(--text-primary); background: var(--bg-secondary); }
 
-        /* Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.4);
-        }
-        .modal.active {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .modal-content {
-            background-color: var(--bg-card);
-            padding: 24px;
-            border-radius: 12px;
-            max-width: 800px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
-            box-shadow: var(--shadow-lg);
-        }
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            border-bottom: 1px solid var(--border-light);
-            padding-bottom: 16px;
-        }
-        .modal-header h3 {
-            margin: 0;
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--text-primary);
-        }
-        .modal-close {
-            background: none;
-            border: none;
-            font-size: 24px;
-            color: var(--text-muted);
-            cursor: pointer;
-            padding: 0;
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 8px;
-            transition: all 0.2s;
-        }
-        .modal-close:hover {
-            color: var(--text-primary);
-            background: var(--bg-secondary);
-        }
+    /* Modal tabs */
+    .tabs {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 20px;
+        border-bottom: 1px solid var(--border-light);
+    }
+    .tab-button {
+        background: none; border: none;
+        padding: 12px 16px;
+        cursor: pointer;
+        font-weight: 600;
+        color: var(--text-muted);
+        border-bottom: 3px solid transparent;
+        transition: all 0.2s;
+        font-size: 0.9rem;
+    }
+    .tab-button.active { color: var(--text-primary); border-bottom-color: var(--accent-dark); }
+    .tab-button:hover  { color: var(--text-primary); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
 
-        /* Modal tabs */
-        .tabs {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 20px;
-            border-bottom: 1px solid var(--border-light);
-        }
-        .tab-button {
-            background: none;
-            border: none;
-            padding: 12px 16px;
-            cursor: pointer;
-            font-weight: 600;
-            color: var(--text-muted);
-            border-bottom: 3px solid transparent;
-            transition: all 0.2s;
-            font-size: 0.9rem;
-        }
-        .tab-button.active {
-            color: var(--text-primary);
-            border-bottom-color: var(--accent-dark);
-        }
-        .tab-button:hover {
-            color: var(--text-primary);
-        }
-        .tab-content {
-            display: none;
-        }
-        .tab-content.active {
-            display: block;
-        }
+    /* Prediction info blocks inside modal */
+    .prediction-info {
+        background: var(--bg-secondary);
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 16px;
+    }
+    .prediction-info .label {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-bottom: 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+    }
+    .prediction-info .value { font-size: 1rem; font-weight: 600; color: var(--text-primary); }
+    .prediction-row {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+        margin-bottom: 16px;
+    }
+    .prediction-row.full { grid-template-columns: 1fr; }
+    .loading { text-align: center; color: var(--text-muted); padding: 20px; }
 
-        /* Prediction info blocks inside modal */
-        .prediction-info {
-            background: var(--bg-secondary);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 16px;
-        }
-        .prediction-info .label {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            margin-bottom: 4px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-weight: 600;
-        }
-        .prediction-info .value {
-            font-size: 1rem;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-        .prediction-row {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 16px;
-            margin-bottom: 16px;
-        }
-        .prediction-row.full {
-            grid-template-columns: 1fr;
-        }
-        .loading {
-            text-align: center;
-            color: var(--text-muted);
-            padding: 20px;
-        }
+    /* Responsive */
+    @media (max-width: 1080px) {
+        .summary-grid, .insights { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 768px) {
+        .summary-grid, .insights, .filters { grid-template-columns: 1fr; }
+        .table-wrap { overflow-x: auto; }
+        table { min-width: 980px; }
+        .prediction-row { grid-template-columns: 1fr; }
+    }
+</style>
+{% endblock %}
 
-        /* Responsive */
-        @media (max-width: 1080px) {
-            .summary-grid, .insights { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-            .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        }
-        @media (max-width: 768px) {
-            header { flex-direction: column; gap: 16px; align-items: flex-start; }
-            nav { width: 100%; overflow-x: auto; }
-            .summary-grid, .insights, .filters { grid-template-columns: 1fr; }
-            .table-wrap { overflow-x: auto; }
-            table { min-width: 980px; }
-            .prediction-row { grid-template-columns: 1fr; }
-        }
-    </style>
-</head>
-<body>
-    <div class="app">
-        <header>
-            <a href="/" class="logo">
-                <img src="/static/logo.svg" alt="ArenaPredictor" class="logo-icon">
-                <h1>ArenaPredictor</h1>
-            </a>
-            <nav>
-                <a href="/predictions">Прогнозы</a>
-                <a href="/dashboard">Дашборд</a>
-                <a href="/statistics">Статистика</a>
-                <a href="/watchlist">★ Отобранные</a>
-                <a href="/explainability" class="active">Explainability</a>
-                <a href="/logs">Логи</a>
-            </nav>
-        </header>
+{% block content %}
+    <section class="hero">
+        <h2>Почему система молчит или отправляет матч</h2>
+        <p>Это экран объяснимости решений. Он показывает не "мысли модели", а понятную цепочку: хватило ли данных, был ли паттерн, что сказал модельный слой и почему матч попал в `rejected`, `shadow_only` или `candidate`.</p>
+    </section>
 
-        <section class="hero">
-            <h2>Почему система молчит или отправляет матч</h2>
-            <p>Это экран объяснимости решений. Он показывает не "мысли модели", а понятную цепочку: хватило ли данных, был ли паттерн, что сказал модельный слой и почему матч попал в `rejected`, `shadow_only` или `candidate`.</p>
-        </section>
+    <section class="summary-grid">
+        <div class="summary-card">
+            <div class="label">Всего решений в выборке</div>
+            <div class="value">{{ summary.total }}</div>
+            <div class="sub">Последние {{ limit }} записей после фильтров</div>
+        </div>
+        <div class="summary-card ok">
+            <div class="label">Готово к бою</div>
+            <div class="value">{{ summary.status_counts.get('candidate', 0) }}</div>
+            <div class="sub">Матчи, прошедшие quality gate</div>
+        </div>
+        <div class="summary-card warn">
+            <div class="label">Наблюдать</div>
+            <div class="value">{{ summary.status_counts.get('shadow_only', 0) }}</div>
+            <div class="sub">Сигнал есть, но боевой режим пока рано</div>
+        </div>
+        <div class="summary-card danger">
+            <div class="label">Отсечено</div>
+            <div class="value">{{ summary.status_counts.get('rejected', 0) }}</div>
+            <div class="sub">Система считает сигнал слишком слабым</div>
+        </div>
+    </section>
 
-        <section class="summary-grid">
-            <div class="summary-card">
-                <div class="label">Всего решений в выборке</div>
-                <div class="value">{{ summary.total }}</div>
-                <div class="sub">Последние {{ limit }} записей после фильтров</div>
+    <form class="filters" method="GET" action="/explainability">
+        <div>
+            <label for="status">Статус</label>
+            <select id="status" name="status" onchange="this.form.submit()">
+                <option value="">Все</option>
+                {% for value in statuses %}
+                <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ value }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="sport">Спорт</label>
+            <select id="sport" name="sport" onchange="this.form.submit()">
+                <option value="">Все</option>
+                {% for value in sports %}
+                <option value="{{ value }}" {% if selected_sport == value %}selected{% endif %}>{{ value }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="league">Лига</label>
+            <select id="league" name="league" onchange="this.form.submit()">
+                <option value="">Все</option>
+                {% for value in leagues %}
+                <option value="{{ value }}" {% if selected_league == value %}selected{% endif %}>{{ value }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="reason">Главная причина</label>
+            <select id="reason" name="reason" onchange="this.form.submit()">
+                <option value="">Все</option>
+                {% for value in reasons %}
+                <option value="{{ value }}" {% if selected_reason == value %}selected{% endif %}>{{ value }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label for="limit">Показать</label>
+            <select id="limit" name="limit" onchange="this.form.submit()">
+                {% for value in [20, 50, 100, 200] %}
+                <option value="{{ value }}" {% if limit == value %}selected{% endif %}>{{ value }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </form>
+
+    <section class="insights">
+        <div class="panel">
+            <h3>Топ причин финального решения</h3>
+            <div class="mini-list">
+                {% for label, count in summary.reason_counts %}
+                <div class="mini-row"><span>{{ label }}</span><span>{{ count }}</span></div>
+                {% endfor %}
+                {% if not summary.reason_counts %}
+                <div class="mini-row"><span>Нет данных</span><span>0</span></div>
+                {% endif %}
             </div>
-            <div class="summary-card ok">
-                <div class="label">Готово к бою</div>
-                <div class="value">{{ summary.status_counts.get('candidate', 0) }}</div>
-                <div class="sub">Матчи, прошедшие quality gate</div>
+        </div>
+        <div class="panel">
+            <h3>Что чаще ломает паттерн</h3>
+            <div class="mini-list">
+                {% for label, count in summary.pattern_reason_counts %}
+                <div class="mini-row"><span>{{ label }}</span><span>{{ count }}</span></div>
+                {% endfor %}
+                {% if not summary.pattern_reason_counts %}
+                <div class="mini-row"><span>Нет данных</span><span>0</span></div>
+                {% endif %}
             </div>
-            <div class="summary-card warn">
-                <div class="label">Наблюдать</div>
-                <div class="value">{{ summary.status_counts.get('shadow_only', 0) }}</div>
-                <div class="sub">Сигнал есть, но боевой режим пока рано</div>
+        </div>
+        <div class="panel">
+            <h3>Что делает модельный слой</h3>
+            <div class="mini-list">
+                {% for label, count in summary.model_reason_counts %}
+                <div class="mini-row"><span>{{ label }}</span><span>{{ count }}</span></div>
+                {% endfor %}
+                {% if not summary.model_reason_counts %}
+                <div class="mini-row"><span>Нет данных</span><span>0</span></div>
+                {% endif %}
             </div>
-            <div class="summary-card danger">
-                <div class="label">Отсечено</div>
-                <div class="value">{{ summary.status_counts.get('rejected', 0) }}</div>
-                <div class="sub">Система считает сигнал слишком слабым</div>
-            </div>
-        </section>
+        </div>
+    </section>
 
-        <form class="filters" method="GET" action="/explainability">
-            <div>
-                <label for="status">Статус</label>
-                <select id="status" name="status" onchange="this.form.submit()">
-                    <option value="">Все</option>
-                    {% for value in statuses %}
-                    <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ value }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div>
-                <label for="sport">Спорт</label>
-                <select id="sport" name="sport" onchange="this.form.submit()">
-                    <option value="">Все</option>
-                    {% for value in sports %}
-                    <option value="{{ value }}" {% if selected_sport == value %}selected{% endif %}>{{ value }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div>
-                <label for="league">Лига</label>
-                <select id="league" name="league" onchange="this.form.submit()">
-                    <option value="">Все</option>
-                    {% for value in leagues %}
-                    <option value="{{ value }}" {% if selected_league == value %}selected{% endif %}>{{ value }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div>
-                <label for="reason">Главная причина</label>
-                <select id="reason" name="reason" onchange="this.form.submit()">
-                    <option value="">Все</option>
-                    {% for value in reasons %}
-                    <option value="{{ value }}" {% if selected_reason == value %}selected{% endif %}>{{ value }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div>
-                <label for="limit">Показать</label>
-                <select id="limit" name="limit" onchange="this.form.submit()">
-                    {% for value in [20, 50, 100, 200] %}
-                    <option value="{{ value }}" {% if limit == value %}selected{% endif %}>{{ value }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-        </form>
+    <section class="table-wrap">
+        {% if items %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Матч</th>
+                    <th>Итог</th>
+                    <th>Ставка</th>
+                    <th>Паттерн</th>
+                    <th>Модель</th>
+                    <th>Согласованность</th>
+                    <th>Когда</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr data-prediction-id="{{ item.prediction_id or '' }}" data-decision-log-id="{{ item.log_id }}">
+                    <td>
+                        <div class="match-title">{{ item.home_team }} vs {{ item.away_team }}</div>
+                        <div class="match-sub">{{ item.sport_type }} · {{ item.league }}</div>
+                    </td>
+                    <td>
+                        <div><span class="badge {{ item.status }}">{{ item.status }}</span></div>
+                        <div class="match-sub" style="margin-top: 8px;">{{ item.reason }}</div>
+                    </td>
+                    <td>
+                        <div class="match-title">{{ item.bet_on or '—' }}</div>
+                        <div class="match-sub">target_odds: {{ item.target_odds if item.target_odds is not none else '—' }}</div>
+                        <div class="match-sub">home {{ item.home_odds if item.home_odds is not none else '—' }} / away {{ item.away_odds if item.away_odds is not none else '—' }}</div>
+                    </td>
+                    <td>
+                        <span class="verdict {{ item.pattern_verdict.get('status', 'pending') }}">{{ item.pattern_verdict.get('status', 'pending') }}</span>
+                        <div class="match-sub">{{ item.pattern_verdict.get('reason') or '—' }}</div>
+                    </td>
+                    <td>
+                        <span class="verdict {{ item.model_verdict.get('status', 'pending') }}">{{ item.model_verdict.get('status', 'pending') }}</span>
+                        <div class="match-sub">{{ item.model_verdict.get('reason') or '—' }}</div>
+                        {% if item.model_verdict.get('confidence') is not none %}
+                        <div class="match-sub">confidence: {{ '%.2f'|format(item.model_verdict.get('confidence')) }}</div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="verdict {{ item.agreement_verdict.get('status', 'pending') }}">{{ item.agreement_verdict.get('status', 'pending') }}</span>
+                        <div class="match-sub">{{ item.agreement_verdict.get('reason') or '—' }}</div>
+                        <div class="match-sub" style="margin-top: 8px;">history: {{ item.history_verdict.get('reason') or '—' }}</div>
+                    </td>
+                    <td>
+                        <div class="match-title">{{ item.timestamp.strftime('%d.%m %H:%M') if item.timestamp else '—' }}</div>
+                        <div class="match-sub">log #{{ item.log_id }}</div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty">
+            Нет explainability-записей под выбранные фильтры.
+        </div>
+        {% endif %}
+    </section>
 
-        <section class="insights">
-            <div class="panel">
-                <h3>Топ причин финального решения</h3>
-                <div class="mini-list">
-                    {% for label, count in summary.reason_counts %}
-                    <div class="mini-row"><span>{{ label }}</span><span>{{ count }}</span></div>
-                    {% endfor %}
-                    {% if not summary.reason_counts %}
-                    <div class="mini-row"><span>Нет данных</span><span>0</span></div>
-                    {% endif %}
+    <!-- Detail Modal -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Детали решения</h3>
+                <button class="modal-close" onclick="closeDetailModal()">×</button>
+            </div>
+
+            <div class="tabs">
+                <button class="tab-button active" onclick="switchTab(event, 'decisionTab')">Решение</button>
+                <button class="tab-button" onclick="switchTab(event, 'predictionTab')">Прогноз</button>
+            </div>
+
+            <!-- Decision Tab -->
+            <div id="decisionTab" class="tab-content active">
+                <div id="decisionContent">
+                    <div class="loading">Загружаю...</div>
                 </div>
             </div>
-            <div class="panel">
-                <h3>Что чаще ломает паттерн</h3>
-                <div class="mini-list">
-                    {% for label, count in summary.pattern_reason_counts %}
-                    <div class="mini-row"><span>{{ label }}</span><span>{{ count }}</span></div>
-                    {% endfor %}
-                    {% if not summary.pattern_reason_counts %}
-                    <div class="mini-row"><span>Нет данных</span><span>0</span></div>
-                    {% endif %}
-                </div>
-            </div>
-            <div class="panel">
-                <h3>Что делает модельный слой</h3>
-                <div class="mini-list">
-                    {% for label, count in summary.model_reason_counts %}
-                    <div class="mini-row"><span>{{ label }}</span><span>{{ count }}</span></div>
-                    {% endfor %}
-                    {% if not summary.model_reason_counts %}
-                    <div class="mini-row"><span>Нет данных</span><span>0</span></div>
-                    {% endif %}
-                </div>
-            </div>
-        </section>
 
-        <section class="table-wrap">
-            {% if items %}
-            <table>
-                <thead>
-                    <tr>
-                        <th>Матч</th>
-                        <th>Итог</th>
-                        <th>Ставка</th>
-                        <th>Паттерн</th>
-                        <th>Модель</th>
-                        <th>Согласованность</th>
-                        <th>Когда</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in items %}
-                    <tr data-prediction-id="{{ item.prediction_id or '' }}" data-decision-log-id="{{ item.log_id }}">
-                        <td>
-                            <div class="match-title">{{ item.home_team }} vs {{ item.away_team }}</div>
-                            <div class="match-sub">{{ item.sport_type }} · {{ item.league }}</div>
-                        </td>
-                        <td>
-                            <div><span class="badge {{ item.status }}">{{ item.status }}</span></div>
-                            <div class="match-sub" style="margin-top: 8px;">{{ item.reason }}</div>
-                        </td>
-                        <td>
-                            <div class="match-title">{{ item.bet_on or '—' }}</div>
-                            <div class="match-sub">target_odds: {{ item.target_odds if item.target_odds is not none else '—' }}</div>
-                            <div class="match-sub">home {{ item.home_odds if item.home_odds is not none else '—' }} / away {{ item.away_odds if item.away_odds is not none else '—' }}</div>
-                        </td>
-                        <td>
-                            <span class="verdict {{ item.pattern_verdict.get('status', 'pending') }}">{{ item.pattern_verdict.get('status', 'pending') }}</span>
-                            <div class="match-sub">{{ item.pattern_verdict.get('reason') or '—' }}</div>
-                        </td>
-                        <td>
-                            <span class="verdict {{ item.model_verdict.get('status', 'pending') }}">{{ item.model_verdict.get('status', 'pending') }}</span>
-                            <div class="match-sub">{{ item.model_verdict.get('reason') or '—' }}</div>
-                            {% if item.model_verdict.get('confidence') is not none %}
-                            <div class="match-sub">confidence: {{ '%.2f'|format(item.model_verdict.get('confidence')) }}</div>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <span class="verdict {{ item.agreement_verdict.get('status', 'pending') }}">{{ item.agreement_verdict.get('status', 'pending') }}</span>
-                            <div class="match-sub">{{ item.agreement_verdict.get('reason') or '—' }}</div>
-                            <div class="match-sub" style="margin-top: 8px;">history: {{ item.history_verdict.get('reason') or '—' }}</div>
-                        </td>
-                        <td>
-                            <div class="match-title">{{ item.timestamp.strftime('%d.%m %H:%M') if item.timestamp else '—' }}</div>
-                            <div class="match-sub">log #{{ item.log_id }}</div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            {% else %}
-            <div class="empty">
-                Нет explainability-записей под выбранные фильтры.
-            </div>
-            {% endif %}
-        </section>
-
-        <!-- Detail Modal -->
-        <div id="detailModal" class="modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3 id="modalTitle">Детали решения</h3>
-                    <button class="modal-close" onclick="closeDetailModal()">×</button>
-                </div>
-
-                <div class="tabs">
-                    <button class="tab-button active" onclick="switchTab(event, 'decisionTab')">Решение</button>
-                    <button class="tab-button" onclick="switchTab(event, 'predictionTab')">Прогноз</button>
-                </div>
-
-                <!-- Decision Tab -->
-                <div id="decisionTab" class="tab-content active">
-                    <div id="decisionContent">
-                        <div class="loading">Загружаю...</div>
-                    </div>
-                </div>
-
-                <!-- Prediction Tab -->
-                <div id="predictionTab" class="tab-content">
-                    <div id="predictionContent">
-                        <div class="loading">Загружаю...</div>
-                    </div>
+            <!-- Prediction Tab -->
+            <div id="predictionTab" class="tab-content">
+                <div id="predictionContent">
+                    <div class="loading">Загружаю...</div>
                 </div>
             </div>
         </div>
     </div>
+{% endblock %}
 
-    <script>
-        let currentLogId = null;
-        let currentPredictionId = null;
+{% block extra_js %}
+<script>
+    let currentLogId = null;
+    let currentPredictionId = null;
 
-        // Table row click handler
-        document.querySelectorAll('tbody tr').forEach(row => {
-            row.addEventListener('click', () => {
-                const predictionId = row.dataset.predictionId;
-                const logId = row.dataset.decisionLogId;
-                if (predictionId || logId) {
-                    openDetailModal(predictionId, logId);
-                }
-            });
-        });
-
-        function openDetailModal(predictionId, logId) {
-            currentPredictionId = predictionId;
-            currentLogId = logId;
-            const modal = document.getElementById('detailModal');
-            modal.classList.add('active');
-
-            // Load decision content (always available)
-            loadDecisionContent();
-
-            // Load prediction if we have an ID
-            if (predictionId) {
-                loadPredictionContent(predictionId);
-            } else {
-                document.getElementById('predictionContent').innerHTML = '<p style="text-align: center; color: var(--text-muted);">Прогноз не был создан для этого решения</p>';
+    // Table row click handler
+    document.querySelectorAll('tbody tr').forEach(row => {
+        row.addEventListener('click', () => {
+            const predictionId = row.dataset.predictionId;
+            const logId = row.dataset.decisionLogId;
+            if (predictionId || logId) {
+                openDetailModal(predictionId, logId);
             }
+        });
+    });
+
+    function openDetailModal(predictionId, logId) {
+        currentPredictionId = predictionId;
+        currentLogId = logId;
+        const modal = document.getElementById('detailModal');
+        modal.classList.add('active');
+
+        loadDecisionContent();
+
+        if (predictionId) {
+            loadPredictionContent(predictionId);
+        } else {
+            document.getElementById('predictionContent').innerHTML = '<p style="text-align: center; color: var(--text-muted);">Прогноз не был создан для этого решения</p>';
         }
+    }
 
-        function closeDetailModal() {
-            const modal = document.getElementById('detailModal');
-            modal.classList.remove('active');
-            currentPredictionId = null;
-            currentLogId = null;
-        }
+    function closeDetailModal() {
+        const modal = document.getElementById('detailModal');
+        modal.classList.remove('active');
+        currentPredictionId = null;
+        currentLogId = null;
+    }
 
-        function switchTab(event, tabId) {
-            event.preventDefault();
+    function switchTab(event, tabId) {
+        event.preventDefault();
+        document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        event.target.classList.add('active');
+        document.getElementById(tabId).classList.add('active');
+    }
 
-            // Remove active class from all buttons and contents
-            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    function loadDecisionContent() {
+        const row = document.querySelector(`tr[data-decision-log-id="${currentLogId}"]`);
+        if (!row) return;
 
-            // Add active class to clicked button and corresponding content
-            event.target.classList.add('active');
-            document.getElementById(tabId).classList.add('active');
-        }
+        const cells = row.querySelectorAll('td');
+        const matchTitle  = cells[0].textContent;
+        const status      = cells[1].querySelector('.badge')?.textContent || 'unknown';
+        const reason      = cells[1].querySelector('.match-sub')?.textContent || 'N/A';
+        const pattern     = cells[3].querySelector('.verdict')?.textContent || 'N/A';
+        const patternReason = cells[3].querySelector('.match-sub')?.textContent || '—';
+        const model       = cells[4].querySelector('.verdict')?.textContent || 'N/A';
+        const modelReason = cells[4].querySelector('.match-sub')?.textContent || '—';
 
-        function loadDecisionContent() {
-            const row = document.querySelector(`tr[data-decision-log-id="${currentLogId}"]`);
-            if (!row) return;
-
-            const cells = row.querySelectorAll('td');
-            const matchTitle = cells[0].textContent;
-            const status = cells[1].querySelector('.badge')?.textContent || 'unknown';
-            const reason = cells[1].querySelector('.match-sub')?.textContent || 'N/A';
-            const pattern = cells[3].querySelector('.verdict')?.textContent || 'N/A';
-            const patternReason = cells[3].querySelector('.match-sub')?.textContent || '—';
-            const model = cells[4].querySelector('.verdict')?.textContent || 'N/A';
-            const modelReason = cells[4].querySelector('.match-sub')?.textContent || '—';
-
-            const html = `
+        const html = `
+            <div class="prediction-info">
+                <div class="label">Матч</div>
+                <div class="value">${matchTitle}</div>
+            </div>
+            <div class="prediction-row">
                 <div class="prediction-info">
-                    <div class="label">Матч</div>
-                    <div class="value">${matchTitle}</div>
+                    <div class="label">Статус решения</div>
+                    <div class="value">${status}</div>
                 </div>
-                <div class="prediction-row">
-                    <div class="prediction-info">
-                        <div class="label">Статус решения</div>
-                        <div class="value">${status}</div>
-                    </div>
-                    <div class="prediction-info">
-                        <div class="label">Причина</div>
-                        <div class="value">${reason}</div>
-                    </div>
+                <div class="prediction-info">
+                    <div class="label">Причина</div>
+                    <div class="value">${reason}</div>
                 </div>
-                <div class="prediction-row">
-                    <div class="prediction-info">
-                        <div class="label">Паттерн</div>
-                        <div class="value">${pattern}</div>
-                        <div class="match-sub">${patternReason}</div>
-                    </div>
-                    <div class="prediction-info">
-                        <div class="label">Модель</div>
-                        <div class="value">${model}</div>
-                        <div class="match-sub">${modelReason}</div>
-                    </div>
+            </div>
+            <div class="prediction-row">
+                <div class="prediction-info">
+                    <div class="label">Паттерн</div>
+                    <div class="value">${pattern}</div>
+                    <div class="match-sub">${patternReason}</div>
                 </div>
-            `;
+                <div class="prediction-info">
+                    <div class="label">Модель</div>
+                    <div class="value">${model}</div>
+                    <div class="match-sub">${modelReason}</div>
+                </div>
+            </div>
+        `;
 
-            document.getElementById('decisionContent').innerHTML = html;
+        document.getElementById('decisionContent').innerHTML = html;
+    }
+
+    function loadPredictionContent(predictionId) {
+        fetch(`/api/predictions/${predictionId}`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) {
+                    document.getElementById('predictionContent').innerHTML = '<p style="color: var(--danger);">Не удалось загрузить данные прогноза</p>';
+                    return;
+                }
+
+                const isWin = data.is_win === true ? 'Выигрыш ✓' : (data.is_win === false ? 'Проигрыш ✗' : 'В ожидании результата');
+
+                const html = `
+                    <div class="prediction-row">
+                        <div class="prediction-info">
+                            <div class="label">Исход</div>
+                            <div class="value" style="color: ${data.is_win === true ? 'var(--success)' : (data.is_win === false ? 'var(--danger)' : 'var(--text-muted)')};">${isWin}</div>
+                        </div>
+                        <div class="prediction-info">
+                            <div class="label">Уверенность модели</div>
+                            <div class="value">${data.confidence_1_10 ? data.confidence_1_10.toFixed(1) + '/10' : 'N/A'}</div>
+                        </div>
+                    </div>
+                    <div class="prediction-row">
+                        <div class="prediction-info">
+                            <div class="label">Рекомендация RL</div>
+                            <div class="value">${data.rl_recommendation || 'N/A'}</div>
+                        </div>
+                        <div class="prediction-info">
+                            <div class="label">Дата матча</div>
+                            <div class="value">${new Date(data.match_date).toLocaleDateString('ru-RU')}</div>
+                        </div>
+                    </div>
+                    <div class="prediction-row full">
+                        <div class="prediction-info">
+                            <div class="label">Предсказанный исход</div>
+                            <div class="value">${data.predicted_outcome || 'N/A'}</div>
+                        </div>
+                    </div>
+                    <div class="prediction-row full">
+                        <div class="prediction-info">
+                            <div class="label">Букмекерское решение</div>
+                            <div class="value">${data.user_decision || 'Ещё не принято'}</div>
+                            <div class="match-sub" style="margin-top: 8px;">${data.user_note ? 'Заметка: ' + data.user_note : ''}</div>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('predictionContent').innerHTML = html;
+            })
+            .catch(err => {
+                console.error(err);
+                document.getElementById('predictionContent').innerHTML = '<p style="color: var(--danger);">Ошибка загрузки</p>';
+            });
+    }
+
+    // Close modal when clicking outside
+    document.getElementById('detailModal').addEventListener('click', (e) => {
+        if (e.target.id === 'detailModal') {
+            closeDetailModal();
         }
-
-        function loadPredictionContent(predictionId) {
-            fetch(`/api/predictions/${predictionId}`)
-                .then(r => r.json())
-                .then(data => {
-                    if (data.error) {
-                        document.getElementById('predictionContent').innerHTML = '<p style="color: var(--danger);">Не удалось загрузить данные прогноза</p>';
-                        return;
-                    }
-
-                    const isWin = data.is_win === true ? 'Выигрыш ✓' : (data.is_win === false ? 'Проигрыш ✗' : 'В ожидании результата');
-                    const winClass = data.is_win === true ? 'ok' : (data.is_win === false ? 'danger' : '');
-
-                    const html = `
-                        <div class="prediction-row">
-                            <div class="prediction-info">
-                                <div class="label">Исход</div>
-                                <div class="value" style="color: ${data.is_win === true ? 'var(--success)' : (data.is_win === false ? 'var(--danger)' : 'var(--text-muted)')};">${isWin}</div>
-                            </div>
-                            <div class="prediction-info">
-                                <div class="label">Уверенность модели</div>
-                                <div class="value">${data.confidence_1_10 ? data.confidence_1_10.toFixed(1) + '/10' : 'N/A'}</div>
-                            </div>
-                        </div>
-                        <div class="prediction-row">
-                            <div class="prediction-info">
-                                <div class="label">Рекомендация RL</div>
-                                <div class="value">${data.rl_recommendation || 'N/A'}</div>
-                            </div>
-                            <div class="prediction-info">
-                                <div class="label">Дата матча</div>
-                                <div class="value">${new Date(data.match_date).toLocaleDateString('ru-RU')}</div>
-                            </div>
-                        </div>
-                        <div class="prediction-row full">
-                            <div class="prediction-info">
-                                <div class="label">Предсказанный исход</div>
-                                <div class="value">${data.predicted_outcome || 'N/A'}</div>
-                            </div>
-                        </div>
-                        <div class="prediction-row full">
-                            <div class="prediction-info">
-                                <div class="label">Букмекерское решение</div>
-                                <div class="value">${data.user_decision || 'Ещё не принято'}</div>
-                                <div class="match-sub" style="margin-top: 8px;">${data.user_note ? 'Заметка: ' + data.user_note : ''}</div>
-                            </div>
-                        </div>
-                    `;
-
-                    document.getElementById('predictionContent').innerHTML = html;
-                })
-                .catch(err => {
-                    console.error(err);
-                    document.getElementById('predictionContent').innerHTML = '<p style="color: var(--danger);">Ошибка загрузки</p>';
-                });
-        }
-
-        // Close modal when clicking outside
-        document.getElementById('detailModal').addEventListener('click', (e) => {
-            if (e.target.id === 'detailModal') {
-                closeDetailModal();
-            }
-        });
-    </script>
-</body>
-</html>
+    });
+</script>
+{% endblock %}

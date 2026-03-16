@@ -179,7 +179,7 @@ def add_synthetic_features(matches: List[Dict]) -> List[Dict]:
             'odds': home_odds if predict_home else away_odds,
             'home_series': home_streak,
             'away_series': away_streak,
-            'h2h_advantage': random.uniform(-0.3, 0.3),
+            'h2h_advantage': 0.0,  # neutral when no real H2H data available
             'actual_win': actual_win
         })
     

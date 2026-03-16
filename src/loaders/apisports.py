@@ -63,7 +63,8 @@ class APISportsOddsLoader(BaseLoader):
         super().__init__(cache_dir=cache_dir)
         self.api_key: str = api_key or API_SPORTS_KEY
         self._games_cache: Dict[str, tuple[List[Dict], datetime]] = {}
-        self._odds_cache: Dict[str, Any] = {}
+        self._odds_cache: Dict[str, Any] = {}  # game_id -> (odds_data, timestamp)
+        self._odds_cache_ttl: int = 3600  # 1 hour
         self._cache_time: Optional[datetime] = None
         self._cache_ttl: int = 7200  # 2 hours
         self._daily_requests: int = 0
@@ -214,13 +215,23 @@ class APISportsOddsLoader(BaseLoader):
             return None
 
     def get_odds_for_game(self, game_id: int) -> Optional[Dict]:
+        import time as _time
+        cache_key = str(game_id)
+        if cache_key in self._odds_cache:
+            cached_data, cached_ts = self._odds_cache[cache_key]
+            if _time.time() - cached_ts < self._odds_cache_ttl:
+                logger.info("API-Sports: odds cache hit for game %s", game_id)
+                return cached_data
+
         data = self._make_request("odds", {"game": game_id})
         if not data or "response" not in data:
             return None
         odds_list = data["response"]
         if not odds_list:
             return None
-        return self._parse_odds(odds_list[0])
+        result = self._parse_odds(odds_list[0])
+        self._odds_cache[cache_key] = (result, _time.time())
+        return result
 
     def _parse_odds(self, odds_data: dict) -> Dict:
         result: Dict[str, Any] = {
@@ -401,7 +412,7 @@ class MultiLeagueLoader(BaseLoader):
 
     def _make_request(self, endpoint: str, params: Optional[dict] = None) -> Optional[dict]:
         if not self.api_key:
-            print("API_SPORTS_KEY not set")
+            logger.warning("API_SPORTS_KEY not set")
             return None
         headers = {"x-apisports-key": self.api_key}
         url = f"{BASE_URL}/{endpoint}"
@@ -410,10 +421,10 @@ class MultiLeagueLoader(BaseLoader):
             if response.status_code == 200:
                 return response.json()
             else:
-                print(f"API error: {response.status_code}")
+                logger.error("API error: %d", response.status_code)
                 return None
         except Exception as exc:
-            print(f"Request error: {exc}")
+            logger.error("Request error: %s", exc, exc_info=True)
             return None
 
     def get_available_seasons(self, league_id: int) -> List[int]:
@@ -453,7 +464,7 @@ class MultiLeagueLoader(BaseLoader):
         if cache_file.exists() and not force_refresh:
             with open(cache_file, "r") as fh:
                 cached = json.load(fh)
-                print(f"  Loaded from cache: {len(cached)} games")
+                logger.info("Loaded from cache: %d games", len(cached))
                 return cached
 
         if not self.api_key:
@@ -485,7 +496,7 @@ class MultiLeagueLoader(BaseLoader):
                         })
             with open(cache_file, "w") as fh:
                 json.dump(games, fh)
-            print(f"  Loaded: {len(games)} games")
+            logger.info("Loaded: %d games", len(games))
             return games
         return []
 
@@ -496,23 +507,22 @@ class MultiLeagueLoader(BaseLoader):
         refresh_current_season: bool = False,
     ) -> List[Dict]:
         if league_name not in LEAGUES:
-            print(f"Unknown league: {league_name}")
+            logger.warning("Unknown league: %s", league_name)
             return []
 
         league_info = LEAGUES[league_name]
         league_id: int = league_info["id"]
 
-        print(f"\nLoading {league_name} ({league_info['country']})")
-        print("=" * 50)
+        logger.info("Loading %s (%s)", league_name, league_info['country'])
 
         seasons = self.get_available_seasons(league_id)
         if not seasons:
-            print(f"No seasons found for {league_name}")
+            logger.warning("No seasons found for %s", league_name)
             return []
 
         cached_seasons = self._get_cached_game_seasons(league_id)
         seasons = sorted(set(seasons) | set(cached_seasons), reverse=True)
-        print(f"Candidate seasons: {seasons}")
+        logger.info("Candidate seasons: %s", seasons)
 
         all_games: List[Dict] = []
         requested_seasons = n_seasons if n_seasons and n_seasons > 0 else None
@@ -523,7 +533,7 @@ class MultiLeagueLoader(BaseLoader):
             if requested_seasons is not None and loaded_seasons >= requested_seasons:
                 break
             target_label: Any = requested_seasons if requested_seasons is not None else "all"
-            print(f"[{loaded_seasons + 1}/{target_label}] Season {season}")
+            logger.info("[%d/%s] Season %s", loaded_seasons + 1, target_label, season)
             games = self.get_games(
                 league_id,
                 season,
@@ -534,7 +544,7 @@ class MultiLeagueLoader(BaseLoader):
             all_games.extend(games)
             loaded_seasons += 1
 
-        print(f"\nTotal: {len(all_games)} games")
+        logger.info("Total: %d games", len(all_games))
         return all_games
 
     def load_multiple_leagues(
@@ -547,8 +557,7 @@ class MultiLeagueLoader(BaseLoader):
             games = self.load_league_data(league_name, n_seasons)
             all_data[league_name] = games
         total = sum(len(g) for g in all_data.values())
-        print(f"\n{'=' * 50}")
-        print(f"Total loaded: {total} games from {len(league_names)} leagues")
+        logger.info("Total loaded: %d games from %d leagues", total, len(league_names))
         return all_data
 
     def _get_upcoming_games_for_league(self, league_name: str) -> List[Dict]:
@@ -585,7 +594,7 @@ class MultiLeagueLoader(BaseLoader):
         for league_name in league_names:
             games = self._get_upcoming_games_for_league(league_name)
             all_upcoming.extend(games)
-            print(f"{league_name}: {len(games)} upcoming games")
+            logger.info("%s: %d upcoming games", league_name, len(games))
         return all_upcoming
 
     def fetch_odds(self, league_name: str) -> Dict[str, Dict]:
@@ -595,7 +604,7 @@ class MultiLeagueLoader(BaseLoader):
         if not odds_key:
             return {}
         if not ODDS_API_KEY:
-            print("ODDS_API_KEY not set")
+            logger.warning("ODDS_API_KEY not set")
             return {}
         try:
             url = f"https://api.the-odds-api.com/v4/sports/{odds_key}/odds"
@@ -608,7 +617,7 @@ class MultiLeagueLoader(BaseLoader):
             response = requests.get(url, params=params, timeout=15)
             if response.status_code == 200:
                 data = response.json()
-                print(f"{league_name}: loaded {len(data)} games with odds")
+                logger.info("%s: loaded %d games with odds", league_name, len(data))
                 odds_dict: Dict[str, Dict] = {}
                 for game in data:
                     home_team = game.get("home_team", "")
@@ -639,10 +648,10 @@ class MultiLeagueLoader(BaseLoader):
                         }
                 return odds_dict
             else:
-                print(f"Odds API error: {response.status_code}")
+                logger.error("Odds API error: %d", response.status_code)
                 return {}
         except Exception as exc:
-            print(f"Error loading odds: {exc}")
+            logger.error("Error loading odds: %s", exc, exc_info=True)
             return {}
 
     def fetch_all_odds(self, league_names: Optional[List[str]] = None) -> Dict[str, Dict]:

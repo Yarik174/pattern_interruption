@@ -106,7 +106,6 @@ class NHLDataLoader(BaseLoader):
 
     def get_all_teams(self) -> Dict[str, Dict[str, str]]:
         """Fetch current NHL teams from the standings endpoint."""
-        print("Loading NHL teams...")
         logger.info("Loading NHL teams")
         url = f"{self.base_url}/standings/now"
         try:
@@ -122,12 +121,10 @@ class NHLDataLoader(BaseLoader):
                     teams[team_abbr] = {"name": team_name, "abbrev": team_abbr}
 
             self.teams = teams
-            print(f"Loaded {len(teams)} teams")
             logger.info("Loaded %d teams", len(teams))
             return teams
         except Exception as exc:
             logger.warning("Error loading teams: %s", exc)
-            print(f"Error loading teams: {exc}")
             return self._get_fallback_teams()
 
     def _get_fallback_teams(self) -> Dict[str, Dict[str, str]]:
@@ -167,7 +164,7 @@ class NHLDataLoader(BaseLoader):
             "WPG": {"name": "Winnipeg Jets", "abbrev": "WPG"},
         }
         self.teams = teams
-        print(f"Using fallback list of {len(teams)} teams")
+        logger.info("Using fallback list of %d teams", len(teams))
         return teams
 
     def load_team_schedule(self, team_abbr: str, season: str) -> List[Dict]:
@@ -177,6 +174,7 @@ class NHLDataLoader(BaseLoader):
         try:
             response = requests.get(url, timeout=30)
             if response.status_code != 200:
+                logger.warning("NHL API returned %d for %s", response.status_code, url)
                 return games
             data = response.json()
             for game in data.get("games", []):
@@ -185,7 +183,8 @@ class NHLDataLoader(BaseLoader):
                     if game_info:
                         games.append(game_info)
             return games
-        except Exception:
+        except Exception as e:
+            logger.error("Failed to load schedule for team %s: %s", team_abbr, e, exc_info=True)
             return games
 
     def _parse_game(self, game: Dict) -> Optional[Dict]:
@@ -224,10 +223,10 @@ class NHLDataLoader(BaseLoader):
         if use_cache:
             cached = self._load_from_cache(season)
             if cached:
-                print(f"  Season {season[:4]}-{season[4:]} loaded from cache ({len(cached)} games)")
+                logger.info("Season %s-%s loaded from cache (%d games)", season[:4], season[4:], len(cached))
                 return cached
 
-        print(f"  Loading season {season[:4]}-{season[4:]} from API...")
+        logger.info("Loading season %s-%s from API...", season[:4], season[4:])
         season_games: Dict[int, Dict] = {}
         teams_processed = 0
 
@@ -239,14 +238,14 @@ class NHLDataLoader(BaseLoader):
                     season_games[game_key] = game
             teams_processed += 1
             if teams_processed % 8 == 0:
-                print(f"    Processed {teams_processed}/{len(self.teams)} teams, found {len(season_games)} games")
+                logger.info("Processed %d/%d teams, found %d games", teams_processed, len(self.teams), len(season_games))
             time.sleep(0.1)
 
         games_list = list(season_games.values())
         if use_cache and len(games_list) > 0:
             self._save_to_cache(season, games_list)
 
-        print(f"  Season {season}: loaded {len(games_list)} games")
+        logger.info("Season %s: loaded %d games", season, len(games_list))
         return games_list
 
     def load_all_data(
@@ -258,12 +257,11 @@ class NHLDataLoader(BaseLoader):
         if seasons is None:
             seasons = self.get_default_seasons(n_seasons=10)
 
-        print("NHL Pattern Prediction System")
-        print("=" * 50)
+        logger.info("NHL Pattern Prediction System")
 
         self.get_all_teams()
 
-        print(f"\nLoading data for {len(seasons)} seasons...")
+        logger.info("Loading data for %d seasons...", len(seasons))
         logger.info("Loading %d seasons: %s", len(seasons), seasons)
 
         all_games: List[Dict] = []
@@ -275,12 +273,12 @@ class NHLDataLoader(BaseLoader):
         }
 
         for i, season in enumerate(seasons):
-            print(f"\n[{i + 1}/{len(seasons)}] Season {season[:4]}-{season[4:]}")
+            logger.info("[%d/%d] Season %s-%s", i + 1, len(seasons), season[:4], season[4:])
 
             cached = self._load_from_cache(season) if use_cache else None
             if cached:
                 games_list = cached
-                print(f"  Loaded from cache: {len(games_list)} games")
+                logger.info("Loaded from cache: %d games", len(games_list))
                 stats["from_cache"] += 1
             else:
                 games_list = self._load_season_from_api(season, use_cache=use_cache)
@@ -298,12 +296,10 @@ class NHLDataLoader(BaseLoader):
             df = df.sort_values("date").reset_index(drop=True)
             df = df.drop_duplicates(subset=["game_id"]).reset_index(drop=True)
 
-        print(f"\n{'=' * 50}")
-        print(f"Total loaded:")
-        print(f"   Seasons: {stats['seasons_loaded']}")
-        print(f"   From cache: {stats['from_cache']}")
-        print(f"   From API: {stats['from_api']}")
-        print(f"   Total games: {len(df)}")
+        logger.info(
+            "Total loaded: seasons=%d, from_cache=%d, from_api=%d, total_games=%d",
+            stats["seasons_loaded"], stats["from_cache"], stats["from_api"], len(df),
+        )
 
         logger.info("Loaded %d games from %d seasons", len(df), stats["seasons_loaded"])
         return df
@@ -365,7 +361,7 @@ class NHLDataLoader(BaseLoader):
 
     def generate_sample_data(self, n_games: int = 2000) -> pd.DataFrame:
         """Generate synthetic test data."""
-        print("Generating sample data...")
+        logger.info("Generating sample data...")
 
         if not self.teams:
             self._get_fallback_teams()
@@ -404,7 +400,7 @@ class NHLDataLoader(BaseLoader):
         df["date"] = pd.to_datetime(df["date"])
         df = df.sort_values("date").reset_index(drop=True)
 
-        print(f"Generated {len(df)} sample games")
+        logger.info("Generated %d sample games", len(df))
         self.games = games
         return df
 

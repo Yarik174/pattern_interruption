@@ -1,1928 +1,988 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-    <title>AI Model Dashboard | ArenaPredictor</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        :root {
-            --bg-primary: #F5F5EB;
-            --bg-secondary: #EBEBDF;
-            --bg-card: #FFFFFF;
-            --bg-dark: #1a1a2e;
-            --accent: #BEFF50;
-            --accent-dark: #9FDF00;
-            --accent-glow: rgba(190, 255, 80, 0.3);
-            --link: #216BA5;
-            --success: #22C55E;
-            --warning: #F59E0B;
-            --danger: #EF4444;
-            --purple: #8B5CF6;
-            --cyan: #06B6D4;
-            --text-primary: #14140F;
-            --text-secondary: #5A5A52;
-            --text-muted: #8A8A7A;
-            --border: #D4D4C8;
-            --border-light: #E8E8DC;
-            --shadow: 0 2px 8px rgba(0,0,0,0.06);
-            --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
-        }
-        
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            min-height: 100vh;
-        }
-        
-        .app { max-width: 1400px; margin: 0 auto; padding: 24px; }
-        
-        header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 16px 0 24px;
-            margin-bottom: 24px;
-            border-bottom: 1px solid var(--border);
-        }
-        
-        .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
-        .logo-icon {
-            width: 40px; height: 40px;
-            background: var(--accent);
-            border-radius: 10px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 20px;
-            box-shadow: var(--shadow);
-        }
-        .logo h1 { font-size: 1.25rem; font-weight: 700; color: var(--text-primary); }
-        
-        nav { display: flex; gap: 4px; overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; width: 100%; position: relative; white-space: nowrap; }
-        nav a {
-            padding: 10px 18px;
-            border-radius: 8px;
-            text-decoration: none;
-            color: var(--text-secondary);
-            font-weight: 500;
-            font-size: 0.9rem;
-            transition: all 0.2s;
-            min-height: 44px;
-            display: inline-flex;
-            align-items: center;
-            flex: 0 0 auto;
-        }
-        nav a:hover { background: var(--bg-card); color: var(--text-primary); }
-        nav a.active { background: var(--accent); color: var(--text-primary); font-weight: 600; }
-        nav::before, nav::after {
-            content: "";
-            position: absolute;
-            top: 0;
-            width: 20px;
-            height: 100%;
-            pointer-events: none;
-            z-index: 1;
-        }
-        nav::before { left: 0; background: linear-gradient(to right, var(--bg-primary), rgba(255,255,255,0)); }
-        nav::after { right: 0; background: linear-gradient(to left, var(--bg-primary), rgba(255,255,255,0)); }
-        
-        .page-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 24px;
-        }
-        
-        .page-title {
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: 4px;
-        }
-        
-        .page-subtitle { color: var(--text-muted); }
-        
-        .live-indicator {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            background: rgba(34, 197, 94, 0.1);
-            border: 1px solid var(--success);
-            border-radius: 20px;
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: var(--success);
-        }
-        
-        .pulse {
-            width: 8px; height: 8px;
-            background: var(--success);
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.5; transform: scale(1.2); }
-        }
-        
-        /* Model Hero Card */
-        .model-hero {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            border-radius: 20px;
-            padding: 32px;
-            margin-bottom: 24px;
-            color: #fff;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .model-hero::before {
-            content: "";
-            position: absolute;
-            top: -50%;
-            right: -20%;
-            width: 400px;
-            height: 400px;
-            background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
-            animation: float 8s ease-in-out infinite;
-        }
-        
-        @keyframes float {
-            0%, 100% { transform: translate(0, 0); }
-            50% { transform: translate(-20px, 20px); }
-        }
-        
-        .model-hero-content {
-            position: relative;
-            z-index: 1;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .model-info h2 {
-            font-size: 1.75rem;
-            font-weight: 700;
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        
-        .model-badge {
-            background: var(--accent);
-            color: #000;
-            padding: 4px 12px;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            font-weight: 700;
-        }
-        
-        .model-desc {
-            color: rgba(255,255,255,0.7);
-            font-size: 0.95rem;
-            max-width: 500px;
-            line-height: 1.6;
-        }
-        
-        .model-stats {
-            display: flex;
-            gap: 32px;
-            flex-wrap: wrap;
-        }
-        
-        .model-stat {
-            text-align: center;
-        }
-        
-        .model-stat .value {
-            font-size: 2.5rem;
-            font-weight: 800;
-            color: var(--accent);
-            line-height: 1;
-        }
-        
-        .model-stat .label {
-            font-size: 0.75rem;
-            color: rgba(255,255,255,0.6);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-top: 4px;
-        }
-        
-        /* Section Styling */
-        .nn-section {
-            background: var(--bg-card);
-            border-radius: 16px;
-            padding: 28px;
-            margin-bottom: 24px;
-            border: 1px solid var(--border-light);
-            box-shadow: var(--shadow);
-            overflow-wrap: anywhere;
-            word-break: break-word;
-        }
-        
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-        }
-        
-        .section-title {
-            font-size: 1.25rem;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .section-badge {
-            background: var(--bg-secondary);
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: var(--text-muted);
-        }
-        
-        /* Storytelling Visualization */
-        .story-container {
-            background: linear-gradient(135deg, #1a1a2e 0%, #0f0f23 100%);
-            border-radius: 16px;
-            padding: 40px 32px;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .story-match-header {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 24px;
-            margin-bottom: 32px;
-            padding-bottom: 24px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-        
-        .story-team {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        
-        .story-team-logo {
-            width: 56px;
-            height: 56px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-            overflow: hidden;
-        }
-        
-        .story-team-logo img {
-            width: 48px;
-            height: 48px;
-            object-fit: contain;
-        }
-        
-        .story-team-info {
-            text-align: left;
-        }
-        
-        .story-team-name {
-            color: #fff;
-            font-weight: 700;
-            font-size: 1.1rem;
-        }
-        
-        .story-team-role {
-            color: rgba(255,255,255,0.5);
-            font-size: 0.75rem;
-            text-transform: uppercase;
-        }
-        
-        .story-vs {
-            color: rgba(255,255,255,0.3);
-            font-size: 1.5rem;
-            font-weight: 800;
-        }
-        
-        .patterns-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-        
-        .pattern-card {
-            background: rgba(255,255,255,0.05);
-            border-radius: 12px;
-            padding: 20px;
-            border: 1px solid rgba(255,255,255,0.1);
-            text-align: center;
-            position: relative;
-            animation: patternAppear 0.6s ease-out backwards;
-        }
-        
-        .pattern-card:nth-child(1) { animation-delay: 0.2s; }
-        .pattern-card:nth-child(2) { animation-delay: 0.4s; }
-        .pattern-card:nth-child(3) { animation-delay: 0.6s; }
-        
-        @keyframes patternAppear {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .pattern-card.danger { border-color: #EF4444; }
-        .pattern-card.success { border-color: #22C55E; }
-        .pattern-card.info { border-color: #3B82F6; }
-        
-        .pattern-icon {
-            font-size: 32px;
-            margin-bottom: 12px;
-        }
-        
-        .pattern-team {
-            color: rgba(255,255,255,0.6);
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 8px;
-        }
-        
-        .pattern-value {
-            font-size: 2rem;
-            font-weight: 800;
-            margin-bottom: 4px;
-        }
-        
-        .pattern-card.danger .pattern-value { color: #EF4444; }
-        .pattern-card.success .pattern-value { color: #22C55E; }
-        .pattern-card.info .pattern-value { color: #3B82F6; }
-        
-        .pattern-label {
-            color: rgba(255,255,255,0.7);
-            font-size: 0.85rem;
-            font-weight: 500;
-        }
-        
-        .synergy-connector {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin: 8px 0 24px;
-            position: relative;
-        }
-        
-        .synergy-lines {
-            position: absolute;
-            width: 100%;
-            height: 40px;
-            top: -20px;
-        }
-        
-        .synergy-badge {
-            background: linear-gradient(135deg, #8B5CF6, #6D28D9);
-            color: #fff;
-            padding: 12px 28px;
-            border-radius: 30px;
-            font-weight: 700;
-            font-size: 0.9rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            box-shadow: 0 8px 32px rgba(139, 92, 246, 0.4);
-            animation: synergyPulse 2s ease-in-out infinite;
-            z-index: 2;
-        }
-        
-        @keyframes synergyPulse {
-            0%, 100% { box-shadow: 0 8px 32px rgba(139, 92, 246, 0.4); }
-            50% { box-shadow: 0 12px 48px rgba(139, 92, 246, 0.6); }
-        }
-        
-        .result-card {
-            background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(34, 197, 94, 0.05));
-            border: 2px solid #22C55E;
-            border-radius: 16px;
-            padding: 24px 32px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            animation: resultAppear 0.8s ease-out 1s backwards;
-        }
-        
-        @keyframes resultAppear {
-            from { opacity: 0; transform: scale(0.95); }
-            to { opacity: 1; transform: scale(1); }
-        }
-        
-        .result-main {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-        
-        .result-icon {
-            width: 64px;
-            height: 64px;
-            background: #22C55E;
-            border-radius: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 32px;
-        }
-        
-        .result-text h4 {
-            color: #22C55E;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 4px;
-        }
-        
-        .result-text .prediction {
-            color: #fff;
-            font-size: 1.5rem;
-            font-weight: 800;
-        }
-        
-        .result-stats {
-            display: flex;
-            gap: 32px;
-        }
-        
-        .result-stat {
-            text-align: center;
-        }
-        
-        .result-stat .value {
-            font-size: 1.75rem;
-            font-weight: 800;
-            color: var(--accent);
-        }
-        
-        .result-stat .label {
-            color: rgba(255,255,255,0.5);
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .confidence-bar {
-            margin-top: 16px;
-        }
-        
-        .confidence-bar .bar-bg {
-            height: 8px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 4px;
-            overflow: hidden;
-        }
-        
-        .confidence-bar .bar-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #22C55E, var(--accent));
-            border-radius: 4px;
-            animation: fillBar 1.5s ease-out 1.2s backwards;
-        }
-        
-        @keyframes fillBar {
-            from { width: 0; }
-        }
-        
-        .confidence-bar .bar-label {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 6px;
-            font-size: 0.75rem;
-            color: rgba(255,255,255,0.5);
-        }
-        
-        /* Metrics Grid */
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-        
-        .metric-card {
-            background: var(--bg-card);
-            border-radius: 12px;
-            padding: 20px;
-            border: 1px solid var(--border-light);
-            box-shadow: var(--shadow);
-            position: relative;
-            overflow: hidden;
-            min-width: 0;
-            word-break: break-word;
-            overflow-wrap: anywhere;
-        }
-        
-        .metric-card::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: var(--accent);
-        }
-        
-        .metric-card.purple::before { background: var(--purple); }
-        .metric-card.cyan::before { background: var(--cyan); }
-        .metric-card.success::before { background: var(--success); }
-        .metric-card.warning::before { background: var(--warning); }
-        
-        .metric-icon {
-            font-size: 1.5rem;
-            margin-bottom: 12px;
-        }
-        
-        .metric-value {
-            font-size: 1.75rem;
-            font-weight: 800;
-            color: var(--text-primary);
-            margin-bottom: 4px;
-        }
-        
-        .metric-value.accent { color: var(--accent-dark); }
-        .metric-value.purple { color: var(--purple); }
-        .metric-value.cyan { color: var(--cyan); }
-        .metric-value.success { color: var(--success); }
-        
-        .metric-label {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        /* Two Column Layout */
-        .two-cols {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
-            margin-bottom: 24px;
-        }
-        
-        /* Feature Importance */
-        .feature-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        
-        .feature-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        
-        .feature-rank {
-            width: 24px;
-            height: 24px;
-            background: var(--bg-secondary);
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.75rem;
-            font-weight: 700;
-            color: var(--text-muted);
-        }
-        
-        .feature-rank.top { background: var(--accent); color: #000; }
-        
-        .feature-info {
-            flex: 1;
-        }
-        
-        .feature-name {
-            font-size: 0.875rem;
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-        
-        .feature-bar-container {
-            height: 8px;
-            background: var(--bg-secondary);
-            border-radius: 4px;
-            overflow: hidden;
-        }
-        
-        .feature-bar {
-            height: 100%;
-            background: linear-gradient(90deg, var(--accent), var(--accent-dark));
-            border-radius: 4px;
-            transition: width 1s ease-out;
-        }
-        
-        .feature-value {
-            font-size: 0.875rem;
-            font-weight: 700;
-            color: var(--accent-dark);
-            min-width: 50px;
-            text-align: right;
-        }
-        
-        /* Pattern Visualization */
-        .pattern-squares {
-            display: flex;
-            gap: 4px;
-            margin-bottom: 4px;
-        }
-        
-        .pattern-square {
-            width: 24px;
-            height: 24px;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.7rem;
-            font-weight: 700;
-            color: #fff;
-        }
-        
-        .pattern-square.win { background: #22C55E; }
-        .pattern-square.loss { background: #EF4444; }
-        .pattern-square.neutral { background: #94A3B8; }
-        
-        /* CPP Logic Section */
-        .cpp-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 16px;
-        }
-        
-        .cpp-card {
-            background: var(--bg-secondary);
-            border-radius: 12px;
-            padding: 20px;
-            border-left: 4px solid var(--accent);
-        }
-        
-        .cpp-card.profitable { border-left-color: var(--success); }
-        .cpp-card.warning { border-left-color: var(--warning); }
-        
-        .cpp-title {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 8px;
-        }
-        
-        .cpp-pattern {
-            font-size: 0.9rem;
-            font-weight: 600;
-            margin-bottom: 12px;
-            line-height: 1.4;
-        }
-        
-        .cpp-stats {
-            display: flex;
-            gap: 16px;
-        }
-        
-        .cpp-stat {
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .cpp-stat .value {
-            font-size: 1.25rem;
-            font-weight: 800;
-        }
-        
-        .cpp-stat .value.success { color: var(--success); }
-        .cpp-stat .value.danger { color: var(--danger); }
-        
-        .cpp-stat .label {
-            font-size: 0.7rem;
-            color: var(--text-muted);
-        }
-        
-        /* Training Parameters */
-        .params-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
-        }
-        
-        .param-item {
-            background: var(--bg-secondary);
-            border-radius: 10px;
-            padding: 16px;
-            text-align: center;
-        }
-        
-        .param-item .icon {
-            font-size: 1.5rem;
-            margin-bottom: 8px;
-        }
-        
-        .param-item .value {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--text-primary);
-        }
-        
-        .param-item .label {
-            font-size: 0.7rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            margin-top: 4px;
-        }
-        
-        /* Live Inference */
-        .inference-section {
-            background: linear-gradient(135deg, #0f3460 0%, #1a1a2e 100%);
-            border-radius: 16px;
-            padding: 28px;
-            color: #fff;
-            margin-bottom: 24px;
-            overflow: hidden;
-        }
-        
-        .inference-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 24px;
-        }
-        
-        .inference-stat {
-            text-align: center;
-        }
-        
-        .inference-stat .value {
-            font-size: 2rem;
-            font-weight: 800;
-            color: var(--accent);
-        }
-        
-        .inference-stat .label {
-            font-size: 0.75rem;
-            color: rgba(255,255,255,0.6);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-top: 4px;
-        }
-        
-        /* ML Education Section */
-        .ml-education {
-            background: var(--bg-card);
-            border-radius: 16px;
-            padding: 28px;
-            margin-bottom: 24px;
-            border: 1px solid var(--border-light);
-            box-shadow: var(--shadow);
-        }
-        
-        .edu-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid var(--border-light);
-        }
-        
-        .edu-title {
-            font-size: 1.5rem;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        
-        .edu-subtitle {
-            color: var(--text-muted);
-            font-size: 0.9rem;
-        }
-        
-        .edu-section {
-            margin-bottom: 24px;
-        }
-        
-        .edu-section:last-child {
-            margin-bottom: 0;
-        }
-        
-        .edu-block {
-            background: var(--bg-secondary);
-            border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 16px;
-        }
-        
-        .edu-block:last-child {
-            margin-bottom: 0;
-        }
-        
-        .edu-block h4 {
-            font-size: 1.1rem;
-            font-weight: 700;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .edu-block p {
-            color: var(--text-secondary);
-            line-height: 1.7;
-            margin-bottom: 12px;
-        }
-        
-        .edu-block p:last-child {
-            margin-bottom: 0;
-        }
-        
-        .edu-highlight {
-            background: rgba(190, 255, 80, 0.15);
-            border-left: 3px solid var(--accent);
-            padding: 12px 16px;
-            border-radius: 0 8px 8px 0;
-            margin: 16px 0;
-        }
-        
-        .edu-highlight p {
-            margin: 0;
-            color: var(--text-primary);
-            font-weight: 500;
-        }
-        
-        .edu-stats-row {
-            display: flex;
-            gap: 16px;
-            margin-top: 16px;
-            flex-wrap: wrap;
-        }
-        
-        .edu-stat {
-            background: var(--bg-card);
-            border-radius: 10px;
-            padding: 16px 20px;
-            text-align: center;
-            flex: 1;
-            border: 1px solid var(--border-light);
-            min-width: 0;
-        }
-        
-        .edu-stat .value {
-            font-size: 1.5rem;
-            font-weight: 800;
-            color: var(--accent-dark);
-        }
-        
-        .edu-stat .label {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            margin-top: 4px;
-        }
-        
-        .edu-code {
-            background: #1a1a2e;
-            border-radius: 8px;
-            padding: 16px;
-            margin: 16px 0;
-            font-family: 'Monaco', 'Consolas', monospace;
-            font-size: 0.85rem;
-            color: #e0e0e0;
-            overflow-x: auto;
-        }
-        
-        .edu-code .comment { color: #6b7280; }
-        .edu-code .keyword { color: var(--accent); }
-        .edu-code .number { color: #f59e0b; }
-        .edu-code .string { color: #22c55e; }
-        
-        .edu-diagram {
-            background: linear-gradient(135deg, #1a1a2e 0%, #0f0f23 100%);
-            border-radius: 12px;
-            padding: 24px;
-            margin: 16px 0;
-            color: #fff;
-        }
-        
-        .edu-pipeline {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-        
-        .edu-pipeline-step {
-            background: rgba(255,255,255,0.1);
-            border-radius: 10px;
-            padding: 16px 20px;
-            text-align: center;
-            flex: 1;
-            min-width: 120px;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        
-        .edu-pipeline-step.active {
-            border-color: var(--accent);
-            background: rgba(190, 255, 80, 0.1);
-        }
-        
-        .edu-pipeline-step .icon {
-            font-size: 1.5rem;
-            margin-bottom: 8px;
-        }
-        
-        .edu-pipeline-step .name {
-            font-size: 0.85rem;
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-        
-        .edu-pipeline-step .desc {
-            font-size: 0.7rem;
-            color: rgba(255,255,255,0.5);
-        }
-        
-        .edu-arrow {
-            font-size: 1.25rem;
-            color: rgba(255,255,255,0.3);
-        }
-        
-        .edu-features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 12px;
-            margin-top: 16px;
-        }
-        
-        .edu-feature-card {
-            background: var(--bg-card);
-            border-radius: 10px;
-            padding: 16px;
-            border: 1px solid var(--border-light);
-        }
-        
-        .edu-feature-card h5 {
-            font-size: 0.9rem;
-            font-weight: 600;
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        
-        .edu-feature-card p {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            margin: 0;
-            line-height: 1.5;
-        }
-        
-        .edu-feature-card .count {
-            display: inline-block;
-            background: var(--accent);
-            color: #000;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 0.7rem;
-            font-weight: 700;
-            margin-left: auto;
-        }
-        
-        .edu-tree {
-            background: var(--bg-card);
-            border-radius: 12px;
-            padding: 20px;
-            border: 1px solid var(--border-light);
-            margin: 16px 0;
-            font-family: 'Monaco', 'Consolas', monospace;
-            font-size: 0.85rem;
-            line-height: 1.8;
-            overflow-x: auto;
-        }
-        
-        .edu-tree .node { color: var(--text-primary); }
-        .edu-tree .question { color: var(--purple); }
-        .edu-tree .yes { color: var(--success); }
-        .edu-tree .no { color: var(--danger); }
-        .edu-tree .result { color: var(--accent-dark); font-weight: 700; }
-        
-        .edu-models-compare {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 16px;
-            margin-top: 16px;
-        }
-        
-        .edu-model-card {
-            background: var(--bg-card);
-            border-radius: 12px;
-            padding: 20px;
-            border: 2px solid var(--border-light);
-            text-align: center;
-        }
-        
-        .edu-model-card.highlight {
-            border-color: var(--accent);
-        }
-        
-        .edu-model-card .icon {
-            font-size: 2rem;
-            margin-bottom: 12px;
-        }
-        
-        .edu-model-card h5 {
-            font-size: 1rem;
-            font-weight: 700;
-            margin-bottom: 8px;
-        }
-        
-        .edu-model-card .desc {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            margin-bottom: 12px;
-            line-height: 1.5;
-        }
-        
-        .edu-model-card .metric {
-            font-size: 1.25rem;
-            font-weight: 800;
-        }
-        
-        .edu-model-card .metric.success { color: var(--success); }
-        .edu-model-card .metric.purple { color: var(--purple); }
-        .edu-model-card .metric.cyan { color: var(--cyan); }
-        
-        .edu-model-card .metric-label {
-            font-size: 0.7rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-        }
-        
-        .inference-stat .sub {
-            font-size: 0.7rem;
-            color: rgba(255,255,255,0.4);
-            margin-top: 4px;
-        }
-        
-        /* Monitor Controls */
-        .monitor-section {
-            display: flex;
-            gap: 16px;
-            margin-top: 24px;
-        }
-        
-        .monitor-card {
-            flex: 1;
-            background: rgba(255,255,255,0.05);
-            border-radius: 12px;
-            padding: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        
-        .monitor-info {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        
-        .monitor-icon {
-            width: 44px;
-            height: 44px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-        }
-        
-        .monitor-icon.telegram { background: #0088cc; }
-        .monitor-icon.api { background: var(--purple); }
-        
-        .monitor-text .title {
-            font-weight: 600;
-            margin-bottom: 2px;
-        }
-        
-        .monitor-text .status {
-            font-size: 0.8rem;
-            color: rgba(255,255,255,0.5);
-        }
-        
-        .control-btn {
-            padding: 10px 20px;
-            border-radius: 8px;
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.875rem;
-            transition: all 0.2s;
-            min-height: 44px;
-            min-width: 44px;
-        }
-        
-        .control-btn.primary {
-            background: var(--accent);
-            color: #000;
-        }
-        
-        .control-btn.primary:hover {
-            background: var(--accent-dark);
-            transform: translateY(-1px);
-        }
-        
-        .control-btn.secondary {
-            background: rgba(255,255,255,0.1);
-            color: #fff;
-        }
-        
-        .control-btn.secondary:hover {
-            background: rgba(255,255,255,0.2);
-        }
-        
-        @media (max-width: 1024px) {
-            .metrics-grid { grid-template-columns: repeat(3, 1fr); }
-            .two-cols { grid-template-columns: 1fr; }
-            .cpp-grid { grid-template-columns: 1fr; }
-            .params-grid { grid-template-columns: repeat(2, 1fr); }
-            .inference-grid { grid-template-columns: repeat(2, 1fr); }
-            .patterns-grid { grid-template-columns: 1fr 1fr; }
-            .result-card { flex-direction: column; gap: 20px; text-align: center; }
-            .result-stats { justify-content: center; }
-        }
-        
-        img, svg, canvas {
-            max-width: 100%;
-            height: auto;
-        }
-        
-        @media (max-width: 768px) {
-            header { flex-direction: column; gap: 16px; align-items: flex-start; }
-            .model-hero-content { flex-direction: column; gap: 24px; text-align: center; }
-            .model-stats { justify-content: center; }
-            .metrics-grid { grid-template-columns: repeat(2, 1fr); }
-            .patterns-grid { grid-template-columns: 1fr; }
-            .story-match-header { flex-direction: column; gap: 12px; }
-            .result-card { padding: 20px; }
-            .result-stats { flex-direction: column; gap: 16px; }
-            .monitor-section { flex-direction: column; }
-            .params-grid { grid-template-columns: repeat(2, 1fr); }
-            .edu-models-compare { grid-template-columns: repeat(2, 1fr); }
-            .inference-grid { grid-template-columns: repeat(2, 1fr); }
-            .cpp-grid { grid-template-columns: 1fr; }
-            .two-cols { grid-template-columns: 1fr; }
-            .app { padding: 20px; }
-            .edu-stats-row { justify-content: center; }
-        }
-        
-        @media (max-width: 425px) {
-            .app { padding: 16px; }
-            nav { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-            .page-title { font-size: 1.6rem; }
-            .model-info h2 { font-size: 1.4rem; }
-            .metrics-grid { grid-template-columns: 1fr; }
-            .inference-grid { grid-template-columns: 1fr; }
-            .params-grid { grid-template-columns: 1fr; }
-            .edu-models-compare { grid-template-columns: 1fr; }
-            .story-team-logo { width: 40px; height: 40px; }
-            .result-icon { width: 48px; height: 48px; font-size: 24px; }
-            .metric-card { padding: 16px; }
-            .cpp-grid { grid-template-columns: 1fr; }
-            .monitor-card { flex-direction: column; gap: 12px; align-items: flex-start; }
-            .edu-stats-row { display: grid; grid-template-columns: 1fr 1fr; }
-        }
-        
-        @media (max-width: 375px) {
-            .page-title { font-size: 1.5rem; }
-            .model-desc { font-size: 0.9rem; }
-            .metric-value { font-size: 1.5rem; }
-            .inference-stat .value { font-size: 1.6rem; }
-            .edu-feature-card { padding: 14px; }
-            .edu-tree { font-size: 0.8rem; }
-            .story-team-name { font-size: 1rem; }
-            .edu-stats-row { grid-template-columns: 1fr; }
-        }
-        
-        @media (max-width: 320px) {
-            .app { padding: 12px; }
-            .page-title { font-size: 1.4rem; }
-            .metric-card { padding: 14px; }
-            .monitor-section { gap: 12px; }
-            .section-title { font-size: 1.1rem; }
-            .control-btn { width: 100%; }
-            .edu-stats-row { grid-template-columns: 1fr; }
-        }
-    </style>
-</head>
-<body>
-    <div class="app">
-        <header>
-            <a href="/" class="logo">
-                <img src="/static/logo.svg" alt="ArenaPredictor" class="logo-icon">
-                <h1>ArenaPredictor</h1>
-            </a>
-            <nav>
-                <a href="/predictions">Прогнозы</a>
-                <a href="/dashboard" class="active">Дашборд</a>
-                <a href="/statistics">Статистика</a>
-                <a href="/watchlist">★ Отобранные</a>
-                <a href="/explainability">Explainability</a>
-                <a href="/logs">Логи</a>
-            </nav>
-        </header>
-        
-        <div class="page-header">
-            <div>
-                <h1 class="page-title">AI Model Dashboard</h1>
-                <p class="page-subtitle">Deep Learning система прогнозирования хоккейных матчей</p>
-            </div>
-            <div class="live-indicator">
-                <span class="pulse"></span>
-                Model Active
-            </div>
+{% extends "base.html" %}
+
+{% block title %}AI Model Dashboard | ArenaPredictor{% endblock %}
+
+{% block extra_css %}
+<style>
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 24px;
+    }
+    .page-subtitle { color: var(--text-muted); }
+
+    .live-indicator {
+        display: flex; align-items: center; gap: 8px;
+        padding: 8px 16px;
+        background: rgba(34, 197, 94, 0.1);
+        border: 1px solid var(--success);
+        border-radius: 20px;
+        font-size: 0.875rem; font-weight: 600; color: var(--success);
+    }
+    .pulse {
+        width: 8px; height: 8px;
+        background: var(--success);
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50%       { opacity: 0.5; transform: scale(1.2); }
+    }
+
+    /* Model Hero Card */
+    .model-hero {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+        border-radius: 20px; padding: 32px; margin-bottom: 24px;
+        color: #fff; position: relative; overflow: hidden;
+    }
+    .model-hero::before {
+        content: ""; position: absolute;
+        top: -50%; right: -20%;
+        width: 400px; height: 400px;
+        background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+        animation: float 8s ease-in-out infinite;
+    }
+    @keyframes float {
+        0%, 100% { transform: translate(0, 0); }
+        50%       { transform: translate(-20px, 20px); }
+    }
+    .model-hero-content {
+        position: relative; z-index: 1;
+        display: flex; justify-content: space-between; align-items: center;
+    }
+    .model-info h2 {
+        font-size: 1.75rem; font-weight: 700; margin-bottom: 8px;
+        display: flex; align-items: center; gap: 12px;
+    }
+    .model-badge {
+        background: var(--accent); color: #000;
+        padding: 4px 12px; border-radius: 6px;
+        font-size: 0.75rem; font-weight: 700;
+    }
+    .model-desc  { color: rgba(255,255,255,0.7); font-size: 0.95rem; max-width: 500px; line-height: 1.6; }
+    .model-stats { display: flex; gap: 32px; flex-wrap: wrap; }
+    .model-stat  { text-align: center; }
+    .model-stat .value {
+        font-size: 2.5rem; font-weight: 800; color: var(--accent); line-height: 1;
+    }
+    .model-stat .label {
+        font-size: 0.75rem; color: rgba(255,255,255,0.6);
+        text-transform: uppercase; letter-spacing: 1px; margin-top: 4px;
+    }
+
+    /* Section Styling */
+    .nn-section {
+        background: var(--bg-card); border-radius: 16px; padding: 28px;
+        margin-bottom: 24px; border: 1px solid var(--border-light);
+        box-shadow: var(--shadow);
+        overflow-wrap: anywhere; word-break: break-word;
+    }
+    .section-header {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 24px;
+    }
+    .section-title {
+        font-size: 1.25rem; font-weight: 700;
+        display: flex; align-items: center; gap: 10px;
+    }
+    .section-badge {
+        background: var(--bg-secondary); padding: 4px 10px; border-radius: 6px;
+        font-size: 0.75rem; font-weight: 600; color: var(--text-muted);
+    }
+
+    /* Storytelling Visualization */
+    .story-container {
+        background: linear-gradient(135deg, #1a1a2e 0%, #0f0f23 100%);
+        border-radius: 16px; padding: 40px 32px;
+        position: relative; overflow: hidden;
+    }
+    .story-match-header {
+        display: flex; align-items: center; justify-content: center; gap: 24px;
+        margin-bottom: 32px; padding-bottom: 24px;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .story-team       { display: flex; align-items: center; gap: 12px; }
+    .story-team-logo  {
+        width: 56px; height: 56px;
+        background: rgba(255,255,255,0.1); border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 28px; overflow: hidden;
+    }
+    .story-team-logo img { width: 48px; height: 48px; object-fit: contain; }
+    .story-team-info  { text-align: left; }
+    .story-team-name  { color: #fff; font-weight: 700; font-size: 1.1rem; }
+    .story-team-role  { color: rgba(255,255,255,0.5); font-size: 0.75rem; text-transform: uppercase; }
+    .story-vs         { color: rgba(255,255,255,0.3); font-size: 1.5rem; font-weight: 800; }
+
+    .patterns-grid {
+        display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;
+    }
+    .pattern-card {
+        background: rgba(255,255,255,0.05); border-radius: 12px; padding: 20px;
+        border: 1px solid rgba(255,255,255,0.1);
+        text-align: center; position: relative;
+        animation: patternAppear 0.6s ease-out backwards;
+    }
+    .pattern-card:nth-child(1) { animation-delay: 0.2s; }
+    .pattern-card:nth-child(2) { animation-delay: 0.4s; }
+    .pattern-card:nth-child(3) { animation-delay: 0.6s; }
+    @keyframes patternAppear {
+        from { opacity: 0; transform: translateY(20px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    .pattern-card.danger  { border-color: #EF4444; }
+    .pattern-card.success { border-color: #22C55E; }
+    .pattern-card.info    { border-color: #3B82F6; }
+    .pattern-icon  { font-size: 32px; margin-bottom: 12px; }
+    .pattern-team  {
+        color: rgba(255,255,255,0.6); font-size: 0.75rem;
+        text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;
+    }
+    .pattern-value { font-size: 2rem; font-weight: 800; margin-bottom: 4px; }
+    .pattern-card.danger  .pattern-value { color: #EF4444; }
+    .pattern-card.success .pattern-value { color: #22C55E; }
+    .pattern-card.info    .pattern-value { color: #3B82F6; }
+    .pattern-label { color: rgba(255,255,255,0.7); font-size: 0.85rem; font-weight: 500; }
+
+    .synergy-connector {
+        display: flex; justify-content: center; align-items: center;
+        margin: 8px 0 24px; position: relative;
+    }
+    .synergy-lines { position: absolute; width: 100%; height: 40px; top: -20px; }
+    .synergy-badge {
+        background: linear-gradient(135deg, #8B5CF6, #6D28D9);
+        color: #fff; padding: 12px 28px; border-radius: 30px;
+        font-weight: 700; font-size: 0.9rem;
+        display: flex; align-items: center; gap: 8px;
+        box-shadow: 0 8px 32px rgba(139,92,246,0.4);
+        animation: synergyPulse 2s ease-in-out infinite; z-index: 2;
+    }
+    @keyframes synergyPulse {
+        0%, 100% { box-shadow: 0 8px 32px rgba(139,92,246,0.4); }
+        50%       { box-shadow: 0 12px 48px rgba(139,92,246,0.6); }
+    }
+
+    .result-card {
+        background: linear-gradient(135deg, rgba(34,197,94,0.15), rgba(34,197,94,0.05));
+        border: 2px solid #22C55E; border-radius: 16px; padding: 24px 32px;
+        display: flex; align-items: center; justify-content: space-between;
+        animation: resultAppear 0.8s ease-out 1s backwards;
+    }
+    @keyframes resultAppear {
+        from { opacity: 0; transform: scale(0.95); }
+        to   { opacity: 1; transform: scale(1); }
+    }
+    .result-main { display: flex; align-items: center; gap: 20px; }
+    .result-icon {
+        width: 64px; height: 64px; background: #22C55E; border-radius: 16px;
+        display: flex; align-items: center; justify-content: center; font-size: 32px;
+    }
+    .result-text h4     { color: #22C55E; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+    .result-text .prediction { color: #fff; font-size: 1.5rem; font-weight: 800; }
+    .result-stats { display: flex; gap: 32px; }
+    .result-stat  { text-align: center; }
+    .result-stat .value { font-size: 1.75rem; font-weight: 800; color: var(--accent); }
+    .result-stat .label { color: rgba(255,255,255,0.5); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .confidence-bar { margin-top: 16px; }
+    .confidence-bar .bar-bg { height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; }
+    .confidence-bar .bar-fill {
+        height: 100%; background: linear-gradient(90deg, #22C55E, var(--accent));
+        border-radius: 4px; animation: fillBar 1.5s ease-out 1.2s backwards;
+    }
+    @keyframes fillBar { from { width: 0; } }
+    .confidence-bar .bar-label {
+        display: flex; justify-content: space-between; margin-top: 6px;
+        font-size: 0.75rem; color: rgba(255,255,255,0.5);
+    }
+
+    /* Metrics Grid */
+    .metrics-grid {
+        display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 24px;
+    }
+    .metric-card {
+        background: var(--bg-card); border-radius: 12px; padding: 20px;
+        border: 1px solid var(--border-light); box-shadow: var(--shadow);
+        position: relative; overflow: hidden;
+        min-width: 0; word-break: break-word; overflow-wrap: anywhere;
+    }
+    .metric-card::before {
+        content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+        background: var(--accent);
+    }
+    .metric-card.purple::before  { background: var(--purple); }
+    .metric-card.cyan::before    { background: var(--cyan); }
+    .metric-card.success::before { background: var(--success); }
+    .metric-card.warning::before { background: var(--warning); }
+    .metric-icon  { font-size: 1.5rem; margin-bottom: 12px; }
+    .metric-value { font-size: 1.75rem; font-weight: 800; color: var(--text-primary); margin-bottom: 4px; }
+    .metric-value.accent  { color: var(--accent-dark); }
+    .metric-value.purple  { color: var(--purple); }
+    .metric-value.cyan    { color: var(--cyan); }
+    .metric-value.success { color: var(--success); }
+    .metric-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* Two Column Layout */
+    .two-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+
+    /* Feature Importance */
+    .feature-list { display: flex; flex-direction: column; gap: 12px; }
+    .feature-item { display: flex; align-items: center; gap: 12px; }
+    .feature-rank {
+        width: 24px; height: 24px; background: var(--bg-secondary); border-radius: 6px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.75rem; font-weight: 700; color: var(--text-muted);
+    }
+    .feature-rank.top { background: var(--accent); color: #000; }
+    .feature-info { flex: 1; }
+    .feature-name { font-size: 0.875rem; font-weight: 600; margin-bottom: 4px; }
+    .feature-bar-container { height: 8px; background: var(--bg-secondary); border-radius: 4px; overflow: hidden; }
+    .feature-bar {
+        height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-dark));
+        border-radius: 4px; transition: width 1s ease-out;
+    }
+    .feature-value { font-size: 0.875rem; font-weight: 700; color: var(--accent-dark); min-width: 50px; text-align: right; }
+
+    /* Pattern Visualization */
+    .pattern-squares { display: flex; gap: 4px; margin-bottom: 4px; }
+    .pattern-square {
+        width: 24px; height: 24px; border-radius: 6px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.7rem; font-weight: 700; color: #fff;
+    }
+    .pattern-square.win     { background: #22C55E; }
+    .pattern-square.loss    { background: #EF4444; }
+    .pattern-square.neutral { background: #94A3B8; }
+
+    /* CPP Logic Section */
+    .cpp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .cpp-card {
+        background: var(--bg-secondary); border-radius: 12px; padding: 20px;
+        border-left: 4px solid var(--accent);
+    }
+    .cpp-card.profitable { border-left-color: var(--success); }
+    .cpp-card.warning    { border-left-color: var(--warning); }
+    .cpp-title   { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .cpp-pattern { font-size: 0.9rem; font-weight: 600; margin-bottom: 12px; line-height: 1.4; }
+    .cpp-stats   { display: flex; gap: 16px; }
+    .cpp-stat    { display: flex; flex-direction: column; }
+    .cpp-stat .value         { font-size: 1.25rem; font-weight: 800; }
+    .cpp-stat .value.success { color: var(--success); }
+    .cpp-stat .value.danger  { color: var(--danger); }
+    .cpp-stat .label         { font-size: 0.7rem; color: var(--text-muted); }
+
+    /* Training Parameters */
+    .params-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .param-item  { background: var(--bg-secondary); border-radius: 10px; padding: 16px; text-align: center; }
+    .param-item .icon  { font-size: 1.5rem; margin-bottom: 8px; }
+    .param-item .value { font-size: 1.25rem; font-weight: 700; color: var(--text-primary); }
+    .param-item .label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; margin-top: 4px; }
+
+    /* Live Inference */
+    .inference-section {
+        background: linear-gradient(135deg, #0f3460 0%, #1a1a2e 100%);
+        border-radius: 16px; padding: 28px; color: #fff; margin-bottom: 24px; overflow: hidden;
+    }
+    .inference-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+    .inference-stat { text-align: center; }
+    .inference-stat .value { font-size: 2rem; font-weight: 800; color: var(--accent); }
+    .inference-stat .label { font-size: 0.75rem; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+    .inference-stat .sub   { font-size: 0.7rem; color: rgba(255,255,255,0.4); margin-top: 4px; }
+
+    /* ML Education Section */
+    .ml-education {
+        background: var(--bg-card); border-radius: 16px; padding: 28px;
+        margin-bottom: 24px; border: 1px solid var(--border-light); box-shadow: var(--shadow);
+    }
+    .edu-header {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border-light);
+    }
+    .edu-title    { font-size: 1.5rem; font-weight: 700; display: flex; align-items: center; gap: 12px; }
+    .edu-subtitle { color: var(--text-muted); font-size: 0.9rem; }
+    .edu-section  { margin-bottom: 24px; }
+    .edu-section:last-child { margin-bottom: 0; }
+    .edu-block { background: var(--bg-secondary); border-radius: 12px; padding: 24px; margin-bottom: 16px; }
+    .edu-block:last-child { margin-bottom: 0; }
+    .edu-block h4 { font-size: 1.1rem; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .edu-block p  { color: var(--text-secondary); line-height: 1.7; margin-bottom: 12px; }
+    .edu-block p:last-child { margin-bottom: 0; }
+    .edu-highlight {
+        background: rgba(190,255,80,0.15); border-left: 3px solid var(--accent);
+        padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 16px 0;
+    }
+    .edu-highlight p { margin: 0; color: var(--text-primary); font-weight: 500; }
+    .edu-stats-row { display: flex; gap: 16px; margin-top: 16px; flex-wrap: wrap; }
+    .edu-stat {
+        background: var(--bg-card); border-radius: 10px; padding: 16px 20px;
+        text-align: center; flex: 1; border: 1px solid var(--border-light); min-width: 0;
+    }
+    .edu-stat .value { font-size: 1.5rem; font-weight: 800; color: var(--accent-dark); }
+    .edu-stat .label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; margin-top: 4px; }
+    .edu-code {
+        background: #1a1a2e; border-radius: 8px; padding: 16px; margin: 16px 0;
+        font-family: 'Monaco', 'Consolas', monospace; font-size: 0.85rem;
+        color: #e0e0e0; overflow-x: auto;
+    }
+    .edu-code .comment { color: #6b7280; }
+    .edu-code .keyword { color: var(--accent); }
+    .edu-code .number  { color: #f59e0b; }
+    .edu-code .string  { color: #22c55e; }
+    .edu-diagram {
+        background: linear-gradient(135deg, #1a1a2e 0%, #0f0f23 100%);
+        border-radius: 12px; padding: 24px; margin: 16px 0; color: #fff;
+    }
+    .edu-pipeline {
+        display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;
+    }
+    .edu-pipeline-step {
+        background: rgba(255,255,255,0.1); border-radius: 10px; padding: 16px 20px;
+        text-align: center; flex: 1; min-width: 120px; border: 1px solid rgba(255,255,255,0.1);
+    }
+    .edu-pipeline-step.active { border-color: var(--accent); background: rgba(190,255,80,0.1); }
+    .edu-pipeline-step .icon { font-size: 1.5rem; margin-bottom: 8px; }
+    .edu-pipeline-step .name { font-size: 0.85rem; font-weight: 600; margin-bottom: 4px; }
+    .edu-pipeline-step .desc { font-size: 0.7rem; color: rgba(255,255,255,0.5); }
+    .edu-arrow { font-size: 1.25rem; color: rgba(255,255,255,0.3); }
+    .edu-features-grid {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 16px;
+    }
+    .edu-feature-card { background: var(--bg-card); border-radius: 10px; padding: 16px; border: 1px solid var(--border-light); }
+    .edu-feature-card h5 { font-size: 0.9rem; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .edu-feature-card p  { font-size: 0.8rem; color: var(--text-muted); margin: 0; line-height: 1.5; }
+    .edu-feature-card .count {
+        display: inline-block; background: var(--accent); color: #000;
+        padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 700; margin-left: auto;
+    }
+    .edu-tree {
+        background: var(--bg-card); border-radius: 12px; padding: 20px;
+        border: 1px solid var(--border-light); margin: 16px 0;
+        font-family: 'Monaco', 'Consolas', monospace; font-size: 0.85rem; line-height: 1.8; overflow-x: auto;
+    }
+    .edu-tree .node     { color: var(--text-primary); }
+    .edu-tree .question { color: var(--purple); }
+    .edu-tree .yes      { color: var(--success); }
+    .edu-tree .no       { color: var(--danger); }
+    .edu-tree .result   { color: var(--accent-dark); font-weight: 700; }
+    .edu-models-compare { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 16px; }
+    .edu-model-card {
+        background: var(--bg-card); border-radius: 12px; padding: 20px;
+        border: 2px solid var(--border-light); text-align: center;
+    }
+    .edu-model-card.highlight { border-color: var(--accent); }
+    .edu-model-card .icon  { font-size: 2rem; margin-bottom: 12px; }
+    .edu-model-card h5     { font-size: 1rem; font-weight: 700; margin-bottom: 8px; }
+    .edu-model-card .desc  { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px; line-height: 1.5; }
+    .edu-model-card .metric { font-size: 1.25rem; font-weight: 800; }
+    .edu-model-card .metric.success { color: var(--success); }
+    .edu-model-card .metric.purple  { color: var(--purple); }
+    .edu-model-card .metric.cyan    { color: var(--cyan); }
+    .edu-model-card .metric-label   { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; }
+
+    /* Monitor Controls */
+    .monitor-section { display: flex; gap: 16px; margin-top: 24px; }
+    .monitor-card {
+        flex: 1; background: rgba(255,255,255,0.05); border-radius: 12px; padding: 20px;
+        display: flex; align-items: center; justify-content: space-between;
+    }
+    .monitor-info    { display: flex; align-items: center; gap: 12px; }
+    .monitor-icon    {
+        width: 44px; height: 44px; border-radius: 10px;
+        display: flex; align-items: center; justify-content: center; font-size: 20px;
+    }
+    .monitor-icon.telegram { background: #0088cc; }
+    .monitor-icon.api      { background: var(--purple); }
+    .monitor-text .title   { font-weight: 600; margin-bottom: 2px; }
+    .monitor-text .status  { font-size: 0.8rem; color: rgba(255,255,255,0.5); }
+    .control-btn {
+        padding: 10px 20px; border-radius: 8px; border: none;
+        cursor: pointer; font-weight: 600; font-size: 0.875rem; transition: all 0.2s;
+        min-height: 44px; min-width: 44px;
+    }
+    .control-btn.primary   { background: var(--accent); color: #000; }
+    .control-btn.primary:hover { background: var(--accent-dark); transform: translateY(-1px); }
+    .control-btn.secondary { background: rgba(255,255,255,0.1); color: #fff; }
+    .control-btn.secondary:hover { background: rgba(255,255,255,0.2); }
+
+    img, svg, canvas { max-width: 100%; height: auto; }
+
+    @media (max-width: 1024px) {
+        .metrics-grid  { grid-template-columns: repeat(3, 1fr); }
+        .two-cols      { grid-template-columns: 1fr; }
+        .cpp-grid      { grid-template-columns: 1fr; }
+        .params-grid   { grid-template-columns: repeat(2, 1fr); }
+        .inference-grid { grid-template-columns: repeat(2, 1fr); }
+        .patterns-grid { grid-template-columns: 1fr 1fr; }
+        .result-card   { flex-direction: column; gap: 20px; text-align: center; }
+        .result-stats  { justify-content: center; }
+    }
+    @media (max-width: 768px) {
+        .model-hero-content { flex-direction: column; gap: 24px; text-align: center; }
+        .model-stats   { justify-content: center; }
+        .metrics-grid  { grid-template-columns: repeat(2, 1fr); }
+        .patterns-grid { grid-template-columns: 1fr; }
+        .story-match-header { flex-direction: column; gap: 12px; }
+        .result-card   { padding: 20px; }
+        .result-stats  { flex-direction: column; gap: 16px; }
+        .monitor-section { flex-direction: column; }
+        .params-grid   { grid-template-columns: repeat(2, 1fr); }
+        .edu-models-compare { grid-template-columns: repeat(2, 1fr); }
+        .inference-grid { grid-template-columns: repeat(2, 1fr); }
+        .cpp-grid      { grid-template-columns: 1fr; }
+        .two-cols      { grid-template-columns: 1fr; }
+        .edu-stats-row { justify-content: center; }
+    }
+    @media (max-width: 425px) {
+        .page-title    { font-size: 1.6rem; }
+        .model-info h2 { font-size: 1.4rem; }
+        .metrics-grid  { grid-template-columns: 1fr; }
+        .inference-grid { grid-template-columns: 1fr; }
+        .params-grid   { grid-template-columns: 1fr; }
+        .edu-models-compare { grid-template-columns: 1fr; }
+        .story-team-logo { width: 40px; height: 40px; }
+        .result-icon   { width: 48px; height: 48px; font-size: 24px; }
+        .metric-card   { padding: 16px; }
+        .cpp-grid      { grid-template-columns: 1fr; }
+        .monitor-card  { flex-direction: column; gap: 12px; align-items: flex-start; }
+        .edu-stats-row { display: grid; grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 375px) {
+        .page-title    { font-size: 1.5rem; }
+        .model-desc    { font-size: 0.9rem; }
+        .metric-value  { font-size: 1.5rem; }
+        .inference-stat .value { font-size: 1.6rem; }
+        .edu-feature-card { padding: 14px; }
+        .edu-tree      { font-size: 0.8rem; }
+        .story-team-name { font-size: 1rem; }
+        .edu-stats-row { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 320px) {
+        .app           { padding: 12px; }
+        .metric-card   { padding: 14px; }
+        .monitor-section { gap: 12px; }
+        .section-title { font-size: 1.1rem; }
+        .control-btn   { width: 100%; }
+        .edu-stats-row { grid-template-columns: 1fr; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">AI Model Dashboard</h1>
+            <p class="page-subtitle">Deep Learning система прогнозирования хоккейных матчей</p>
         </div>
-        
-        <!-- Live Inference Stats - первый блок -->
-        <div class="inference-section">
-            <div class="section-header" style="margin-bottom: 24px;">
-                <h3 class="section-title" style="color: #fff;">⚡ Live Inference Stats</h3>
-            </div>
-            <div class="inference-grid">
-                <div class="inference-stat">
-                    <div class="value">{{ total_predictions or 0 }}</div>
-                    <div class="label">Прогнозов выдано</div>
-                    <div class="sub">За всё время</div>
-                </div>
-                <div class="inference-stat">
-                    <div class="value">{{ today_predictions or 0 }}</div>
-                    <div class="label">Сегодня</div>
-                    <div class="sub">Новых прогнозов</div>
-                </div>
-                <div class="inference-stat">
-                    <div class="value">{{ '%.1f'|format(avg_confidence or 7.2) }}</div>
-                    <div class="label">Avg Confidence</div>
-                    <div class="sub">Из 10</div>
-                </div>
-                <div class="inference-stat">
-                    <div class="value">{{ pending_decisions or 0 }}</div>
-                    <div class="label">Ожидают решения</div>
-                    <div class="sub">Требуют внимания</div>
-                </div>
-            </div>
-            
-            <div class="monitor-section">
-                <div class="monitor-card">
-                    <div class="monitor-info">
-                        <div class="monitor-icon" style="background: var(--accent);">🏒</div>
-                        <div class="monitor-text">
-                            <div class="title">Матчи сегодня</div>
-                            <div class="status" id="matches-count">Загрузка...</div>
-                        </div>
-                    </div>
-                    <span id="leagues-info" style="font-size: 0.8rem; color: var(--accent);">5 лиг</span>
-                </div>
-                <div class="monitor-card">
-                    <div class="monitor-info">
-                        <div class="monitor-icon" style="background: var(--purple);">🎯</div>
-                        <div class="monitor-text">
-                            <div class="title">Предложено ставок</div>
-                            <div class="status" id="bets-suggested">{{ today_predictions or 0 }} ставок</div>
-                        </div>
-                    </div>
-                    <span style="font-size: 0.8rem; color: var(--purple);">CPP Logic</span>
-                </div>
-                <div class="monitor-card">
-                    <div class="monitor-info">
-                        <div class="monitor-icon telegram">📱</div>
-                        <div class="monitor-text">
-                            <div class="title">Telegram Bot</div>
-                            <div class="status">{{ 'Подключён' if telegram_configured else 'Не настроен' }}</div>
-                        </div>
-                    </div>
-                    {% if telegram_configured %}
-                    <span style="color: var(--accent);">● Active</span>
-                    {% else %}
-                    <a href="/settings/telegram" class="control-btn secondary">Настроить</a>
-                    {% endif %}
-                </div>
-                <div class="monitor-card">
-                    <div class="monitor-info">
-                        <div class="monitor-icon api">🔄</div>
-                        <div class="monitor-text">
-                            <div class="title">Odds Monitor</div>
-                            <div class="status">{{ 'Активен (2ч интервал)' if monitor_running else 'Остановлен' }}</div>
-                        </div>
-                    </div>
-                    <button class="control-btn primary" onclick="checkNow()">Проверить сейчас</button>
-                </div>
-            </div>
+        <div class="live-indicator">
+            <span class="pulse"></span>
+            Model Active
         </div>
-        
-        <!-- Key Metrics -->
-        <div class="metrics-grid">
-            <div class="metric-card">
-                <div class="metric-icon">🎯</div>
-                <div class="metric-value accent">54.4%</div>
-                <div class="metric-label">Accuracy</div>
-            </div>
-            <div class="metric-card purple">
-                <div class="metric-icon">📈</div>
-                <div class="metric-value success">+11.8%</div>
-                <div class="metric-label">ROI (CPP)</div>
-            </div>
-            <div class="metric-card cyan">
-                <div class="metric-icon">🔥</div>
-                <div class="metric-value cyan">62.6%</div>
-                <div class="metric-label">Win Rate</div>
-            </div>
-            <div class="metric-card success">
-                <div class="metric-icon">⚡</div>
-                <div class="metric-value">23ms</div>
-                <div class="metric-label">Inference</div>
-            </div>
-            <div class="metric-card warning">
-                <div class="metric-icon">🧠</div>
-                <div class="metric-value purple">50</div>
-                <div class="metric-label">Epochs</div>
-            </div>
-        </div>
-        
-        <!-- Model Hero -->
-        <div class="model-hero">
-            <div class="model-hero-content">
-                <div class="model-info">
-                    <h2>
-                        LSTM + Random Forest Ensemble
-                        <span class="model-badge">v2.1.0</span>
-                    </h2>
-                    <p class="model-desc">
-                        Гибридная система машинного обучения, комбинирующая LSTM нейросеть для анализа последовательностей матчей 
-                        с Random Forest для паттерного распознавания. Обучена на 7 сезонах NHL с интеграцией CPP-логики для 
-                        определения критических точек разрыва серий.
-                    </p>
-                </div>
-                <div class="model-stats">
-                    <div class="model-stat">
-                        <div class="value">112</div>
-                        <div class="label">Признаков</div>
-                    </div>
-                    <div class="model-stat">
-                        <div class="value">5,320</div>
-                        <div class="label">Матчей</div>
-                    </div>
-                    <div class="model-stat">
-                        <div class="value">847K</div>
-                        <div class="label">Параметров</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- ML Education Section -->
-        <div class="ml-education">
-            <div class="edu-header">
-                <div>
-                    <h2 class="edu-title">📚 Как работает AI</h2>
-                    <p class="edu-subtitle">Ликбез по машинному обучению на примере нашей системы</p>
-                </div>
-            </div>
-            
-            <!-- Section 1: Зачем ML -->
-            <div class="edu-section">
-                <div class="edu-block">
-                    <h4>🎯 Зачем нужно машинное обучение?</h4>
-                    <p>
-                        Человек физически не способен запомнить и проанализировать 5320 хоккейных матчей, найти в них закономерности, 
-                        учесть сотни факторов одновременно и вычислить вероятности исходов. Компьютер может.
-                    </p>
-                    <p>
-                        Машинное обучение — это способ научить компьютер находить паттерны в данных, которые человек не видит. 
-                        Модель анализирует тысячи прошлых матчей и выявляет: "когда сходятся такие-то условия, 
-                        в 63% случаев побеждает гостевая команда".
-                    </p>
-                    
-                    <div class="edu-highlight">
-                        <p><strong>Цель нашей системы:</strong> превратить историю матчей в прибыльные прогнозы, 
-                        находя ситуации, где вероятность исхода выше, чем думают букмекеры.</p>
-                    </div>
-                    
-                    <div class="edu-stats-row">
-                        <div class="edu-stat">
-                            <div class="value">5,320</div>
-                            <div class="label">Матчей проанализировано</div>
-                        </div>
-                        <div class="edu-stat">
-                            <div class="value">112</div>
-                            <div class="label">Факторов учтено</div>
-                        </div>
-                        <div class="edu-stat">
-                            <div class="value">7</div>
-                            <div class="label">Сезонов NHL</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Section 2: Данные -->
-            <div class="edu-section">
-                <div class="edu-block">
-                    <h4>📊 Данные — топливо модели</h4>
-                    <p>
-                        Качество прогнозов напрямую зависит от качества данных. Мы используем официальную статистику NHL 
-                        за 7 сезонов (2016-2023), дополненную историческими коэффициентами букмекеров.
-                    </p>
-                    
-                    <p><strong>Что записывается по каждому матчу:</strong></p>
-                    <div class="edu-features-grid">
-                        <div class="edu-feature-card">
-                            <h5>⚔️ Команды</h5>
-                            <p>Кто играл дома, кто в гостях</p>
-                        </div>
-                        <div class="edu-feature-card">
-                            <h5>🏆 Результат</h5>
-                            <p>Счёт, победитель, овертайм</p>
-                        </div>
-                        <div class="edu-feature-card">
-                            <h5>📅 Дата и время</h5>
-                            <p>Когда играли, день недели</p>
-                        </div>
-                        <div class="edu-feature-card">
-                            <h5>💰 Коэффициенты</h5>
-                            <p>Odds на победу каждой команды</p>
-                        </div>
-                    </div>
-                    
-                    <div class="edu-highlight">
-                        <p><strong>Важно:</strong> Коэффициенты букмекеров — ценный источник информации. 
-                        Они отражают коллективное мнение рынка о вероятности исхода. 
-                        Коэффициент 2.0 означает, что букмекер оценивает шансы команды в 50%.</p>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Section 3: Признаки -->
-            <div class="edu-section">
-                <div class="edu-block">
-                    <h4>🔢 Признаки — язык модели</h4>
-                    <p>
-                        Модель не понимает человеческий язык. Она не знает что "Calgary хорошо играет дома". 
-                        Но она понимает числа: <code>home_win_streak = 5</code>, <code>goals_per_game = 3.2</code>.
-                    </p>
-                    <p>
-                        <strong>Признак (feature)</strong> — это численная характеристика, которую модель может "увидеть" и использовать 
-                        для предсказания. Мы преобразуем сырые данные матчей в 112 признаков.
-                    </p>
-                    
-                    <div class="edu-features-grid">
-                        <div class="edu-feature-card">
-                            <h5>📈 Серии <span class="count">24</span></h5>
-                            <p>Победы/поражения подряд дома и в гостях, длина серий, достижение критических порогов</p>
-                        </div>
-                        <div class="edu-feature-card">
-                            <h5>⚔️ H2H История <span class="count">18</span></h5>
-                            <p>Результаты личных встреч команд: кто побеждал, когда, с каким счётом</p>
-                        </div>
-                        <div class="edu-feature-card">
-                            <h5>⚽ Форма <span class="count">32</span></h5>
-                            <p>Голы забитые/пропущенные, % побед за последние 5/10 игр, тренды</p>
-                        </div>
-                        <div class="edu-feature-card">
-                            <h5>💰 Коэффициенты <span class="count">12</span></h5>
-                            <p>Odds обеих команд, implied probability, разница коэффициентов, статус андердога</p>
-                        </div>
-                        <div class="edu-feature-card">
-                            <h5>📅 Календарь <span class="count">16</span></h5>
-                            <p>Дни отдыха, back-to-back игры, домашние/гостевые серии</p>
-                        </div>
-                        <div class="edu-feature-card">
-                            <h5>🔗 Синергия <span class="count">10</span></h5>
-                            <p>Комбинации паттернов, количество совпадающих сигналов</p>
-                        </div>
-                    </div>
-                    
-                    <div class="edu-code">
-                        <span class="comment"># Пример: как матч превращается в признаки</span><br>
-                        <span class="keyword">match</span> = <span class="string">"Calgary vs Edmonton"</span><br><br>
-                        <span class="keyword">features</span> = {<br>
-                        &nbsp;&nbsp;<span class="string">"home_win_streak"</span>: <span class="number">5</span>,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment"># Calgary выиграла 5 дома подряд</span><br>
-                        &nbsp;&nbsp;<span class="string">"away_loss_streak"</span>: <span class="number">4</span>,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment"># Edmonton проиграла 4 на выезде</span><br>
-                        &nbsp;&nbsp;<span class="string">"h2h_home_wins"</span>: <span class="number">4</span>,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment"># Calgary выиграла 4 из 5 H2H</span><br>
-                        &nbsp;&nbsp;<span class="string">"home_odds"</span>: <span class="number">1.85</span>,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment"># Коэффициент на Calgary</span><br>
-                        &nbsp;&nbsp;<span class="string">"synergy_count"</span>: <span class="number">3</span>,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment"># 3 паттерна указывают на Edmonton</span><br>
-                        &nbsp;&nbsp;... <span class="comment"># ещё 107 признаков</span><br>
-                        }
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Section 4: Обучение -->
-            <div class="edu-section">
-                <div class="edu-block">
-                    <h4>🎓 Обучение — поиск закономерностей</h4>
-                    <p>
-                        Обучение модели — это процесс, в котором алгоритм анализирует тысячи примеров и находит правила, 
-                        которые позволяют предсказывать результат. Модель ищет зависимости вида: 
-                        "когда домашняя серия > 4 И коэффициент гостей < 2.5, гости побеждают в 63% случаев".
-                    </p>
-                    
-                    <div class="edu-diagram">
-                        <div class="edu-pipeline">
-                            <div class="edu-pipeline-step">
-                                <div class="icon">📊</div>
-                                <div class="name">Данные</div>
-                                <div class="desc">5320 матчей</div>
-                            </div>
-                            <div class="edu-arrow">→</div>
-                            <div class="edu-pipeline-step">
-                                <div class="icon">✂️</div>
-                                <div class="name">Разделение</div>
-                                <div class="desc">80% / 20%</div>
-                            </div>
-                            <div class="edu-arrow">→</div>
-                            <div class="edu-pipeline-step active">
-                                <div class="icon">🧠</div>
-                                <div class="name">Обучение</div>
-                                <div class="desc">Поиск правил</div>
-                            </div>
-                            <div class="edu-arrow">→</div>
-                            <div class="edu-pipeline-step">
-                                <div class="icon">✅</div>
-                                <div class="name">Проверка</div>
-                                <div class="desc">Тест на 20%</div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <p><strong>Почему делим на 80% и 20%?</strong></p>
-                    <p>
-                        Если проверять модель на тех же данных, на которых она училась — она покажет отличный результат, 
-                        но на новых матчах провалится. Это называется <strong>переобучение</strong> (overfitting).
-                    </p>
-                    <p>
-                        Представьте студента, который выучил ответы на все задачи из учебника, но не понял принцип решения. 
-                        На экзамене с новыми задачами он провалится. Поэтому мы учим модель на 80% матчей, 
-                        а проверяем на 20%, которые она никогда не видела.
-                    </p>
-                    
-                    <div class="edu-highlight">
-                        <p><strong>Метрики успеха:</strong> Accuracy (% правильных прогнозов) показывает общую точность. 
-                        Но для ставок важнее ROI — возврат инвестиций. Модель с 52% accuracy может быть прибыльной, 
-                        если правильно выбирает матчи с высокими коэффициентами.</p>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Section 5: Random Forest -->
-            <div class="edu-section">
-                <div class="edu-block">
-                    <h4>🌲 Random Forest — ансамбль деревьев решений</h4>
-                    <p>
-                        Random Forest (случайный лес) — это 100 деревьев решений, каждое из которых обучено 
-                        на случайной выборке данных. Каждое дерево "голосует" за исход, и побеждает большинство.
-                    </p>
-                    
-                    <p><strong>Дерево решений</strong> — это цепочка вопросов "да/нет":</p>
-                    
-                    <div class="edu-tree">
-                        <span class="question">Домашняя серия > 4?</span><br>
-                        ├─ <span class="yes">Да</span> → <span class="question">H2H серия > 3?</span><br>
-                        │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├─ <span class="yes">Да</span> → <span class="question">Синергия ≥ 2?</span><br>
-                        │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├─ <span class="yes">Да</span> → <span class="result">Гости победят (85%)</span><br>
-                        │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└─ <span class="no">Нет</span> → <span class="node">Неопределённо (52%)</span><br>
-                        │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└─ <span class="no">Нет</span> → <span class="question">Коэффициент гостей < 2.5?</span><br>
-                        │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├─ <span class="yes">Да</span> → <span class="node">Хозяева (58%)</span><br>
-                        │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└─ <span class="no">Нет</span> → <span class="result">Гости (61%)</span><br>
-                        └─ <span class="no">Нет</span> → <span class="node">...</span>
-                    </div>
-                    
-                    <p><strong>Почему "случайный лес" работает лучше одного дерева?</strong></p>
-                    <p>
-                        Одно дерево может ошибиться — оно переобучится на своих данных. Но когда 100 деревьев, 
-                        каждое обученное на разных примерах, голосуют вместе — их ошибки компенсируются, 
-                        а правильные ответы усиливаются. Это называется "мудрость толпы".
-                    </p>
-                    
-                    <div class="edu-stats-row">
-                        <div class="edu-stat">
-                            <div class="value">100</div>
-                            <div class="label">Деревьев в лесу</div>
-                        </div>
-                        <div class="edu-stat">
-                            <div class="value">112</div>
-                            <div class="label">Признаков</div>
-                        </div>
-                        <div class="edu-stat">
-                            <div class="value">54.4%</div>
-                            <div class="label">Accuracy</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Section 6: LSTM -->
-            <div class="edu-section">
-                <div class="edu-block">
-                    <h4>🧠 LSTM — нейросеть с памятью</h4>
-                    <p>
-                        LSTM (Long Short-Term Memory) — это тип нейронной сети, который умеет работать с последовательностями. 
-                        В отличие от Random Forest, который видит только текущий матч, LSTM анализирует последние 10 матчей 
-                        каждой команды как единую историю.
-                    </p>
-                    
-                    <div class="edu-diagram">
-                        <div class="edu-pipeline">
-                            <div class="edu-pipeline-step">
-                                <div class="icon">🏒</div>
-                                <div class="name">Матч -10</div>
-                                <div class="desc">16 признаков</div>
-                            </div>
-                            <div class="edu-arrow">→</div>
-                            <div class="edu-pipeline-step">
-                                <div class="icon">🏒</div>
-                                <div class="name">Матч -9</div>
-                                <div class="desc">16 признаков</div>
-                            </div>
-                            <div class="edu-arrow">→</div>
-                            <div class="edu-pipeline-step">
-                                <div class="icon">...</div>
-                                <div class="name">...</div>
-                                <div class="desc"></div>
-                            </div>
-                            <div class="edu-arrow">→</div>
-                            <div class="edu-pipeline-step active">
-                                <div class="icon">🏒</div>
-                                <div class="name">Сегодня</div>
-                                <div class="desc">16 признаков</div>
-                            </div>
-                            <div class="edu-arrow">→</div>
-                            <div class="edu-pipeline-step">
-                                <div class="icon">🎯</div>
-                                <div class="name">Прогноз</div>
-                                <div class="desc">Win/Loss</div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <p><strong>Что видит LSTM в каждом матче (16 признаков):</strong></p>
-                    <div class="edu-features-grid">
-                        <div class="edu-feature-card">
-                            <h5>⚽ Голы</h5>
-                            <p>Забито и пропущено</p>
-                        </div>
-                        <div class="edu-feature-card">
-                            <h5>🏠 Площадка</h5>
-                            <p>Дома или в гостях</p>
-                        </div>
-                        <div class="edu-feature-card">
-                            <h5>🏆 Результат</h5>
-                            <p>Победа/поражение, OT</p>
-                        </div>
-                        <div class="edu-feature-card">
-                            <h5>💰 Odds</h5>
-                            <p>Коэффициенты, андердог</p>
-                        </div>
-                    </div>
-                    
-                    <p style="margin-top: 16px;">
-                        <strong>Преимущество LSTM:</strong> сеть видит контекст. После 5 побед подряд команда может быть 
-                        уставшей или наоборот — "в потоке". LSTM учитывает такие динамические паттерны, 
-                        которые Random Forest не видит.
-                    </p>
-                    
-                    <div class="edu-stats-row">
-                        <div class="edu-stat">
-                            <div class="value">10</div>
-                            <div class="label">Матчей в памяти</div>
-                        </div>
-                        <div class="edu-stat">
-                            <div class="value">16</div>
-                            <div class="label">Признаков на матч</div>
-                        </div>
-                        <div class="edu-stat">
-                            <div class="value">56.2%</div>
-                            <div class="label">Accuracy</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Section 7: CPP -->
-            <div class="edu-section">
-                <div class="edu-block">
-                    <h4>📋 CPP — экспертные правила</h4>
-                    <p>
-                        CPP (Critical Pattern Prediction) — это набор правил, основанных на экспертном анализе хоккея. 
-                        Машинное обучение не всегда находит очевидные закономерности. Иногда человеческий опыт 
-                        даёт лучшие результаты.
-                    </p>
-                    
-                    <p><strong>Ключевой принцип CPP: "Серии ломаются"</strong></p>
-                    <p>
-                        Когда команда выигрывает или проигрывает слишком много матчей подряд — вероятность прерывания серии растёт. 
-                        Победные серии заканчиваются из-за усталости и расслабленности. 
-                        Серии поражений заканчиваются из-за мотивации и статистического возврата к среднему.
-                        Мы определили критические длины серий на основе анализа 5320 матчей:
-                    </p>
-                    
-                    <div class="edu-features-grid">
-                        <div class="edu-feature-card">
-                            <h5>🏠 Домашняя серия</h5>
-                            <p>Критическая длина: <strong>4+ побед/поражений</strong></p>
-                        </div>
-                        <div class="edu-feature-card">
-                            <h5>✈️ Гостевая серия</h5>
-                            <p>Критическая длина: <strong>3+ побед/поражений</strong></p>
-                        </div>
-                        <div class="edu-feature-card">
-                            <h5>📊 Общая серия</h5>
-                            <p>Критическая длина: <strong>5+ побед/поражений</strong></p>
-                        </div>
-                        <div class="edu-feature-card">
-                            <h5>⚔️ H2H серия</h5>
-                            <p>Критическая длина: <strong>4+ побед/поражений</strong></p>
-                        </div>
-                    </div>
-                    
-                    <div class="edu-highlight">
-                        <p><strong>Синергия</strong> — когда несколько паттернов указывают на одну команду одновременно. 
-                        Если домашняя серия Calgary = 5 И H2H серия Calgary = 4 И гостевая серия Edmonton = 4 поражения — 
-                        это синергия 3, и мы ставим на Edmonton (прерывание всех серий).</p>
-                    </div>
-                    
-                    <p><strong>Результаты бэктеста CPP:</strong></p>
-                    <div class="edu-models-compare">
-                        <div class="edu-model-card highlight">
-                            <div class="icon">🏆</div>
-                            <h5>Лучшая комбинация</h5>
-                            <div class="desc">AwayLoss + HomeWin + Overall → Break</div>
-                            <div class="metric success">+64.3%</div>
-                            <div class="metric-label">ROI</div>
-                        </div>
-                        <div class="edu-model-card">
-                            <div class="icon">🎯</div>
-                            <h5>H2H + HomeLoss</h5>
-                            <div class="desc">Синергия 2+</div>
-                            <div class="metric success">+27.4%</div>
-                            <div class="metric-label">ROI</div>
-                        </div>
-                        <div class="edu-model-card">
-                            <div class="icon">📊</div>
-                            <h5>Базовая синергия</h5>
-                            <div class="desc">AwayLoss + HomeWin</div>
-                            <div class="metric success">+11.8%</div>
-                            <div class="metric-label">ROI</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Section 8: Реальный пример -->
-            <div class="edu-section">
-                <div class="edu-block">
-                    <h4>🎯 Как система находит выгодные ставки</h4>
-                    <p class="edu-subtitle" style="margin-bottom: 24px;">Разберём реальный пример: <strong>Edmonton Oilers @ Calgary Flames</strong></p>
-            
-            <div class="story-container">
-                <!-- Match Header -->
-                <div class="story-match-header">
-                    <div class="story-team">
-                        <div class="story-team-logo">
-                            <img src="https://assets.nhle.com/logos/nhl/svg/CGY_light.svg" alt="Calgary Flames">
-                        </div>
-                        <div class="story-team-info">
-                            <div class="story-team-name">Calgary Flames</div>
-                            <div class="story-team-role">Дома</div>
-                        </div>
-                    </div>
-                    <div class="story-vs">VS</div>
-                    <div class="story-team">
-                        <div class="story-team-logo">
-                            <img src="https://assets.nhle.com/logos/nhl/svg/EDM_light.svg" alt="Edmonton Oilers">
-                        </div>
-                        <div class="story-team-info">
-                            <div class="story-team-name">Edmonton Oilers</div>
-                            <div class="story-team-role">В гостях</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Pattern Cards -->
-                <div class="patterns-grid">
-                    <div class="pattern-card success">
-                        <div class="pattern-icon">📈</div>
-                        <div class="pattern-team">Calgary</div>
-                        <div class="pattern-value">5</div>
-                        <div class="pattern-label">побед дома подряд → пора прерваться</div>
-                    </div>
-                    <div class="pattern-card success">
-                        <div class="pattern-icon">📈</div>
-                        <div class="pattern-team">Edmonton</div>
-                        <div class="pattern-value">4</div>
-                        <div class="pattern-label">поражения на выезде → пора прерваться</div>
-                    </div>
-                    <div class="pattern-card info">
-                        <div class="pattern-icon">⚔️</div>
-                        <div class="pattern-team">Личные встречи</div>
-                        <div class="pattern-value">1-4</div>
-                        <div class="pattern-label">Calgary доминирует → пора прерваться</div>
-                    </div>
-                </div>
-                
-                <!-- Synergy Connector -->
-                <div class="synergy-connector">
-                    <svg class="synergy-lines" viewBox="0 0 100 40" preserveAspectRatio="none">
-                        <path d="M16 0 L50 35" stroke="rgba(139,92,246,0.4)" stroke-width="0.5" fill="none"/>
-                        <path d="M50 0 L50 35" stroke="rgba(139,92,246,0.4)" stroke-width="0.5" fill="none"/>
-                        <path d="M84 0 L50 35" stroke="rgba(139,92,246,0.4)" stroke-width="0.5" fill="none"/>
-                    </svg>
-                    <div class="synergy-badge">
-                        ⚡ Синергия: 3 паттерна указывают на прерывание
-                    </div>
-                </div>
-                
-                <!-- Result Card -->
-                <div class="result-card">
-                    <div class="result-main">
-                        <div class="result-icon">✅</div>
-                        <div class="result-text">
-                            <h4>Рекомендация системы</h4>
-                            <div class="prediction">Победа Edmonton Oilers (гости)</div>
-                        </div>
-                    </div>
-                    <div class="result-stats">
-                        <div class="result-stat">
-                            <div class="value">76%</div>
-                            <div class="label">Win Rate</div>
-                        </div>
-                        <div class="result-stat">
-                            <div class="value">+27%</div>
-                            <div class="label">ROI</div>
-                        </div>
-                        <div class="result-stat">
-                            <div class="value">21</div>
-                            <div class="label">Ставок в истории</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Confidence Bar -->
-                <div class="confidence-bar">
-                    <div class="bar-bg">
-                        <div class="bar-fill" style="width: 76%"></div>
-                    </div>
-                    <div class="bar-label">
-                        <span>Уверенность модели</span>
-                        <span>76%</span>
-                    </div>
-                </div>
-            </div>
-                </div>
-            </div>
-        </div>
-        
     </div>
-    
-    <script>
-        
-        function checkNow() {
-            fetch('/api/monitor/check', { method: 'POST' })
-                .then(r => r.json())
-                .then(data => {
-                    alert('Проверено: ' + (data.matches_found || 0) + ' матчей, ' + (data.new_predictions || 0) + ' новых прогнозов');
-                    updateApiStatus();
-                });
-        }
-        
-        function updateApiStatus() {
-            fetch('/api/monitor/stats')
-                .then(r => r.json())
-                .then(data => {
-                    const matches = data.matches_available || 0;
-                    const bets = data.bets_suggested || 0;
-                    document.getElementById('matches-count').textContent = matches + ' матчей';
-                    document.getElementById('bets-suggested').textContent = bets + ' ставок';
-                    document.getElementById('leagues-info').textContent = 'NHL, KHL, SHL, Liiga, DEL';
-                });
-        }
-        
-        // Загружаем статус при старте
-        updateApiStatus();
-    </script>
-</body>
-</html>
+
+    <!-- Live Inference Stats -->
+    <div class="inference-section">
+        <div class="section-header" style="margin-bottom: 24px;">
+            <h3 class="section-title" style="color: #fff;">⚡ Live Inference Stats</h3>
+        </div>
+        <div class="inference-grid">
+            <div class="inference-stat">
+                <div class="value">{{ total_predictions or 0 }}</div>
+                <div class="label">Прогнозов выдано</div>
+                <div class="sub">За всё время</div>
+            </div>
+            <div class="inference-stat">
+                <div class="value">{{ today_predictions or 0 }}</div>
+                <div class="label">Сегодня</div>
+                <div class="sub">Новых прогнозов</div>
+            </div>
+            <div class="inference-stat">
+                <div class="value">{{ '%.1f'|format(avg_confidence or 7.2) }}</div>
+                <div class="label">Avg Confidence</div>
+                <div class="sub">Из 10</div>
+            </div>
+            <div class="inference-stat">
+                <div class="value">{{ pending_decisions or 0 }}</div>
+                <div class="label">Ожидают решения</div>
+                <div class="sub">Требуют внимания</div>
+            </div>
+        </div>
+
+        <div class="monitor-section">
+            <div class="monitor-card">
+                <div class="monitor-info">
+                    <div class="monitor-icon" style="background: var(--accent);">🏒</div>
+                    <div class="monitor-text">
+                        <div class="title">Матчи сегодня</div>
+                        <div class="status" id="matches-count">Загрузка...</div>
+                    </div>
+                </div>
+                <span id="leagues-info" style="font-size: 0.8rem; color: var(--accent);">5 лиг</span>
+            </div>
+            <div class="monitor-card">
+                <div class="monitor-info">
+                    <div class="monitor-icon" style="background: var(--purple);">🎯</div>
+                    <div class="monitor-text">
+                        <div class="title">Предложено ставок</div>
+                        <div class="status" id="bets-suggested">{{ today_predictions or 0 }} ставок</div>
+                    </div>
+                </div>
+                <span style="font-size: 0.8rem; color: var(--purple);">CPP Logic</span>
+            </div>
+            <div class="monitor-card">
+                <div class="monitor-info">
+                    <div class="monitor-icon telegram">📱</div>
+                    <div class="monitor-text">
+                        <div class="title">Telegram Bot</div>
+                        <div class="status">{{ 'Подключён' if telegram_configured else 'Не настроен' }}</div>
+                    </div>
+                </div>
+                {% if telegram_configured %}
+                <span style="color: var(--accent);">● Active</span>
+                {% else %}
+                <a href="/settings/telegram" class="control-btn secondary">Настроить</a>
+                {% endif %}
+            </div>
+            <div class="monitor-card">
+                <div class="monitor-info">
+                    <div class="monitor-icon api">🔄</div>
+                    <div class="monitor-text">
+                        <div class="title">Odds Monitor</div>
+                        <div class="status">{{ 'Активен (2ч интервал)' if monitor_running else 'Остановлен' }}</div>
+                    </div>
+                </div>
+                <button class="control-btn primary" onclick="checkNow()">Проверить сейчас</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Key Metrics -->
+    <div class="metrics-grid">
+        <div class="metric-card">
+            <div class="metric-icon">🎯</div>
+            <div class="metric-value accent">54.4%</div>
+            <div class="metric-label">Accuracy</div>
+        </div>
+        <div class="metric-card purple">
+            <div class="metric-icon">📈</div>
+            <div class="metric-value success">+11.8%</div>
+            <div class="metric-label">ROI (CPP)</div>
+        </div>
+        <div class="metric-card cyan">
+            <div class="metric-icon">🔥</div>
+            <div class="metric-value cyan">62.6%</div>
+            <div class="metric-label">Win Rate</div>
+        </div>
+        <div class="metric-card success">
+            <div class="metric-icon">⚡</div>
+            <div class="metric-value">23ms</div>
+            <div class="metric-label">Inference</div>
+        </div>
+        <div class="metric-card warning">
+            <div class="metric-icon">🧠</div>
+            <div class="metric-value purple">50</div>
+            <div class="metric-label">Epochs</div>
+        </div>
+    </div>
+
+    <!-- Model Hero -->
+    <div class="model-hero">
+        <div class="model-hero-content">
+            <div class="model-info">
+                <h2>
+                    LSTM + Random Forest Ensemble
+                    <span class="model-badge">v2.1.0</span>
+                </h2>
+                <p class="model-desc">
+                    Гибридная система машинного обучения, комбинирующая LSTM нейросеть для анализа последовательностей матчей
+                    с Random Forest для паттерного распознавания. Обучена на 7 сезонах NHL с интеграцией CPP-логики для
+                    определения критических точек разрыва серий.
+                </p>
+            </div>
+            <div class="model-stats">
+                <div class="model-stat">
+                    <div class="value">112</div>
+                    <div class="label">Признаков</div>
+                </div>
+                <div class="model-stat">
+                    <div class="value">5,320</div>
+                    <div class="label">Матчей</div>
+                </div>
+                <div class="model-stat">
+                    <div class="value">847K</div>
+                    <div class="label">Параметров</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ML Education Section -->
+    <div class="ml-education">
+        <div class="edu-header">
+            <div>
+                <h2 class="edu-title">📚 Как работает AI</h2>
+                <p class="edu-subtitle">Ликбез по машинному обучению на примере нашей системы</p>
+            </div>
+        </div>
+
+        <div class="edu-section">
+            <div class="edu-block">
+                <h4>🎯 Зачем нужно машинное обучение?</h4>
+                <p>
+                    Человек физически не способен запомнить и проанализировать 5320 хоккейных матчей, найти в них закономерности,
+                    учесть сотни факторов одновременно и вычислить вероятности исходов. Компьютер может.
+                </p>
+                <p>
+                    Машинное обучение — это способ научить компьютер находить паттерны в данных, которые человек не видит.
+                    Модель анализирует тысячи прошлых матчей и выявляет: "когда сходятся такие-то условия,
+                    в 63% случаев побеждает гостевая команда".
+                </p>
+                <div class="edu-highlight">
+                    <p><strong>Цель нашей системы:</strong> превратить историю матчей в прибыльные прогнозы,
+                    находя ситуации, где вероятность исхода выше, чем думают букмекеры.</p>
+                </div>
+                <div class="edu-stats-row">
+                    <div class="edu-stat"><div class="value">5,320</div><div class="label">Матчей проанализировано</div></div>
+                    <div class="edu-stat"><div class="value">112</div><div class="label">Факторов учтено</div></div>
+                    <div class="edu-stat"><div class="value">7</div><div class="label">Сезонов NHL</div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="edu-section">
+            <div class="edu-block">
+                <h4>📊 Данные — топливо модели</h4>
+                <p>
+                    Качество прогнозов напрямую зависит от качества данных. Мы используем официальную статистику NHL
+                    за 7 сезонов (2016-2023), дополненную историческими коэффициентами букмекеров.
+                </p>
+                <p><strong>Что записывается по каждому матчу:</strong></p>
+                <div class="edu-features-grid">
+                    <div class="edu-feature-card"><h5>⚔️ Команды</h5><p>Кто играл дома, кто в гостях</p></div>
+                    <div class="edu-feature-card"><h5>🏆 Результат</h5><p>Счёт, победитель, овертайм</p></div>
+                    <div class="edu-feature-card"><h5>📅 Дата и время</h5><p>Когда играли, день недели</p></div>
+                    <div class="edu-feature-card"><h5>💰 Коэффициенты</h5><p>Odds на победу каждой команды</p></div>
+                </div>
+                <div class="edu-highlight">
+                    <p><strong>Важно:</strong> Коэффициенты букмекеров — ценный источник информации.
+                    Они отражают коллективное мнение рынка о вероятности исхода.
+                    Коэффициент 2.0 означает, что букмекер оценивает шансы команды в 50%.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="edu-section">
+            <div class="edu-block">
+                <h4>🔢 Признаки — язык модели</h4>
+                <p>
+                    Модель не понимает человеческий язык. Она не знает что "Calgary хорошо играет дома".
+                    Но она понимает числа: <code>home_win_streak = 5</code>, <code>goals_per_game = 3.2</code>.
+                </p>
+                <p>
+                    <strong>Признак (feature)</strong> — это численная характеристика, которую модель может "увидеть" и использовать
+                    для предсказания. Мы преобразуем сырые данные матчей в 112 признаков.
+                </p>
+                <div class="edu-features-grid">
+                    <div class="edu-feature-card"><h5>📈 Серии <span class="count">24</span></h5><p>Победы/поражения подряд дома и в гостях, длина серий, достижение критических порогов</p></div>
+                    <div class="edu-feature-card"><h5>⚔️ H2H История <span class="count">18</span></h5><p>Результаты личных встреч команд: кто побеждал, когда, с каким счётом</p></div>
+                    <div class="edu-feature-card"><h5>⚽ Форма <span class="count">32</span></h5><p>Голы забитые/пропущенные, % побед за последние 5/10 игр, тренды</p></div>
+                    <div class="edu-feature-card"><h5>💰 Коэффициенты <span class="count">12</span></h5><p>Odds обеих команд, implied probability, разница коэффициентов, статус андердога</p></div>
+                    <div class="edu-feature-card"><h5>📅 Календарь <span class="count">16</span></h5><p>Дни отдыха, back-to-back игры, домашние/гостевые серии</p></div>
+                    <div class="edu-feature-card"><h5>🔗 Синергия <span class="count">10</span></h5><p>Комбинации паттернов, количество совпадающих сигналов</p></div>
+                </div>
+                <div class="edu-code">
+                    <span class="comment"># Пример: как матч превращается в признаки</span><br>
+                    <span class="keyword">match</span> = <span class="string">"Calgary vs Edmonton"</span><br><br>
+                    <span class="keyword">features</span> = {<br>
+                    &nbsp;&nbsp;<span class="string">"home_win_streak"</span>: <span class="number">5</span>,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment"># Calgary выиграла 5 дома подряд</span><br>
+                    &nbsp;&nbsp;<span class="string">"away_loss_streak"</span>: <span class="number">4</span>,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment"># Edmonton проиграла 4 на выезде</span><br>
+                    &nbsp;&nbsp;<span class="string">"h2h_home_wins"</span>: <span class="number">4</span>,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment"># Calgary выиграла 4 из 5 H2H</span><br>
+                    &nbsp;&nbsp;<span class="string">"home_odds"</span>: <span class="number">1.85</span>,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment"># Коэффициент на Calgary</span><br>
+                    &nbsp;&nbsp;<span class="string">"synergy_count"</span>: <span class="number">3</span>,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="comment"># 3 паттерна указывают на Edmonton</span><br>
+                    &nbsp;&nbsp;... <span class="comment"># ещё 107 признаков</span><br>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="edu-section">
+            <div class="edu-block">
+                <h4>🎓 Обучение — поиск закономерностей</h4>
+                <p>
+                    Обучение модели — это процесс, в котором алгоритм анализирует тысячи примеров и находит правила,
+                    которые позволяют предсказывать результат. Модель ищет зависимости вида:
+                    "когда домашняя серия > 4 И коэффициент гостей &lt; 2.5, гости побеждают в 63% случаев".
+                </p>
+                <div class="edu-diagram">
+                    <div class="edu-pipeline">
+                        <div class="edu-pipeline-step"><div class="icon">📊</div><div class="name">Данные</div><div class="desc">5320 матчей</div></div>
+                        <div class="edu-arrow">→</div>
+                        <div class="edu-pipeline-step"><div class="icon">✂️</div><div class="name">Разделение</div><div class="desc">80% / 20%</div></div>
+                        <div class="edu-arrow">→</div>
+                        <div class="edu-pipeline-step active"><div class="icon">🧠</div><div class="name">Обучение</div><div class="desc">Поиск правил</div></div>
+                        <div class="edu-arrow">→</div>
+                        <div class="edu-pipeline-step"><div class="icon">✅</div><div class="name">Проверка</div><div class="desc">Тест на 20%</div></div>
+                    </div>
+                </div>
+                <p><strong>Почему делим на 80% и 20%?</strong></p>
+                <p>
+                    Если проверять модель на тех же данных, на которых она училась — она покажет отличный результат,
+                    но на новых матчах провалится. Это называется <strong>переобучение</strong> (overfitting).
+                </p>
+                <p>
+                    Представьте студента, который выучил ответы на все задачи из учебника, но не понял принцип решения.
+                    На экзамене с новыми задачами он провалится. Поэтому мы учим модель на 80% матчей,
+                    а проверяем на 20%, которые она никогда не видела.
+                </p>
+                <div class="edu-highlight">
+                    <p><strong>Метрики успеха:</strong> Accuracy (% правильных прогнозов) показывает общую точность.
+                    Но для ставок важнее ROI — возврат инвестиций. Модель с 52% accuracy может быть прибыльной,
+                    если правильно выбирает матчи с высокими коэффициентами.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="edu-section">
+            <div class="edu-block">
+                <h4>🌲 Random Forest — ансамбль деревьев решений</h4>
+                <p>
+                    Random Forest (случайный лес) — это 100 деревьев решений, каждое из которых обучено
+                    на случайной выборке данных. Каждое дерево "голосует" за исход, и побеждает большинство.
+                </p>
+                <p><strong>Дерево решений</strong> — это цепочка вопросов "да/нет":</p>
+                <div class="edu-tree">
+                    <span class="question">Домашняя серия > 4?</span><br>
+                    ├─ <span class="yes">Да</span> → <span class="question">H2H серия > 3?</span><br>
+                    │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├─ <span class="yes">Да</span> → <span class="question">Синергия ≥ 2?</span><br>
+                    │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├─ <span class="yes">Да</span> → <span class="result">Гости победят (85%)</span><br>
+                    │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└─ <span class="no">Нет</span> → <span class="node">Неопределённо (52%)</span><br>
+                    │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└─ <span class="no">Нет</span> → <span class="question">Коэффициент гостей &lt; 2.5?</span><br>
+                    │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├─ <span class="yes">Да</span> → <span class="node">Хозяева (58%)</span><br>
+                    │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└─ <span class="no">Нет</span> → <span class="result">Гости (61%)</span><br>
+                    └─ <span class="no">Нет</span> → <span class="node">...</span>
+                </div>
+                <p><strong>Почему "случайный лес" работает лучше одного дерева?</strong></p>
+                <p>
+                    Одно дерево может ошибиться — оно переобучится на своих данных. Но когда 100 деревьев,
+                    каждое обученное на разных примерах, голосуют вместе — их ошибки компенсируются,
+                    а правильные ответы усиливаются. Это называется "мудрость толпы".
+                </p>
+                <div class="edu-stats-row">
+                    <div class="edu-stat"><div class="value">100</div><div class="label">Деревьев в лесу</div></div>
+                    <div class="edu-stat"><div class="value">112</div><div class="label">Признаков</div></div>
+                    <div class="edu-stat"><div class="value">54.4%</div><div class="label">Accuracy</div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="edu-section">
+            <div class="edu-block">
+                <h4>🧠 LSTM — нейросеть с памятью</h4>
+                <p>
+                    LSTM (Long Short-Term Memory) — это тип нейронной сети, который умеет работать с последовательностями.
+                    В отличие от Random Forest, который видит только текущий матч, LSTM анализирует последние 10 матчей
+                    каждой команды как единую историю.
+                </p>
+                <div class="edu-diagram">
+                    <div class="edu-pipeline">
+                        <div class="edu-pipeline-step"><div class="icon">🏒</div><div class="name">Матч -10</div><div class="desc">16 признаков</div></div>
+                        <div class="edu-arrow">→</div>
+                        <div class="edu-pipeline-step"><div class="icon">🏒</div><div class="name">Матч -9</div><div class="desc">16 признаков</div></div>
+                        <div class="edu-arrow">→</div>
+                        <div class="edu-pipeline-step"><div class="icon">...</div><div class="name">...</div><div class="desc"></div></div>
+                        <div class="edu-arrow">→</div>
+                        <div class="edu-pipeline-step active"><div class="icon">🏒</div><div class="name">Сегодня</div><div class="desc">16 признаков</div></div>
+                        <div class="edu-arrow">→</div>
+                        <div class="edu-pipeline-step"><div class="icon">🎯</div><div class="name">Прогноз</div><div class="desc">Win/Loss</div></div>
+                    </div>
+                </div>
+                <p><strong>Что видит LSTM в каждом матче (16 признаков):</strong></p>
+                <div class="edu-features-grid">
+                    <div class="edu-feature-card"><h5>⚽ Голы</h5><p>Забито и пропущено</p></div>
+                    <div class="edu-feature-card"><h5>🏠 Площадка</h5><p>Дома или в гостях</p></div>
+                    <div class="edu-feature-card"><h5>🏆 Результат</h5><p>Победа/поражение, OT</p></div>
+                    <div class="edu-feature-card"><h5>💰 Odds</h5><p>Коэффициенты, андердог</p></div>
+                </div>
+                <p style="margin-top: 16px;">
+                    <strong>Преимущество LSTM:</strong> сеть видит контекст. После 5 побед подряд команда может быть
+                    уставшей или наоборот — "в потоке". LSTM учитывает такие динамические паттерны,
+                    которые Random Forest не видит.
+                </p>
+                <div class="edu-stats-row">
+                    <div class="edu-stat"><div class="value">10</div><div class="label">Матчей в памяти</div></div>
+                    <div class="edu-stat"><div class="value">16</div><div class="label">Признаков на матч</div></div>
+                    <div class="edu-stat"><div class="value">56.2%</div><div class="label">Accuracy</div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="edu-section">
+            <div class="edu-block">
+                <h4>📋 CPP — экспертные правила</h4>
+                <p>
+                    CPP (Critical Pattern Prediction) — это набор правил, основанных на экспертном анализе хоккея.
+                    Машинное обучение не всегда находит очевидные закономерности. Иногда человеческий опыт
+                    даёт лучшие результаты.
+                </p>
+                <p><strong>Ключевой принцип CPP: "Серии ломаются"</strong></p>
+                <p>
+                    Когда команда выигрывает или проигрывает слишком много матчей подряд — вероятность прерывания серии растёт.
+                    Победные серии заканчиваются из-за усталости и расслабленности.
+                    Серии поражений заканчиваются из-за мотивации и статистического возврата к среднему.
+                    Мы определили критические длины серий на основе анализа 5320 матчей:
+                </p>
+                <div class="edu-features-grid">
+                    <div class="edu-feature-card"><h5>🏠 Домашняя серия</h5><p>Критическая длина: <strong>4+ побед/поражений</strong></p></div>
+                    <div class="edu-feature-card"><h5>✈️ Гостевая серия</h5><p>Критическая длина: <strong>3+ побед/поражений</strong></p></div>
+                    <div class="edu-feature-card"><h5>📊 Общая серия</h5><p>Критическая длина: <strong>5+ побед/поражений</strong></p></div>
+                    <div class="edu-feature-card"><h5>⚔️ H2H серия</h5><p>Критическая длина: <strong>4+ побед/поражений</strong></p></div>
+                </div>
+                <div class="edu-highlight">
+                    <p><strong>Синергия</strong> — когда несколько паттернов указывают на одну команду одновременно.
+                    Если домашняя серия Calgary = 5 И H2H серия Calgary = 4 И гостевая серия Edmonton = 4 поражения —
+                    это синергия 3, и мы ставим на Edmonton (прерывание всех серий).</p>
+                </div>
+                <p><strong>Результаты бэктеста CPP:</strong></p>
+                <div class="edu-models-compare">
+                    <div class="edu-model-card highlight">
+                        <div class="icon">🏆</div>
+                        <h5>Лучшая комбинация</h5>
+                        <div class="desc">AwayLoss + HomeWin + Overall → Break</div>
+                        <div class="metric success">+64.3%</div>
+                        <div class="metric-label">ROI</div>
+                    </div>
+                    <div class="edu-model-card">
+                        <div class="icon">🎯</div>
+                        <h5>H2H + HomeLoss</h5>
+                        <div class="desc">Синергия 2+</div>
+                        <div class="metric success">+27.4%</div>
+                        <div class="metric-label">ROI</div>
+                    </div>
+                    <div class="edu-model-card">
+                        <div class="icon">📊</div>
+                        <h5>Базовая синергия</h5>
+                        <div class="desc">AwayLoss + HomeWin</div>
+                        <div class="metric success">+11.8%</div>
+                        <div class="metric-label">ROI</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="edu-section">
+            <div class="edu-block">
+                <h4>🎯 Как система находит выгодные ставки</h4>
+                <p class="edu-subtitle" style="margin-bottom: 24px;">Разберём реальный пример: <strong>Edmonton Oilers @ Calgary Flames</strong></p>
+
+                <div class="story-container">
+                    <div class="story-match-header">
+                        <div class="story-team">
+                            <div class="story-team-logo">
+                                <img src="https://assets.nhle.com/logos/nhl/svg/CGY_light.svg" alt="Calgary Flames">
+                            </div>
+                            <div class="story-team-info">
+                                <div class="story-team-name">Calgary Flames</div>
+                                <div class="story-team-role">Дома</div>
+                            </div>
+                        </div>
+                        <div class="story-vs">VS</div>
+                        <div class="story-team">
+                            <div class="story-team-logo">
+                                <img src="https://assets.nhle.com/logos/nhl/svg/EDM_light.svg" alt="Edmonton Oilers">
+                            </div>
+                            <div class="story-team-info">
+                                <div class="story-team-name">Edmonton Oilers</div>
+                                <div class="story-team-role">В гостях</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="patterns-grid">
+                        <div class="pattern-card success">
+                            <div class="pattern-icon">📈</div>
+                            <div class="pattern-team">Calgary</div>
+                            <div class="pattern-value">5</div>
+                            <div class="pattern-label">побед дома подряд → пора прерваться</div>
+                        </div>
+                        <div class="pattern-card success">
+                            <div class="pattern-icon">📈</div>
+                            <div class="pattern-team">Edmonton</div>
+                            <div class="pattern-value">4</div>
+                            <div class="pattern-label">поражения на выезде → пора прерваться</div>
+                        </div>
+                        <div class="pattern-card info">
+                            <div class="pattern-icon">⚔️</div>
+                            <div class="pattern-team">Личные встречи</div>
+                            <div class="pattern-value">1-4</div>
+                            <div class="pattern-label">Calgary доминирует → пора прерваться</div>
+                        </div>
+                    </div>
+
+                    <div class="synergy-connector">
+                        <svg class="synergy-lines" viewBox="0 0 100 40" preserveAspectRatio="none">
+                            <path d="M16 0 L50 35" stroke="rgba(139,92,246,0.4)" stroke-width="0.5" fill="none"/>
+                            <path d="M50 0 L50 35" stroke="rgba(139,92,246,0.4)" stroke-width="0.5" fill="none"/>
+                            <path d="M84 0 L50 35" stroke="rgba(139,92,246,0.4)" stroke-width="0.5" fill="none"/>
+                        </svg>
+                        <div class="synergy-badge">
+                            ⚡ Синергия: 3 паттерна указывают на прерывание
+                        </div>
+                    </div>
+
+                    <div class="result-card">
+                        <div class="result-main">
+                            <div class="result-icon">✅</div>
+                            <div class="result-text">
+                                <h4>Рекомендация системы</h4>
+                                <div class="prediction">Победа Edmonton Oilers (гости)</div>
+                            </div>
+                        </div>
+                        <div class="result-stats">
+                            <div class="result-stat"><div class="value">76%</div><div class="label">Win Rate</div></div>
+                            <div class="result-stat"><div class="value">+27%</div><div class="label">ROI</div></div>
+                            <div class="result-stat"><div class="value">21</div><div class="label">Ставок в истории</div></div>
+                        </div>
+                    </div>
+
+                    <div class="confidence-bar">
+                        <div class="bar-bg">
+                            <div class="bar-fill" style="width: 76%"></div>
+                        </div>
+                        <div class="bar-label">
+                            <span>Уверенность модели</span>
+                            <span>76%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function checkNow() {
+        fetch('/api/monitor/check', { method: 'POST' })
+            .then(r => r.json())
+            .then(data => {
+                alert('Проверено: ' + (data.matches_found || 0) + ' матчей, ' + (data.new_predictions || 0) + ' новых прогнозов');
+                updateApiStatus();
+            });
+    }
+
+    function updateApiStatus() {
+        fetch('/api/monitor/stats')
+            .then(r => r.json())
+            .then(data => {
+                const matches = data.matches_available || 0;
+                const bets    = data.bets_suggested || 0;
+                document.getElementById('matches-count').textContent = matches + ' матчей';
+                document.getElementById('bets-suggested').textContent = bets + ' ставок';
+                document.getElementById('leagues-info').textContent = 'NHL, KHL, SHL, Liiga, DEL';
+            });
+    }
+
+    updateApiStatus();
+</script>
+{% endblock %}

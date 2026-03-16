@@ -57,20 +57,30 @@ class PatternPredictionModel:
         print(f"  Размер тестовой выборки: {len(X_test)}")
         logger.info(f"Train: {len(X_train)}, Test: {len(X_test)}")
         
+        # Default calibration set; overridden below when a proper split is possible
+        X_calib, y_calib = X_train, y_train
+
         if use_grid_search and grid_params:
             print("\n🔍 Grid Search для подбора гиперпараметров...")
             self.model, best_params = self._run_grid_search(X_train, y_train, grid_params)
             self.model_params.update(best_params)
         else:
             print("\n  Обучение модели...")
-            self.model.fit(X_train, y_train)
-        
+            if len(X_train) > 100 and self.calibrate:
+                # Reserve 25% of training data for calibration to avoid overfitting
+                X_train_fit, X_calib, y_train_fit, y_calib = train_test_split(
+                    X_train, y_train, test_size=0.25, random_state=42, stratify=y_train
+                )
+                self.model.fit(X_train_fit, y_train_fit)
+            else:
+                self.model.fit(X_train, y_train)
+
         if self.calibrate:
             print("\n📊 Калибровка вероятностей...")
             self.calibrated_model = CalibratedClassifierCV(
-                self.model, method='isotonic', cv=3
+                self.model, method='isotonic', cv='prefit'
             )
-            self.calibrated_model.fit(X_train, y_train)
+            self.calibrated_model.fit(X_calib, y_calib)
             logger.info("Калибровка вероятностей завершена")
         
         self.is_trained = True

@@ -444,23 +444,26 @@ class RLBettingAgent:
         return True
 
 
-def prepare_training_data(historical_matches: List[Dict]) -> List[Dict]:
+def prepare_training_data(historical_matches: List[Dict], model=None) -> List[Dict]:
     """
     Подготовка исторических данных для обучения RL.
-    
+
     Преобразует сырые данные матчей в формат для BettingEnvironment.
+
+    model: optional trained PatternPredictionModel; if provided, real predict_proba
+           is used for model_confidence instead of a neutral fallback.
     """
     training_data = []
-    
+
     for match in historical_matches:
         # Определяем результат
         home_score = match.get('home_score', 0)
         away_score = match.get('away_score', 0)
-        
+
         # Простая логика: предсказываем победу фаворита (более низкий коэффициент)
         home_odds = match.get('home_odds', 2.0)
         away_odds = match.get('away_odds', 2.0)
-        
+
         # Определяем, кого бы предсказала модель (фаворита)
         if home_odds < away_odds:
             predicted_home = True
@@ -468,25 +471,41 @@ def prepare_training_data(historical_matches: List[Dict]) -> List[Dict]:
         else:
             predicted_home = False
             odds = away_odds
-        
+
         # Верен ли был бы прогноз
         actual_win = (predicted_home and home_score > away_score) or \
                      (not predicted_home and away_score > home_score)
-        
-        # Синтетические признаки (в реальности берутся из pattern_engine)
+
+        # Compute real model confidence if a trained model is available;
+        # otherwise use 0.5 as a neutral fallback to avoid training on noise.
+        if model is not None:
+            try:
+                features = match.get('features')
+                if features is not None:
+                    import numpy as np
+                    x = np.array(features).reshape(1, -1)
+                    proba = model.predict_proba(x)[0]
+                    real_conf = float(max(proba))
+                else:
+                    real_conf = 0.5
+            except Exception:
+                real_conf = 0.5
+        else:
+            real_conf = 0.5  # neutral fallback until model is trained
+
         training_data.append({
-            'model_confidence': random.uniform(0.4, 0.9),  # TODO: использовать реальную модель
+            'model_confidence': real_conf,
             'predicted_probability': 1 / odds if odds > 0 else 0.5,
             'odds': odds,
             'home_series': match.get('home_streak', 0),
             'away_series': match.get('away_streak', 0),
-            'h2h_advantage': random.uniform(-0.5, 0.5),
+            'h2h_advantage': match.get('h2h_advantage', 0.0),
             'actual_win': actual_win,
             'date': match.get('date', ''),
             'home_team': match.get('home_team', ''),
             'away_team': match.get('away_team', '')
         })
-    
+
     return training_data
 
 

@@ -102,6 +102,9 @@ def create_app(testing: bool = False, start_background: bool = True):
         app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
             "pool_recycle": 300,
             "pool_pre_ping": True,
+            "pool_size": 10,
+            "max_overflow": 20,
+            "pool_timeout": 30,
         }
 
         supabase_url = os.environ.get("SUPABASE_URL")
@@ -175,6 +178,9 @@ def add_header(response):
     response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '0'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
     return response
 
 

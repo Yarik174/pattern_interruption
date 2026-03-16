@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
+    <title>{% block title %}ArenaPredictor{% endblock %}</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #F5F5EB;
+            --bg-secondary: #EBEBDF;
+            --bg-card: #FFFFFF;
+            --accent: #BEFF50;
+            --accent-dark: #9FDF00;
+            --accent-glow: rgba(190, 255, 80, 0.3);
+            --link: #216BA5;
+            --success: #22C55E;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --purple: #8B5CF6;
+            --cyan: #06B6D4;
+            --text-primary: #14140F;
+            --text-secondary: #5A5A52;
+            --text-muted: #8A8A7A;
+            --border: #D4D4C8;
+            --border-light: #E8E8DC;
+            --shadow: 0 2px 8px rgba(0,0,0,0.06);
+            --shadow-lg: 0 8px 24px rgba(0,0,0,0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .app { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+        /* ── Header & Nav ── */
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 0 24px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+        .logo-icon {
+            width: 40px; height: 40px;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+        .logo h1 { font-size: 1.25rem; font-weight: 700; color: var(--text-primary); }
+
+        nav {
+            display: flex; gap: 4px;
+            overflow-x: auto; -webkit-overflow-scrolling: touch;
+            flex-wrap: nowrap; width: 100%; position: relative; white-space: nowrap;
+        }
+        nav a {
+            padding: 10px 18px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            min-height: 44px;
+            flex: 0 0 auto;
+        }
+        nav a:hover { background: var(--bg-card); color: var(--text-primary); }
+        nav a.active { background: var(--accent); color: var(--text-primary); font-weight: 600; }
+        nav::before, nav::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            width: 20px;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        nav::before { left: 0; background: linear-gradient(to right, var(--bg-primary), rgba(255,255,255,0)); }
+        nav::after  { right: 0; background: linear-gradient(to left,  var(--bg-primary), rgba(255,255,255,0)); }
+
+        /* ── Typography ── */
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+        .page-subtitle {
+            color: var(--text-muted);
+            margin-bottom: 24px;
+        }
+
+        /* ── Stat cards ── */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border-light);
+            box-shadow: var(--shadow);
+        }
+        .stat-card .value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .stat-card .value.accent  { color: var(--accent-dark); }
+        .stat-card .value.success { color: var(--success); }
+        .stat-card .value.danger  { color: var(--danger); }
+        .stat-card .label {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* ── Badges ── */
+        .league-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .league-NHL   { background: #E8F0FE; color: #1A73E8; }
+        .league-KHL   { background: #FCE8E8; color: #DC3545; }
+        .league-SHL   { background: #E8F4FE; color: #0A6EBD; }
+        .league-Liiga { background: #E8EEF8; color: #2E4A82; }
+        .league-DEL   { background: #FEE8E8; color: #CC0000; }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .status-pending  { background: #FEF3E2; color: #B45309; }
+        .status-accepted { background: #DCFCE7; color: #166534; }
+        .status-rejected { background: #FEE2E2; color: #991B1B; }
+        .status-win      { background: #DCFCE7; color: #166534; }
+        .status-loss     { background: #FEE2E2; color: #991B1B; }
+
+        /* ── Predictions table ── */
+        .predictions-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--bg-card);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+        .predictions-table th {
+            background: var(--bg-secondary);
+            padding: 14px 16px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+        }
+        .predictions-table td {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-light);
+            font-size: 0.9rem;
+        }
+        .predictions-table tr:hover { background: var(--bg-secondary); }
+        .predictions-table tr:last-child td { border-bottom: none; }
+
+        /* ── Team / match cells ── */
+        .teams { display: flex; flex-direction: column; gap: 4px; }
+        .team  { display: flex; align-items: center; gap: 8px; }
+        .team-name { font-weight: 500; }
+        .team-home::before {
+            content: "";
+            display: inline-block;
+            width: 6px; height: 6px;
+            background: var(--accent-dark);
+            border-radius: 50%;
+        }
+
+        .prediction-outcome {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+        .outcome-home { background: rgba(190, 255, 80, 0.2); color: #5A7F00; }
+        .outcome-away { background: rgba(33, 107, 165, 0.1); color: var(--link); }
+        .outcome-draw { background: var(--bg-secondary); color: var(--text-secondary); }
+
+        .odds { font-weight: 600; font-size: 1rem; color: var(--accent-dark); }
+
+        /* ── Confidence bar ── */
+        .confidence { display: flex; align-items: center; gap: 8px; }
+        .confidence-bar {
+            width: 80px; height: 8px;
+            background: var(--bg-secondary);
+            border-radius: 4px; overflow: hidden;
+        }
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--warning), var(--accent-dark));
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+        .confidence-value { font-weight: 600; min-width: 35px; color: var(--text-secondary); }
+
+        /* ── Filter buttons ── */
+        .filter-btn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .filter-btn:hover {
+            border-color: var(--accent-dark);
+            color: var(--text-primary);
+        }
+        .filter-btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: var(--text-primary);
+        }
+
+        /* ── Action buttons ── */
+        .action-btn {
+            padding: 8px 14px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+        .action-btn.view {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+        .action-btn.view:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        /* ── Empty state ── */
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+        }
+        .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
+        .empty-state h3 {
+            font-size: 1.25rem;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+        .empty-state p { color: var(--text-muted); }
+
+        /* ── Responsive ── */
+        @media (max-width: 768px) {
+            header { flex-direction: column; gap: 16px; align-items: flex-start; }
+            nav { width: 100%; overflow-x: auto; }
+            .stats-row { grid-template-columns: repeat(2, 1fr); }
+            .predictions-table { font-size: 0.875rem; }
+            .predictions-table th,
+            .predictions-table td { padding: 12px 8px; }
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="app">
+        <header>
+            <a href="/" class="logo">
+                <img src="/static/logo.svg" alt="ArenaPredictor" class="logo-icon">
+                <h1>ArenaPredictor</h1>
+            </a>
+            <nav>
+                <a href="/predictions" class="{{ 'active' if request.endpoint == 'predictions.predictions_page' else '' }}">Прогнозы</a>
+                <a href="/dashboard"   class="{{ 'active' if request.endpoint == 'dashboard.dashboard_page' else '' }}">Дашборд</a>
+                <a href="/statistics"  class="{{ 'active' if request.endpoint == 'dashboard.statistics_page' else '' }}">Статистика</a>
+                <a href="/watchlist"   class="{{ 'active' if request.endpoint == 'dashboard.watchlist_page' else '' }}">★ Отобранные</a>
+                <a href="/explainability" class="{{ 'active' if request.endpoint == 'dashboard.explainability_page' else '' }}">Explainability</a>
+                <a href="/logs"        class="{{ 'active' if request.endpoint == 'dashboard.logs_page' else '' }}">Логи</a>
+            </nav>
+        </header>
+
+        {% block content %}{% endblock %}
+    </div>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

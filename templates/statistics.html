@@ -1,878 +1,605 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-    <title>Статистика | ArenaPredictor</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        :root {
-            --bg-primary: #F5F5EB;
-            --bg-secondary: #EBEBDF;
-            --bg-card: #FFFFFF;
-            --accent: #BEFF50;
-            --accent-dark: #9FDF00;
-            --link: #216BA5;
-            --success: #22C55E;
-            --warning: #F59E0B;
-            --danger: #EF4444;
-            --text-primary: #14140F;
-            --text-secondary: #5A5A52;
-            --text-muted: #8A8A7A;
-            --border: #D4D4C8;
-            --border-light: #E8E8DC;
-            --shadow: 0 2px 8px rgba(0,0,0,0.06);
-        }
-        
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            min-height: 100vh;
-        }
-        
-        .app { max-width: 1400px; margin: 0 auto; padding: 24px; }
-        
-        header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 16px 0 24px;
-            margin-bottom: 24px;
-            border-bottom: 1px solid var(--border);
-        }
-        
-        .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
-        .logo-icon {
-            width: 40px; height: 40px;
-            background: var(--accent);
-            border-radius: 10px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 20px;
-            box-shadow: var(--shadow);
-        }
-        .logo h1 { font-size: 1.25rem; font-weight: 700; color: var(--text-primary); }
-        
-        nav { display: flex; gap: 4px; overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; width: 100%; position: relative; white-space: nowrap; }
-        nav a {
-            padding: 10px 18px;
-            border-radius: 8px;
-            text-decoration: none;
-            color: var(--text-secondary);
-            font-weight: 500;
-            font-size: 0.9rem;
-            transition: all 0.2s;
-            display: inline-flex;
-            align-items: center;
-            min-height: 44px;
-            flex: 0 0 auto;
-        }
-        nav a:hover { background: var(--bg-card); color: var(--text-primary); }
-        nav a.active { background: var(--accent); color: var(--text-primary); font-weight: 600; }
-        nav::before, nav::after {
-            content: "";
-            position: absolute;
-            top: 0;
-            width: 20px;
-            height: 100%;
-            pointer-events: none;
-            z-index: 1;
-        }
-        nav::before { left: 0; background: linear-gradient(to right, var(--bg-primary), rgba(255,255,255,0)); }
-        nav::after { right: 0; background: linear-gradient(to left, var(--bg-primary), rgba(255,255,255,0)); }
-        
-        .page-title {
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: 8px;
-        }
-        
-        .page-subtitle {
-            color: var(--text-muted);
-            margin-bottom: 24px;
-        }
-        
-        .comparison-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-            margin-bottom: 24px;
-        }
-        
-        @media (max-width: 1100px) {
-            .comparison-grid { grid-template-columns: 1fr; }
-        }
-        
-        .comparison-card {
-            background: var(--bg-card);
-            border-radius: 16px;
-            padding: 24px;
-            border: 2px solid var(--border-light);
-            box-shadow: var(--shadow);
-        }
-        
-        .comparison-card.model { border-color: var(--accent); }
-        .comparison-card.manual { border-color: var(--link); }
-        
-        .card-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 20px;
-        }
-        
-        .card-title {
-            font-size: 1.25rem;
-            font-weight: 700;
-        }
-        
-        .card-badge {
-            padding: 6px 14px;
-            border-radius: 8px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-        }
-        
-        .badge-model { background: rgba(190, 255, 80, 0.3); color: #5A7F00; }
-        .badge-manual { background: rgba(33, 107, 165, 0.15); color: var(--link); }
-        
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-        }
-        
-        .stats-grid-3 {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-        }
-        
-        .stat-item {
-            background: var(--bg-secondary);
-            border-radius: 10px;
-            padding: 16px;
-            text-align: center;
-        }
-        
-        .stat-item .value {
-            font-size: 1.75rem;
-            font-weight: 700;
-            margin-bottom: 4px;
-        }
-        
-        .stat-item .value.accent { color: var(--accent-dark); }
-        .stat-item .value.success { color: var(--success); }
-        .stat-item .value.danger { color: var(--danger); }
-        .stat-item .value.link { color: var(--link); }
-        
-        .stat-item .label {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-        }
-        
-        .section {
-            background: var(--bg-card);
-            border-radius: 12px;
-            padding: 24px;
-            border: 1px solid var(--border-light);
-            margin-bottom: 24px;
-            box-shadow: var(--shadow);
-        }
-        
-        .section-title {
-            font-size: 1.125rem;
-            font-weight: 600;
-            margin-bottom: 20px;
-        }
-        
-        .chart-container {
-            position: relative;
-            height: 300px;
-            width: 100%;
-        }
-        
-        .league-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 12px;
-        }
-        
-        .league-card {
-            background: var(--bg-secondary);
-            border-radius: 10px;
-            padding: 16px;
-        }
-        
-        .league-header {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 12px;
-        }
-        
-        .league-name { font-weight: 600; }
-        
-        .league-metrics {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        
-        .metric-row {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.875rem;
-        }
-        
-        .metric-row .name { color: var(--text-muted); }
-        .metric-row .value { font-weight: 600; }
-        
-        .progress-bar {
-            height: 6px;
-            background: var(--border);
-            border-radius: 3px;
-            overflow: hidden;
-            margin-top: 12px;
-        }
-        
-        .progress-fill {
-            height: 100%;
-            background: var(--accent);
-            border-radius: 3px;
-            transition: width 0.3s;
-        }
-        
-        .progress-fill.good { background: var(--success); }
-        .progress-fill.warning { background: var(--warning); }
-        .progress-fill.bad { background: var(--danger); }
-        
-        .table-container {
-            overflow-x: auto;
-        }
-        
-        .stats-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        
-        .stats-table th {
-            text-align: left;
-            padding: 12px;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            color: var(--text-muted);
-            border-bottom: 1px solid var(--border);
-        }
-        
-        .stats-table td {
-            padding: 12px;
-            border-bottom: 1px solid var(--border-light);
-        }
-        
-        .stats-table tr:last-child td { border-bottom: none; }
-        
-        .trend {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            font-weight: 600;
-        }
-        
-        .trend.up { color: var(--success); }
-        .trend.down { color: var(--danger); }
-        .trend.neutral { color: var(--text-muted); }
-        
-        .pattern-card {
-            background: var(--bg-secondary);
-            border-radius: 10px;
-            padding: 14px 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .pattern-name {
-            font-weight: 600;
-            font-size: 0.9rem;
-        }
-        
-        .pattern-stats {
-            display: flex;
-            gap: 16px;
-            align-items: center;
-        }
-        
-        .pattern-stat {
-            text-align: center;
-        }
-        
-        .pattern-stat .value {
-            font-weight: 700;
-            font-size: 1rem;
-        }
-        
-        .pattern-stat .label {
-            font-size: 0.65rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-        }
-        
-        .pattern-list {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        
-        .empty-state {
-            text-align: center;
-            padding: 40px;
-            color: var(--text-muted);
-        }
-        
-        .pending-badge {
-            background: var(--warning);
-            color: white;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-        
-        @media (max-width: 768px) {
-            header { flex-direction: column; gap: 16px; align-items: flex-start; }
-            .comparison-grid { grid-template-columns: 1fr; }
-            .stats-grid-3 { grid-template-columns: repeat(2, 1fr); }
-        }
-    </style>
-</head>
-<body>
-    <div class="app">
-        <header>
-            <a href="/" class="logo">
-                <img src="/static/logo.svg" alt="ArenaPredictor" class="logo-icon">
-                <h1>ArenaPredictor</h1>
-            </a>
-            <nav>
-                <a href="/predictions">Прогнозы</a>
-                <a href="/dashboard">Дашборд</a>
-                <a href="/statistics" class="active">Статистика</a>
-                <a href="/watchlist">★ Отобранные</a>
-                <a href="/explainability">Explainability</a>
-                <a href="/logs">Логи</a>
-            </nav>
-        </header>
-        
-        <h1 class="page-title">Аналитика точности модели</h1>
-        <p class="page-subtitle">
-            Детальный анализ прогнозов по видам спорта, лигам, паттернам и уровню уверенности
-            {% if model_stats.pending > 0 %}
-            <span class="pending-badge">{{ model_stats.pending }} ожидают результата</span>
-            {% endif %}
-        </p>
-        
-        <div class="comparison-grid">
-            <div class="comparison-card model">
-                <div class="card-header">
-                    <h2 class="card-title">Все прогнозы модели</h2>
-                    <span class="card-badge badge-model">AI</span>
-                </div>
-                <div class="stats-grid-3">
-                    <div class="stat-item">
-                        <div class="value">{{ model_stats.total or 0 }}</div>
-                        <div class="label">Завершено</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="value success">{{ model_stats.wins or 0 }}</div>
-                        <div class="label">Выигрыши</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="value danger">{{ model_stats.losses or 0 }}</div>
-                        <div class="label">Проигрыши</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="value accent">{{ '%.1f'|format(model_stats.win_rate or 0) }}%</div>
-                        <div class="label">Win Rate</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="value {% if (model_stats.roi or 0) > 0 %}success{% else %}danger{% endif %}">
-                            {{ '%+.1f'|format(model_stats.roi or 0) }}%
-                        </div>
-                        <div class="label">ROI</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="value link">{{ model_stats.pending or 0 }}</div>
-                        <div class="label">Ожидают</div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="comparison-card rl" style="border-color: #8B5CF6;">
-                <div class="card-header">
-                    <h2 class="card-title">RL-агент рекомендует</h2>
-                    <span class="card-badge" style="background: rgba(139, 92, 246, 0.2); color: #8B5CF6;">🤖 RL</span>
-                </div>
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <div class="value">{{ rl_stats.bet_count or 0 }}</div>
-                        <div class="label">BET</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="value" style="color: var(--text-muted)">{{ rl_stats.skip_count or 0 }}</div>
-                        <div class="label">SKIP</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="value success">{{ rl_stats.wins or 0 }}</div>
-                        <div class="label">Выигрыши</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="value" style="color: #8B5CF6;">{{ '%.1f'|format(rl_stats.win_rate or 0) }}%</div>
-                        <div class="label">Win Rate</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="value {% if (rl_stats.roi or 0) > 0 %}success{% else %}danger{% endif %}">
-                            {{ '%+.1f'|format(rl_stats.roi or 0) }}%
-                        </div>
-                        <div class="label">ROI</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="value success">{{ rl_stats.skip_saved or 0 }}</div>
-                        <div class="label">Спасено SKIP</div>
-                    </div>
-                </div>
-                <div style="margin-top: 12px; font-size: 0.75rem; color: var(--text-muted); text-align: center;">
-                    Агент отфильтровал {{ rl_stats.skip_count or 0 }} рискованных ставок
-                </div>
-            </div>
-            
-            <div class="comparison-card manual">
-                <div class="card-header">
-                    <h2 class="card-title">Ваш ручной отбор</h2>
-                    <span class="card-badge badge-manual">Вы</span>
-                </div>
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <div class="value">{{ manual_stats.total or 0 }}</div>
-                        <div class="label">Принято</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="value success">{{ manual_stats.wins or 0 }}</div>
-                        <div class="label">Выигрыши</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="value link">{{ '%.1f'|format(manual_stats.win_rate or 0) }}%</div>
-                        <div class="label">Win Rate</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="value {% if (manual_stats.roi or 0) > 0 %}success{% else %}danger{% endif %}">
-                            {{ '%+.1f'|format(manual_stats.roi or 0) }}%
-                        </div>
-                        <div class="label">ROI</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        {% if chart_data and chart_data.labels %}
-        <div class="charts-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
-            <div class="section" style="margin-bottom: 0;">
-                <h3 class="section-title">📈 Динамика точности</h3>
-                <div class="chart-container">
-                    <canvas id="accuracyChart"></canvas>
-                </div>
-            </div>
-            <div class="section" style="margin-bottom: 0;">
-                <h3 class="section-title">💰 Накопительный ROI</h3>
-                <div class="chart-container">
-                    <canvas id="roiChart"></canvas>
-                </div>
-            </div>
-        </div>
+{% extends "base.html" %}
+
+{% block title %}Статистика | ArenaPredictor{% endblock %}
+
+{% block extra_css %}
+<style>
+    .comparison-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        margin-bottom: 24px;
+    }
+    @media (max-width: 1100px) {
+        .comparison-grid { grid-template-columns: 1fr; }
+    }
+
+    .comparison-card {
+        background: var(--bg-card);
+        border-radius: 16px;
+        padding: 24px;
+        border: 2px solid var(--border-light);
+        box-shadow: var(--shadow);
+    }
+    .comparison-card.model  { border-color: var(--accent); }
+    .comparison-card.manual { border-color: var(--link); }
+
+    .card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+    }
+    .card-title { font-size: 1.25rem; font-weight: 700; }
+    .card-badge {
+        padding: 6px 14px;
+        border-radius: 8px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+    .badge-model  { background: rgba(190, 255, 80, 0.3); color: #5A7F00; }
+    .badge-manual { background: rgba(33, 107, 165, 0.15); color: var(--link); }
+
+    .stats-grid   { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .stats-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+
+    .stat-item {
+        background: var(--bg-secondary);
+        border-radius: 10px;
+        padding: 16px;
+        text-align: center;
+    }
+    .stat-item .value        { font-size: 1.75rem; font-weight: 700; margin-bottom: 4px; }
+    .stat-item .value.accent { color: var(--accent-dark); }
+    .stat-item .value.success{ color: var(--success); }
+    .stat-item .value.danger { color: var(--danger); }
+    .stat-item .value.link   { color: var(--link); }
+    .stat-item .label        { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; }
+
+    .section {
+        background: var(--bg-card);
+        border-radius: 12px;
+        padding: 24px;
+        border: 1px solid var(--border-light);
+        margin-bottom: 24px;
+        box-shadow: var(--shadow);
+    }
+    .section-title { font-size: 1.125rem; font-weight: 600; margin-bottom: 20px; }
+
+    .chart-container { position: relative; height: 300px; width: 100%; }
+
+    .league-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+    }
+    .league-card     { background: var(--bg-secondary); border-radius: 10px; padding: 16px; }
+    .league-header   { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .league-name     { font-weight: 600; }
+    .league-metrics  { display: flex; flex-direction: column; gap: 8px; }
+    .metric-row      { display: flex; justify-content: space-between; font-size: 0.875rem; }
+    .metric-row .name  { color: var(--text-muted); }
+    .metric-row .value { font-weight: 600; }
+
+    .progress-bar {
+        height: 6px;
+        background: var(--border);
+        border-radius: 3px;
+        overflow: hidden;
+        margin-top: 12px;
+    }
+    .progress-fill             { height: 100%; background: var(--accent); border-radius: 3px; transition: width 0.3s; }
+    .progress-fill.good        { background: var(--success); }
+    .progress-fill.warning     { background: var(--warning); }
+    .progress-fill.bad         { background: var(--danger); }
+
+    .table-container { overflow-x: auto; }
+    .stats-table     { width: 100%; border-collapse: collapse; }
+    .stats-table th  { text-align: left; padding: 12px; font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+    .stats-table td  { padding: 12px; border-bottom: 1px solid var(--border-light); }
+    .stats-table tr:last-child td { border-bottom: none; }
+
+    .trend { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; }
+    .trend.up      { color: var(--success); }
+    .trend.down    { color: var(--danger); }
+    .trend.neutral { color: var(--text-muted); }
+
+    .pattern-card {
+        background: var(--bg-secondary);
+        border-radius: 10px;
+        padding: 14px 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .pattern-name  { font-weight: 600; font-size: 0.9rem; }
+    .pattern-stats { display: flex; gap: 16px; align-items: center; }
+    .pattern-stat  { text-align: center; }
+    .pattern-stat .value { font-weight: 700; font-size: 1rem; }
+    .pattern-stat .label { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; }
+    .pattern-list  { display: flex; flex-direction: column; gap: 10px; }
+
+    .empty-state   { text-align: center; padding: 40px; color: var(--text-muted); }
+
+    .pending-badge {
+        background: var(--warning);
+        color: white;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    @media (max-width: 768px) {
+        .comparison-grid { grid-template-columns: 1fr; }
+        .stats-grid-3    { grid-template-columns: repeat(2, 1fr); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <h1 class="page-title">Аналитика точности модели</h1>
+    <p class="page-subtitle">
+        Детальный анализ прогнозов по видам спорта, лигам, паттернам и уровню уверенности
+        {% if model_stats.pending > 0 %}
+        <span class="pending-badge">{{ model_stats.pending }} ожидают результата</span>
         {% endif %}
-        
-        <div class="section">
-            <h3 class="section-title">🏟️ Точность по видам спорта</h3>
-            <div class="league-stats">
-                {% if sport_stats %}
-                {% for sport in sport_stats.values() %}
-                <div class="league-card">
-                    <div class="league-header">
-                        <span>{{ sport.icon }}</span>
-                        <span class="league-name">{{ sport.name_ru }}</span>
-                    </div>
-                    <div class="league-metrics">
-                        <div class="metric-row">
-                            <span class="name">Прогнозов</span>
-                            <span class="value">{{ sport.total }}</span>
-                        </div>
-                        <div class="metric-row">
-                            <span class="name">W / L</span>
-                            <span class="value" style="color: var(--success)">{{ sport.wins }}</span> /
-                            <span class="value" style="color: var(--danger)">{{ sport.losses }}</span>
-                        </div>
-                        <div class="metric-row">
-                            <span class="name">Win Rate</span>
-                            <span class="value" style="color: {% if sport.win_rate >= 55 %}var(--success){% elif sport.win_rate >= 50 %}var(--warning){% else %}var(--danger){% endif %}">
-                                {{ '%.1f'|format(sport.win_rate) }}%
-                            </span>
-                        </div>
-                        <div class="metric-row">
-                            <span class="name">ROI</span>
-                            <span class="value" style="color: {% if sport.roi > 0 %}var(--success){% else %}var(--danger){% endif %}">
-                                {{ '%+.1f'|format(sport.roi) }}%
-                            </span>
-                        </div>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill {% if sport.win_rate >= 55 %}good{% elif sport.win_rate >= 50 %}warning{% else %}bad{% endif %}"
-                             style="width: {{ sport.win_rate }}%;"></div>
-                    </div>
+    </p>
+
+    <div class="comparison-grid">
+        <div class="comparison-card model">
+            <div class="card-header">
+                <h2 class="card-title">Все прогнозы модели</h2>
+                <span class="card-badge badge-model">AI</span>
+            </div>
+            <div class="stats-grid-3">
+                <div class="stat-item">
+                    <div class="value">{{ model_stats.total or 0 }}</div>
+                    <div class="label">Завершено</div>
                 </div>
-                {% endfor %}
-                {% else %}
-                <div class="empty-state">
-                    <p>По видам спорта пока недостаточно завершённых прогнозов.</p>
+                <div class="stat-item">
+                    <div class="value success">{{ model_stats.wins or 0 }}</div>
+                    <div class="label">Выигрыши</div>
                 </div>
-                {% endif %}
+                <div class="stat-item">
+                    <div class="value danger">{{ model_stats.losses or 0 }}</div>
+                    <div class="label">Проигрыши</div>
+                </div>
+                <div class="stat-item">
+                    <div class="value accent">{{ '%.1f'|format(model_stats.win_rate or 0) }}%</div>
+                    <div class="label">Win Rate</div>
+                </div>
+                <div class="stat-item">
+                    <div class="value {% if (model_stats.roi or 0) > 0 %}success{% else %}danger{% endif %}">
+                        {{ '%+.1f'|format(model_stats.roi or 0) }}%
+                    </div>
+                    <div class="label">ROI</div>
+                </div>
+                <div class="stat-item">
+                    <div class="value link">{{ model_stats.pending or 0 }}</div>
+                    <div class="label">Ожидают</div>
+                </div>
             </div>
         </div>
 
-        <div class="section">
-            <h3 class="section-title">🏒 Точность по лигам</h3>
-            <div class="league-stats">
-                {% if league_order %}
-                {% for league in league_order %}
-                <div class="league-card">
-                    <div class="league-header">
-                        <span>{{ league_stats[league].sport_icon }}</span>
-                        <div>
-                            <div class="league-name">{{ league }}</div>
-                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">
-                                {{ league_stats[league].sport_name }}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="league-metrics">
-                        <div class="metric-row">
-                            <span class="name">Прогнозов</span>
-                            <span class="value">{{ league_stats[league].total }}</span>
-                        </div>
-                        <div class="metric-row">
-                            <span class="name">W / L</span>
-                            <span class="value" style="color: var(--success)">{{ league_stats[league].wins }}</span> /
-                            <span class="value" style="color: var(--danger)">{{ league_stats[league].losses }}</span>
-                        </div>
-                        <div class="metric-row">
-                            <span class="name">Win Rate</span>
-                            <span class="value" style="color: {% if league_stats[league].win_rate >= 55 %}var(--success){% elif league_stats[league].win_rate >= 50 %}var(--warning){% else %}var(--danger){% endif %}">
-                                {{ '%.1f'|format(league_stats[league].win_rate) }}%
-                            </span>
-                        </div>
-                        <div class="metric-row">
-                            <span class="name">ROI</span>
-                            <span class="value" style="color: {% if league_stats[league].roi > 0 %}var(--success){% else %}var(--danger){% endif %}">
-                                {{ '%+.1f'|format(league_stats[league].roi) }}%
-                            </span>
-                        </div>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill {% if league_stats[league].win_rate >= 55 %}good{% elif league_stats[league].win_rate >= 50 %}warning{% else %}bad{% endif %}"
-                             style="width: {{ league_stats[league].win_rate }}%;"></div>
-                    </div>
+        <div class="comparison-card rl" style="border-color: #8B5CF6;">
+            <div class="card-header">
+                <h2 class="card-title">RL-агент рекомендует</h2>
+                <span class="card-badge" style="background: rgba(139, 92, 246, 0.2); color: #8B5CF6;">🤖 RL</span>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="value">{{ rl_stats.bet_count or 0 }}</div>
+                    <div class="label">BET</div>
                 </div>
-                {% endfor %}
-                {% else %}
-                <div class="empty-state">
-                    <p>По лигам пока нет завершённых прогнозов.</p>
+                <div class="stat-item">
+                    <div class="value" style="color: var(--text-muted)">{{ rl_stats.skip_count or 0 }}</div>
+                    <div class="label">SKIP</div>
                 </div>
-                {% endif %}
+                <div class="stat-item">
+                    <div class="value success">{{ rl_stats.wins or 0 }}</div>
+                    <div class="label">Выигрыши</div>
+                </div>
+                <div class="stat-item">
+                    <div class="value" style="color: #8B5CF6;">{{ '%.1f'|format(rl_stats.win_rate or 0) }}%</div>
+                    <div class="label">Win Rate</div>
+                </div>
+                <div class="stat-item">
+                    <div class="value {% if (rl_stats.roi or 0) > 0 %}success{% else %}danger{% endif %}">
+                        {{ '%+.1f'|format(rl_stats.roi or 0) }}%
+                    </div>
+                    <div class="label">ROI</div>
+                </div>
+                <div class="stat-item">
+                    <div class="value success">{{ rl_stats.skip_saved or 0 }}</div>
+                    <div class="label">Спасено SKIP</div>
+                </div>
+            </div>
+            <div style="margin-top: 12px; font-size: 0.75rem; color: var(--text-muted); text-align: center;">
+                Агент отфильтровал {{ rl_stats.skip_count or 0 }} рискованных ставок
             </div>
         </div>
-        
-        {% if pattern_stats %}
-        <div class="section">
-            <h3 class="section-title">🎯 Точность по типам паттернов</h3>
-            <div class="pattern-list">
-                {% for pattern_type, stats in pattern_stats.items() %}
-                <div class="pattern-card">
-                    <span class="pattern-name">{{ pattern_type }}</span>
-                    <div class="pattern-stats">
-                        <div class="pattern-stat">
-                            <div class="value">{{ stats.total }}</div>
-                            <div class="label">Всего</div>
-                        </div>
-                        <div class="pattern-stat">
-                            <div class="value" style="color: var(--success)">{{ stats.wins }}</div>
-                            <div class="label">Побед</div>
-                        </div>
-                        <div class="pattern-stat">
-                            <div class="value" style="color: {% if stats.win_rate >= 55 %}var(--success){% elif stats.win_rate >= 50 %}var(--warning){% else %}var(--danger){% endif %}">
-                                {{ '%.1f'|format(stats.win_rate) }}%
-                            </div>
-                            <div class="label">Win Rate</div>
-                        </div>
-                    </div>
+
+        <div class="comparison-card manual">
+            <div class="card-header">
+                <h2 class="card-title">Ваш ручной отбор</h2>
+                <span class="card-badge badge-manual">Вы</span>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="value">{{ manual_stats.total or 0 }}</div>
+                    <div class="label">Принято</div>
                 </div>
-                {% endfor %}
+                <div class="stat-item">
+                    <div class="value success">{{ manual_stats.wins or 0 }}</div>
+                    <div class="label">Выигрыши</div>
+                </div>
+                <div class="stat-item">
+                    <div class="value link">{{ '%.1f'|format(manual_stats.win_rate or 0) }}%</div>
+                    <div class="label">Win Rate</div>
+                </div>
+                <div class="stat-item">
+                    <div class="value {% if (manual_stats.roi or 0) > 0 %}success{% else %}danger{% endif %}">
+                        {{ '%+.1f'|format(manual_stats.roi or 0) }}%
+                    </div>
+                    <div class="label">ROI</div>
+                </div>
             </div>
         </div>
-        {% endif %}
-        
-        <div class="section">
-            <h3 class="section-title">🎚️ Точность по уровню уверенности</h3>
-            <div class="league-stats">
-                {% for conf in range(1, 11) %}
-                <div class="league-card" style="text-align: center;">
-                    <div style="font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; color: var(--accent-dark);">{{ conf }}/10</div>
-                    {% if confidence_stats and conf in confidence_stats %}
-                    <div class="league-metrics">
-                        <div class="metric-row">
-                            <span class="name">Ставок</span>
-                            <span class="value">{{ confidence_stats[conf].total }}</span>
-                        </div>
-                        <div class="metric-row">
-                            <span class="name">Win Rate</span>
-                            <span class="value" style="color: {% if confidence_stats[conf].win_rate >= 55 %}var(--success){% elif confidence_stats[conf].win_rate >= 50 %}var(--warning){% else %}var(--danger){% endif %}">
-                                {{ '%.0f'|format(confidence_stats[conf].win_rate) }}%
-                            </span>
-                        </div>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill {% if confidence_stats[conf].win_rate >= 55 %}good{% elif confidence_stats[conf].win_rate >= 50 %}warning{% else %}bad{% endif %}" 
-                             style="width: {{ confidence_stats[conf].win_rate }}%;"></div>
-                    </div>
-                    {% else %}
-                    <div class="league-metrics">
-                        <div class="metric-row">
-                            <span class="name">-</span>
-                        </div>
-                    </div>
-                    {% endif %}
-                </div>
-                {% endfor %}
+    </div>
+
+    {% if chart_data and chart_data.labels %}
+    <div class="charts-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
+        <div class="section" style="margin-bottom: 0;">
+            <h3 class="section-title">📈 Динамика точности</h3>
+            <div class="chart-container">
+                <canvas id="accuracyChart"></canvas>
             </div>
         </div>
-        
-        <div class="section">
-            <h3 class="section-title">📅 История по месяцам</h3>
-            {% if monthly_stats %}
-            <div class="table-container">
-                <table class="stats-table">
-                    <thead>
-                        <tr>
-                            <th>Месяц</th>
-                            <th>Прогнозов</th>
-                            <th>W / L</th>
-                            <th>Win Rate</th>
-                            <th>ROI</th>
-                            <th>Принято</th>
-                            <th>Тренд</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for month in monthly_stats %}
-                        <tr>
-                            <td><strong>{{ month.month }}</strong></td>
-                            <td>{{ month.total }}</td>
-                            <td>
-                                <span style="color: var(--success)">{{ month.wins }}</span> / 
-                                <span style="color: var(--danger)">{{ month.total - month.wins }}</span>
-                            </td>
-                            <td style="color: {% if month.win_rate >= 55 %}var(--success){% elif month.win_rate >= 50 %}var(--warning){% else %}var(--danger){% endif %}">
-                                {{ '%.1f'|format(month.win_rate) }}%
-                            </td>
-                            <td style="color: {% if month.roi > 0 %}var(--success){% else %}var(--danger){% endif %}">
-                                {{ '%+.1f'|format(month.roi) }}%
-                            </td>
-                            <td>{{ month.accepted }}</td>
-                            <td>
-                                <span class="trend {{ 'up' if month.trend > 0 else 'down' if month.trend < 0 else 'neutral' }}">
-                                    {% if month.trend > 0 %}↑ Рост{% elif month.trend < 0 %}↓ Спад{% else %}→ Стабильно{% endif %}
-                                </span>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+        <div class="section" style="margin-bottom: 0;">
+            <h3 class="section-title">💰 Накопительный ROI</h3>
+            <div class="chart-container">
+                <canvas id="roiChart"></canvas>
             </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="section">
+        <h3 class="section-title">🏟️ Точность по видам спорта</h3>
+        <div class="league-stats">
+            {% if sport_stats %}
+            {% for sport in sport_stats.values() %}
+            <div class="league-card">
+                <div class="league-header">
+                    <span>{{ sport.icon }}</span>
+                    <span class="league-name">{{ sport.name_ru }}</span>
+                </div>
+                <div class="league-metrics">
+                    <div class="metric-row">
+                        <span class="name">Прогнозов</span>
+                        <span class="value">{{ sport.total }}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="name">W / L</span>
+                        <span class="value" style="color: var(--success)">{{ sport.wins }}</span> /
+                        <span class="value" style="color: var(--danger)">{{ sport.losses }}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="name">Win Rate</span>
+                        <span class="value" style="color: {% if sport.win_rate >= 55 %}var(--success){% elif sport.win_rate >= 50 %}var(--warning){% else %}var(--danger){% endif %}">
+                            {{ '%.1f'|format(sport.win_rate) }}%
+                        </span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="name">ROI</span>
+                        <span class="value" style="color: {% if sport.roi > 0 %}var(--success){% else %}var(--danger){% endif %}">
+                            {{ '%+.1f'|format(sport.roi) }}%
+                        </span>
+                    </div>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill {% if sport.win_rate >= 55 %}good{% elif sport.win_rate >= 50 %}warning{% else %}bad{% endif %}"
+                         style="width: {{ sport.win_rate }}%;"></div>
+                </div>
+            </div>
+            {% endfor %}
             {% else %}
             <div class="empty-state">
-                <p>Статистика появится после накопления результатов прогнозов.</p>
-                <p style="margin-top: 8px; font-size: 0.9rem;">Система автоматически проверяет результаты каждые 12 часов.</p>
+                <p>По видам спорта пока недостаточно завершённых прогнозов.</p>
             </div>
             {% endif %}
         </div>
     </div>
-    
-    {% if chart_data and chart_data.labels %}
-    <script>
-        const ctx = document.getElementById('accuracyChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: {{ chart_data.labels | tojson }},
-                datasets: [{
-                    label: 'Win Rate %',
-                    data: {{ chart_data.win_rates | tojson }},
-                    borderColor: '#BEFF50',
-                    backgroundColor: 'rgba(190, 255, 80, 0.1)',
-                    fill: true,
-                    tension: 0.3,
-                    pointBackgroundColor: '#9FDF00',
-                    pointBorderColor: '#fff',
-                    pointRadius: 5,
-                    pointHoverRadius: 7
-                }, {
-                    label: 'Прогнозов',
-                    data: {{ chart_data.totals | tojson }},
-                    borderColor: '#216BA5',
-                    backgroundColor: 'rgba(33, 107, 165, 0.1)',
-                    fill: false,
-                    tension: 0.3,
-                    pointBackgroundColor: '#216BA5',
-                    pointBorderColor: '#fff',
-                    pointRadius: 4,
-                    yAxisID: 'y1'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: {
-                    mode: 'index',
-                    intersect: false
-                },
-                plugins: {
-                    legend: {
-                        position: 'top',
-                        labels: {
-                            usePointStyle: true,
-                            padding: 20
-                        }
-                    },
-                    tooltip: {
-                        backgroundColor: 'rgba(20, 20, 15, 0.9)',
-                        titleColor: '#BEFF50',
-                        bodyColor: '#fff',
-                        padding: 12,
-                        cornerRadius: 8
-                    }
-                },
-                scales: {
-                    y: {
-                        type: 'linear',
-                        display: true,
-                        position: 'left',
-                        min: 0,
-                        max: 100,
-                        title: {
-                            display: true,
-                            text: 'Win Rate %'
-                        },
-                        grid: {
-                            color: 'rgba(0,0,0,0.05)'
-                        }
-                    },
-                    y1: {
-                        type: 'linear',
-                        display: true,
-                        position: 'right',
-                        min: 0,
-                        title: {
-                            display: true,
-                            text: 'Количество'
-                        },
-                        grid: {
-                            drawOnChartArea: false
-                        }
-                    },
-                    x: {
-                        grid: {
-                            display: false
-                        }
-                    }
-                }
-            }
-        });
-        
-        // Накопительный ROI график
-        const ctxRoi = document.getElementById('roiChart').getContext('2d');
-        const roiData = {{ chart_data.cumulative_roi | default([]) | tojson }};
-        
-        new Chart(ctxRoi, {
-            type: 'line',
-            data: {
-                labels: {{ chart_data.labels | tojson }},
-                datasets: [{
-                    label: 'Накопительный ROI %',
-                    data: roiData,
-                    borderColor: roiData.map(v => v >= 0 ? '#22C55E' : '#EF4444'),
-                    backgroundColor: function(context) {
-                        const value = context.raw;
-                        return value >= 0 ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)';
-                    },
-                    fill: true,
-                    tension: 0.3,
-                    pointBackgroundColor: roiData.map(v => v >= 0 ? '#22C55E' : '#EF4444'),
-                    pointBorderColor: '#fff',
-                    pointRadius: 6,
-                    pointHoverRadius: 8,
-                    segment: {
-                        borderColor: function(ctx) {
-                            return ctx.p1.raw >= 0 ? '#22C55E' : '#EF4444';
-                        }
-                    }
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    tooltip: {
-                        backgroundColor: 'rgba(20, 20, 15, 0.9)',
-                        titleColor: '#BEFF50',
-                        bodyColor: '#fff',
-                        padding: 12,
-                        cornerRadius: 8,
-                        callbacks: {
-                            label: function(context) {
-                                return 'ROI: ' + (context.raw >= 0 ? '+' : '') + context.raw + '%';
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        title: {
-                            display: true,
-                            text: 'ROI %'
-                        },
-                        grid: {
-                            color: function(context) {
-                                if (context.tick.value === 0) {
-                                    return 'rgba(0,0,0,0.3)';
-                                }
-                                return 'rgba(0,0,0,0.05)';
-                            }
-                        }
-                    },
-                    x: {
-                        grid: {
-                            display: false
-                        }
-                    }
-                }
-            }
-        });
-    </script>
+
+    <div class="section">
+        <h3 class="section-title">🏒 Точность по лигам</h3>
+        <div class="league-stats">
+            {% if league_order %}
+            {% for league in league_order %}
+            <div class="league-card">
+                <div class="league-header">
+                    <span>{{ league_stats[league].sport_icon }}</span>
+                    <div>
+                        <div class="league-name">{{ league }}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">
+                            {{ league_stats[league].sport_name }}
+                        </div>
+                    </div>
+                </div>
+                <div class="league-metrics">
+                    <div class="metric-row">
+                        <span class="name">Прогнозов</span>
+                        <span class="value">{{ league_stats[league].total }}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="name">W / L</span>
+                        <span class="value" style="color: var(--success)">{{ league_stats[league].wins }}</span> /
+                        <span class="value" style="color: var(--danger)">{{ league_stats[league].losses }}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="name">Win Rate</span>
+                        <span class="value" style="color: {% if league_stats[league].win_rate >= 55 %}var(--success){% elif league_stats[league].win_rate >= 50 %}var(--warning){% else %}var(--danger){% endif %}">
+                            {{ '%.1f'|format(league_stats[league].win_rate) }}%
+                        </span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="name">ROI</span>
+                        <span class="value" style="color: {% if league_stats[league].roi > 0 %}var(--success){% else %}var(--danger){% endif %}">
+                            {{ '%+.1f'|format(league_stats[league].roi) }}%
+                        </span>
+                    </div>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill {% if league_stats[league].win_rate >= 55 %}good{% elif league_stats[league].win_rate >= 50 %}warning{% else %}bad{% endif %}"
+                         style="width: {{ league_stats[league].win_rate }}%;"></div>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="empty-state">
+                <p>По лигам пока нет завершённых прогнозов.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if pattern_stats %}
+    <div class="section">
+        <h3 class="section-title">🎯 Точность по типам паттернов</h3>
+        <div class="pattern-list">
+            {% for pattern_type, stats in pattern_stats.items() %}
+            <div class="pattern-card">
+                <span class="pattern-name">{{ pattern_type }}</span>
+                <div class="pattern-stats">
+                    <div class="pattern-stat">
+                        <div class="value">{{ stats.total }}</div>
+                        <div class="label">Всего</div>
+                    </div>
+                    <div class="pattern-stat">
+                        <div class="value" style="color: var(--success)">{{ stats.wins }}</div>
+                        <div class="label">Побед</div>
+                    </div>
+                    <div class="pattern-stat">
+                        <div class="value" style="color: {% if stats.win_rate >= 55 %}var(--success){% elif stats.win_rate >= 50 %}var(--warning){% else %}var(--danger){% endif %}">
+                            {{ '%.1f'|format(stats.win_rate) }}%
+                        </div>
+                        <div class="label">Win Rate</div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
     {% endif %}
-</body>
-</html>
+
+    <div class="section">
+        <h3 class="section-title">🎚️ Точность по уровню уверенности</h3>
+        <div class="league-stats">
+            {% for conf in range(1, 11) %}
+            <div class="league-card" style="text-align: center;">
+                <div style="font-size: 1.5rem; font-weight: 700; margin-bottom: 8px; color: var(--accent-dark);">{{ conf }}/10</div>
+                {% if confidence_stats and conf in confidence_stats %}
+                <div class="league-metrics">
+                    <div class="metric-row">
+                        <span class="name">Ставок</span>
+                        <span class="value">{{ confidence_stats[conf].total }}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="name">Win Rate</span>
+                        <span class="value" style="color: {% if confidence_stats[conf].win_rate >= 55 %}var(--success){% elif confidence_stats[conf].win_rate >= 50 %}var(--warning){% else %}var(--danger){% endif %}">
+                            {{ '%.0f'|format(confidence_stats[conf].win_rate) }}%
+                        </span>
+                    </div>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill {% if confidence_stats[conf].win_rate >= 55 %}good{% elif confidence_stats[conf].win_rate >= 50 %}warning{% else %}bad{% endif %}"
+                         style="width: {{ confidence_stats[conf].win_rate }}%;"></div>
+                </div>
+                {% else %}
+                <div class="league-metrics">
+                    <div class="metric-row"><span class="name">-</span></div>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="section">
+        <h3 class="section-title">📅 История по месяцам</h3>
+        {% if monthly_stats %}
+        <div class="table-container">
+            <table class="stats-table">
+                <thead>
+                    <tr>
+                        <th>Месяц</th>
+                        <th>Прогнозов</th>
+                        <th>W / L</th>
+                        <th>Win Rate</th>
+                        <th>ROI</th>
+                        <th>Принято</th>
+                        <th>Тренд</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for month in monthly_stats %}
+                    <tr>
+                        <td><strong>{{ month.month }}</strong></td>
+                        <td>{{ month.total }}</td>
+                        <td>
+                            <span style="color: var(--success)">{{ month.wins }}</span> /
+                            <span style="color: var(--danger)">{{ month.total - month.wins }}</span>
+                        </td>
+                        <td style="color: {% if month.win_rate >= 55 %}var(--success){% elif month.win_rate >= 50 %}var(--warning){% else %}var(--danger){% endif %}">
+                            {{ '%.1f'|format(month.win_rate) }}%
+                        </td>
+                        <td style="color: {% if month.roi > 0 %}var(--success){% else %}var(--danger){% endif %}">
+                            {{ '%+.1f'|format(month.roi) }}%
+                        </td>
+                        <td>{{ month.accepted }}</td>
+                        <td>
+                            <span class="trend {{ 'up' if month.trend > 0 else 'down' if month.trend < 0 else 'neutral' }}">
+                                {% if month.trend > 0 %}↑ Рост{% elif month.trend < 0 %}↓ Спад{% else %}→ Стабильно{% endif %}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <p>Статистика появится после накопления результатов прогнозов.</p>
+            <p style="margin-top: 8px; font-size: 0.9rem;">Система автоматически проверяет результаты каждые 12 часов.</p>
+        </div>
+        {% endif %}
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+{% if chart_data and chart_data.labels %}
+<script>
+    const ctx = document.getElementById('accuracyChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ chart_data.labels | tojson }},
+            datasets: [{
+                label: 'Win Rate %',
+                data: {{ chart_data.win_rates | tojson }},
+                borderColor: '#BEFF50',
+                backgroundColor: 'rgba(190, 255, 80, 0.1)',
+                fill: true,
+                tension: 0.3,
+                pointBackgroundColor: '#9FDF00',
+                pointBorderColor: '#fff',
+                pointRadius: 5,
+                pointHoverRadius: 7
+            }, {
+                label: 'Прогнозов',
+                data: {{ chart_data.totals | tojson }},
+                borderColor: '#216BA5',
+                backgroundColor: 'rgba(33, 107, 165, 0.1)',
+                fill: false,
+                tension: 0.3,
+                pointBackgroundColor: '#216BA5',
+                pointBorderColor: '#fff',
+                pointRadius: 4,
+                yAxisID: 'y1'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: { position: 'top', labels: { usePointStyle: true, padding: 20 } },
+                tooltip: {
+                    backgroundColor: 'rgba(20, 20, 15, 0.9)',
+                    titleColor: '#BEFF50',
+                    bodyColor: '#fff',
+                    padding: 12,
+                    cornerRadius: 8
+                }
+            },
+            scales: {
+                y: {
+                    type: 'linear', display: true, position: 'left',
+                    min: 0, max: 100,
+                    title: { display: true, text: 'Win Rate %' },
+                    grid: { color: 'rgba(0,0,0,0.05)' }
+                },
+                y1: {
+                    type: 'linear', display: true, position: 'right', min: 0,
+                    title: { display: true, text: 'Количество' },
+                    grid: { drawOnChartArea: false }
+                },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+
+    const ctxRoi = document.getElementById('roiChart').getContext('2d');
+    const roiData = {{ chart_data.cumulative_roi | default([]) | tojson }};
+
+    new Chart(ctxRoi, {
+        type: 'line',
+        data: {
+            labels: {{ chart_data.labels | tojson }},
+            datasets: [{
+                label: 'Накопительный ROI %',
+                data: roiData,
+                borderColor: roiData.map(v => v >= 0 ? '#22C55E' : '#EF4444'),
+                backgroundColor: function(context) {
+                    const value = context.raw;
+                    return value >= 0 ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)';
+                },
+                fill: true,
+                tension: 0.3,
+                pointBackgroundColor: roiData.map(v => v >= 0 ? '#22C55E' : '#EF4444'),
+                pointBorderColor: '#fff',
+                pointRadius: 6,
+                pointHoverRadius: 8,
+                segment: {
+                    borderColor: function(ctx) {
+                        return ctx.p1.raw >= 0 ? '#22C55E' : '#EF4444';
+                    }
+                }
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(20, 20, 15, 0.9)',
+                    titleColor: '#BEFF50',
+                    bodyColor: '#fff',
+                    padding: 12,
+                    cornerRadius: 8,
+                    callbacks: {
+                        label: function(context) {
+                            return 'ROI: ' + (context.raw >= 0 ? '+' : '') + context.raw + '%';
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    title: { display: true, text: 'ROI %' },
+                    grid: {
+                        color: function(context) {
+                            return context.tick.value === 0 ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.05)';
+                        }
+                    }
+                },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+</script>
+{% endif %}
+{% endblock %}

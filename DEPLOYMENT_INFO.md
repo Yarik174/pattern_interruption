@@ -8,7 +8,7 @@
 ```
 IP:       193.124.114.156
 SSH User: root
-SSH Pass: 2WbTYDy0wA
+SSH Pass: Y0XrsOh61Pa3rrV7O2Mjul2Q
 Hostname: ruvds-8bfac
 DC:       Rucloud (Королёв, Россия)
 CPU:      2x2.2GHz

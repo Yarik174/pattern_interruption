@@ -3,7 +3,11 @@ Prediction CRUD routes: list, detail, decide.
 """
 from __future__ import annotations
 
+import logging
+
 from flask import Blueprint, redirect, request, url_for
+
+logger = logging.getLogger(__name__)
 
 from src.routes.helpers import (
     get_odds_loader_for_sport,
@@ -35,7 +39,7 @@ def predictions_page() -> str:
 
             total = rt.Prediction.query.count()
 
-            completed = rt.Prediction.query.filter(rt.Prediction.is_win != None).all()  # noqa: E711
+            completed = rt.Prediction.query.filter(rt.Prediction.is_win.isnot(None)).all()
             pending = total - len(completed)
             wins = sum(1 for p in completed if p.is_win)
             losses = len(completed) - wins
@@ -53,7 +57,7 @@ def predictions_page() -> str:
                 'roi': round(roi, 1),
             }
         except Exception as e:
-            print(f"Error loading predictions: {e}")
+            logger.error(f"Error in predictions_page: {e}", exc_info=True)
 
     return rt.render_template('predictions.html', predictions=predictions, stats=stats)
 
@@ -94,10 +98,10 @@ def prediction_detail(prediction_id: int) -> str:
                         away_history = h2h_data.get('away_team_matches', [])
                         h2h_history = h2h_data.get('mutual_matches', [])
                 except Exception as e:
-                    print(f"Error loading H2H data: {e}")
+                    logger.error(f"Error in prediction_detail (H2H, id={prediction_id}): {e}", exc_info=True)
 
         except Exception as e:
-            print(f"Error loading prediction: {e}")
+            logger.error(f"Error in prediction_detail (id={prediction_id}): {e}", exc_info=True)
             return "Прогноз не найден", 404  # type: ignore[return-value]
 
     # RL agent recommendation
@@ -113,7 +117,7 @@ def prediction_detail(prediction_id: int) -> str:
             }
             rl_recommendation = get_rl_recommendation_for_prediction(prediction_data)
         except Exception as e:
-            print(f"Error getting RL recommendation: {e}")
+            logger.error(f"Error in prediction_detail (RL recommendation, id={prediction_id}): {e}", exc_info=True)
 
     return rt.render_template(
         'prediction_detail.html',
@@ -151,7 +155,7 @@ def prediction_decide(prediction_id: int):
             rt.db.session.add(user_decision)
             rt.db.session.commit()
     except Exception as e:
-        print(f"Error saving decision: {e}")
+        logger.error(f"Error in prediction_decide (id={prediction_id}): {e}", exc_info=True)
         rt.db.session.rollback()
 
     return redirect(url_for('routes.prediction_detail', prediction_id=prediction_id))

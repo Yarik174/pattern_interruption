@@ -3,9 +3,12 @@ JSON API endpoints.
 """
 from __future__ import annotations
 
+import logging
 from datetime import datetime
 
 from flask import Blueprint, jsonify, request
+
+logger = logging.getLogger(__name__)
 
 from src.routes.helpers import (
     build_decision_trace_summary,
@@ -104,7 +107,8 @@ def api_monitor_stats():
             try:
                 matches = loader.get_upcoming_games(days_ahead=1)
                 stats['matches_available'] = len(matches)
-            except Exception:
+            except Exception as e:
+                logger.error(f"Error in api_monitor_stats (get_upcoming_games): {e}", exc_info=True)
                 stats['matches_available'] = 0
         else:
             stats['matches_available'] = 0
@@ -117,7 +121,8 @@ def api_monitor_stats():
                 rt.Prediction.created_at >= today_start
             ).count()
             stats['bets_suggested'] = today_predictions
-        except Exception:
+        except Exception as e:
+            logger.error(f"Error in api_monitor_stats (bets_suggested): {e}", exc_info=True)
             stats['bets_suggested'] = 0
     else:
         stats['bets_suggested'] = 0
@@ -144,7 +149,7 @@ def api_predictions():
 
             predictions = [p.to_dict() for p in query.limit(limit).all()]
         except Exception as e:
-            print(f"Error in API: {e}")
+            logger.error(f"Error in api_predictions: {e}", exc_info=True)
 
     return jsonify({'predictions': predictions})
 
@@ -161,6 +166,7 @@ def api_prediction_detail(prediction_id: int):
                 return jsonify({'error': 'Not found'}), 404
             return jsonify(prediction.to_dict())
         except Exception as e:
+            logger.error(f"Error in api_prediction_detail (id={prediction_id}): {e}", exc_info=True)
             return jsonify({'error': str(e)}), 404
 
     return jsonify({'error': 'Not found'}), 404
@@ -264,6 +270,7 @@ def api_watchlist_add(prediction_id: int):
         return jsonify({'status': 'added'})
     except Exception as e:
         rt.db.session.rollback()
+        logger.error(f"Error in api_watchlist_add (id={prediction_id}): {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 
@@ -282,6 +289,7 @@ def api_watchlist_remove(prediction_id: int):
         return jsonify({'status': 'removed'})
     except Exception as e:
         rt.db.session.rollback()
+        logger.error(f"Error in api_watchlist_remove (id={prediction_id}): {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 
@@ -302,4 +310,5 @@ def api_watchlist_note(prediction_id: int):
         return jsonify({'status': 'ok'})
     except Exception as e:
         rt.db.session.rollback()
+        logger.error(f"Error in api_watchlist_note (id={prediction_id}): {e}", exc_info=True)
         return jsonify({'error': str(e)}), 500
