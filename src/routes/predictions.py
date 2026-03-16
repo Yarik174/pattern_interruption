@@ -79,26 +79,39 @@ def prediction_detail(prediction_id: int) -> str:
             if prediction is None:
                 return "Прогноз не найден", 404  # type: ignore[return-value]
 
-            event_id = prediction.flashlive_event_id
-            if not event_id and prediction.patterns_data:
-                event_id = prediction.patterns_data.get('event_id', '')
-                if event_id:
-                    event_id = event_id.replace('flash_', '')
+            # Read H2H from DB (saved at prediction creation)
+            h2h_data = getattr(prediction, 'h2h_data', None)
 
-            loader = get_odds_loader_for_sport(
-                getattr(prediction, 'sport_type', None)
-                or resolve_sport_type_from_league(prediction.league)
-            )
+            # Fallback to live API if DB has no H2H
+            if not h2h_data:
+                event_id = prediction.flashlive_event_id
+                if not event_id and prediction.patterns_data:
+                    event_id = prediction.patterns_data.get('event_id', '')
+                    if event_id:
+                        event_id = event_id.replace('flash_', '')
 
-            if event_id and loader:
-                try:
-                    h2h_data = loader.get_h2h_data(event_id)
-                    if h2h_data:
-                        home_history = h2h_data.get('home_team_matches', [])
-                        away_history = h2h_data.get('away_team_matches', [])
-                        h2h_history = h2h_data.get('mutual_matches', [])
-                except Exception as e:
-                    logger.error(f"Error in prediction_detail (H2H, id={prediction_id}): {e}", exc_info=True)
+                loader = get_odds_loader_for_sport(
+                    getattr(prediction, 'sport_type', None)
+                    or resolve_sport_type_from_league(prediction.league)
+                )
+
+                if event_id and loader:
+                    try:
+                        h2h_data = loader.get_h2h_data(event_id)
+                        # Cache in DB for next time
+                        if h2h_data:
+                            try:
+                                prediction.h2h_data = h2h_data
+                                rt.db.session.commit()
+                            except Exception:
+                                rt.db.session.rollback()
+                    except Exception as e:
+                        logger.error(f"Error in prediction_detail (H2H, id={prediction_id}): {e}", exc_info=True)
+
+            if h2h_data:
+                home_history = h2h_data.get('home_team_matches', [])
+                away_history = h2h_data.get('away_team_matches', [])
+                h2h_history = h2h_data.get('mutual_matches', [])
 
         except Exception as e:
             logger.error(f"Error in prediction_detail (id={prediction_id}): {e}", exc_info=True)

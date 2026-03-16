@@ -151,6 +151,19 @@ def create_prediction_from_match(
             except Exception as e:
                 logger.warning(f"RL recommendation not available: {e}")
             
+            # Fetch H2H data at creation time so UI reads from DB
+            h2h_data = None
+            if flashlive_event_id:
+                try:
+                    from src.routes.helpers import get_odds_loader_for_sport
+                    loader = get_odds_loader_for_sport(
+                        infer_sport_type_from_league(match.get('league', ''))
+                    )
+                    if loader:
+                        h2h_data = loader.get_h2h_data(flashlive_event_id)
+                except Exception as e:
+                    logger.warning(f"H2H fetch at prediction creation failed: {e}")
+
             prediction = Prediction(
                 created_at=datetime.utcnow(),
                 match_date=match_dt,
@@ -184,6 +197,7 @@ def create_prediction_from_match(
                 },
                 model_version='AutoMonitor_v2',
                 flashlive_event_id=flashlive_event_id,
+                h2h_data=h2h_data,
                 rl_recommendation=rl_action,
                 rl_confidence=rl_conf,
                 rl_comment=rl_comment

@@ -43,6 +43,9 @@ class Prediction(db.Model):
     notified_telegram = db.Column(db.Boolean, default=False)
     flashlive_event_id = db.Column(db.String(50))
     
+    # H2H data (cached at prediction creation time)
+    h2h_data = db.Column(db.JSON)  # {home_team_matches, away_team_matches, mutual_matches}
+
     # RL-агент рекомендация
     rl_recommendation = db.Column(db.String(10))  # 'BET' или 'SKIP'
     rl_confidence = db.Column(db.Float)
