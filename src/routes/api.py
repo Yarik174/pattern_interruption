@@ -251,6 +251,18 @@ def api_auto_monitor_check():
     return jsonify({'ok': False, 'error': 'AutoMonitor not available'})
 
 
+@api_bp.route('/api/auto-monitor/check-results', methods=['POST'])
+def api_check_results():
+    """Trigger result checking only (works even in dry-run mode)."""
+    from src.odds_monitor import get_auto_monitor
+
+    monitor = get_auto_monitor()
+    if monitor:
+        result = monitor.check_results()
+        return jsonify({'ok': True, 'result': result})
+    return jsonify({'ok': False, 'error': 'AutoMonitor not available'})
+
+
 # ── Watchlist API ────────────────────────────────────────────────────────────
 
 @api_bp.route('/api/watchlist/<int:prediction_id>', methods=['POST'])

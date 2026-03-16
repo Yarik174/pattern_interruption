@@ -363,11 +363,12 @@ class AutoMonitor:
                 f"{result['predictions_created']} predictions"
             )
 
-            if not self.dry_run:
-                try:
-                    self.check_results()
-                except Exception as e:
-                    logger.error(f"Results check error in _check_matches: {e}")
+            # Always check results, even in dry_run mode
+            # (dry_run only prevents creating new predictions)
+            try:
+                self.check_results()
+            except Exception as e:
+                logger.error(f"Results check error in _check_matches: {e}")
 
         except Exception as e:
             logger.error(f"AutoMonitor check error: {e}")
