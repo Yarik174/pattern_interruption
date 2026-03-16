@@ -317,7 +317,7 @@ class FlashLiveLoader(BaseLoader):
                 team_name = self._clean_participant_name(group_label.replace("Last matches:", "").strip())
 
                 matches: List[Dict] = []
-                for item in items[:5]:
+                for item in items[:15]:
                     dt = self._parse_match_date(item.get("START_TIME"))
                     date_str = dt.strftime("%d.%m.%y") if dt else ""
                     home_team, away_team = self._extract_team_names(item)

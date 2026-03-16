@@ -133,6 +133,14 @@
     .badge-L { background: var(--danger); }
     .badge-D { background: var(--warning); }
 
+    .show-more-btn {
+        display: block; width: 100%; padding: 10px;
+        background: none; border: none; border-top: 1px solid var(--border-light);
+        color: var(--text-muted); font-size: 0.8rem; cursor: pointer;
+        transition: color 0.15s, background 0.15s;
+    }
+    .show-more-btn:hover { color: var(--text-primary); background: rgba(190,255,80,0.06); }
+
     .empty-state {
         padding: 32px; text-align: center; color: var(--text-muted);
         font-size: 0.875rem;
@@ -305,8 +313,8 @@
             {% endif %}
         </div>
         {% if home_history %}
-            {% for m in home_history[:5] %}
-            <div class="match-row">
+            {% for m in home_history[:15] %}
+            <div class="match-row{% if loop.index > 5 %} match-hidden match-home-extra{% endif %}{% if loop.index > 10 %} match-home-extra2{% endif %}" {% if loop.index > 5 %}style="display:none"{% endif %}>
                 <span class="date">{{ m.date }}</span>
                 <div class="teams">
                     <span class="home {{ 'winner' if m.home and m.result == 'WIN' and m.home.lower() == prediction.home_team.lower() or (m.result == 'LOSS' and m.home and m.home.lower() != prediction.home_team.lower()) }}">{{ m.home or prediction.home_team }}</span>
@@ -318,6 +326,9 @@
                 <div class="result-badge badge-{{ badge }}">{{ badge }}</div>
             </div>
             {% endfor %}
+            {% if home_history|length > 5 %}
+            <button class="show-more-btn" onclick="toggleMore(this, 'home')">Показать ещё 5</button>
+            {% endif %}
         {% else %}
             <div class="empty-state">Нет данных</div>
         {% endif %}
@@ -337,8 +348,8 @@
             {% endif %}
         </div>
         {% if away_history %}
-            {% for m in away_history[:5] %}
-            <div class="match-row">
+            {% for m in away_history[:15] %}
+            <div class="match-row{% if loop.index > 5 %} match-hidden match-away-extra{% endif %}{% if loop.index > 10 %} match-away-extra2{% endif %}" {% if loop.index > 5 %}style="display:none"{% endif %}>
                 <span class="date">{{ m.date }}</span>
                 <div class="teams">
                     <span class="home {{ 'winner' if m.home and m.result == 'WIN' and m.home.lower() == prediction.away_team.lower() or (m.result == 'LOSS' and m.home and m.home.lower() != prediction.away_team.lower()) }}">{{ m.home or prediction.away_team }}</span>
@@ -350,6 +361,9 @@
                 <div class="result-badge badge-{{ badge }}">{{ badge }}</div>
             </div>
             {% endfor %}
+            {% if away_history|length > 5 %}
+            <button class="show-more-btn" onclick="toggleMore(this, 'away')">Показать ещё 5</button>
+            {% endif %}
         {% else %}
             <div class="empty-state">Нет данных</div>
         {% endif %}
@@ -454,6 +468,33 @@
         document.getElementById('submit-btn').disabled = false;
         document.querySelectorAll('.decision-btn').forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
+    }
+
+    function toggleMore(btn, team) {
+        const section = btn.parentElement;
+        const step = parseInt(btn.dataset.step || '1');
+        if (step === 1) {
+            section.querySelectorAll('.match-' + team + '-extra').forEach(el => {
+                if (!el.classList.contains('match-' + team + '-extra2'))
+                    el.style.display = '';
+            });
+            const hasMore = section.querySelectorAll('.match-' + team + '-extra2').length > 0;
+            if (hasMore) {
+                btn.textContent = 'Показать ещё 5';
+                btn.dataset.step = '2';
+            } else {
+                btn.textContent = 'Скрыть';
+                btn.dataset.step = '3';
+            }
+        } else if (step === 2) {
+            section.querySelectorAll('.match-' + team + '-extra2').forEach(el => el.style.display = '');
+            btn.textContent = 'Скрыть';
+            btn.dataset.step = '3';
+        } else {
+            section.querySelectorAll('.match-' + team + '-extra').forEach(el => el.style.display = 'none');
+            btn.textContent = 'Показать ещё 5';
+            btn.dataset.step = '1';
+        }
     }
 </script>
 {% endblock %}
