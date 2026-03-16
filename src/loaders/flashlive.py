@@ -231,17 +231,31 @@ class FlashLiveLoader(BaseLoader):
                 )
             ordered_types.extend(bt for bt in betting_types if bt not in ordered_types)
 
+            # Collect all parseable markets with their bookmaker names
+            all_markets: List[Dict] = []
             for betting_type in ordered_types:
                 periods = self._get_preferred_periods(betting_type.get("PERIODS", []))
                 market_type = betting_type.get("BETTING_TYPE", "")
-
                 for period in periods:
                     for group in period.get("GROUPS", []):
                         for market in group.get("MARKETS", []):
                             parsed = self._extract_market_odds(market, market_type)
                             if parsed:
-                                return parsed
-            return None
+                                all_markets.append(parsed)
+
+            if not all_markets:
+                return None
+
+            # Prefer Pinnacle, then Bet365, then first available
+            preferred_bookmakers = ["Pinnacle", "Bet365"]
+            for preferred in preferred_bookmakers:
+                for market in all_markets:
+                    if preferred.lower() in (market.get("bookmaker") or "").lower():
+                        logger.debug("Using %s odds: %s", preferred, market)
+                        return market
+
+            logger.debug("Preferred bookmakers not found, using: %s", all_markets[0].get("bookmaker"))
+            return all_markets[0]
         except Exception as exc:
             logger.error("FlashLive odds parse error: %s", exc)
             return None
