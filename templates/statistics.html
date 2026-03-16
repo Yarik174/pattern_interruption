@@ -394,6 +394,89 @@
     </div>
     {% endif %}
 
+    {% if home_away_stats %}
+    <div class="section">
+        <h3 class="section-title">🏠 Домашние vs Гостевые ставки</h3>
+        <div class="stats-grid" style="max-width: 600px;">
+            {% for key, label, icon in [('home', 'Хозяева', '🏠'), ('away', 'Гости', '✈️')] %}
+            {% set s = home_away_stats[key] %}
+            <div class="league-card">
+                <div class="league-header">
+                    <span>{{ icon }}</span>
+                    <span class="league-name">{{ label }}</span>
+                </div>
+                <div class="league-metrics">
+                    <div class="metric-row">
+                        <span class="name">Ставок</span>
+                        <span class="value">{{ s.total }}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="name">W / L</span>
+                        <span class="value" style="color: var(--success)">{{ s.wins }}</span> /
+                        <span class="value" style="color: var(--danger)">{{ s.losses }}</span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="name">Win Rate</span>
+                        <span class="value" style="color: {% if s.win_rate >= 55 %}var(--success){% elif s.win_rate >= 50 %}var(--warning){% else %}var(--danger){% endif %}">
+                            {{ '%.1f'|format(s.win_rate) }}%
+                        </span>
+                    </div>
+                    <div class="metric-row">
+                        <span class="name">ROI</span>
+                        <span class="value" style="color: {% if s.roi > 0 %}var(--success){% else %}var(--danger){% endif %}">
+                            {{ '%+.1f'|format(s.roi) }}%
+                        </span>
+                    </div>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill {% if s.win_rate >= 55 %}good{% elif s.win_rate >= 50 %}warning{% else %}bad{% endif %}"
+                         style="width: {{ s.win_rate }}%;"></div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if odds_range_stats %}
+    <div class="section">
+        <h3 class="section-title">📊 Точность по диапазонам коэффициентов</h3>
+        <div class="table-container">
+            <table class="stats-table">
+                <thead>
+                    <tr>
+                        <th>Коэффициент</th>
+                        <th>Ставок</th>
+                        <th>W / L</th>
+                        <th>Win Rate</th>
+                        <th>ROI</th>
+                        <th>Средний коэф.</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in odds_range_stats %}
+                    <tr>
+                        <td><strong>{{ r.label }}</strong></td>
+                        <td>{{ r.total }}</td>
+                        <td>
+                            <span style="color: var(--success)">{{ r.wins }}</span> /
+                            <span style="color: var(--danger)">{{ r.losses }}</span>
+                        </td>
+                        <td style="color: {% if r.win_rate >= 55 %}var(--success){% elif r.win_rate >= 50 %}var(--warning){% else %}var(--danger){% endif %}">
+                            {{ '%.1f'|format(r.win_rate) }}%
+                        </td>
+                        <td style="color: {% if r.roi > 0 %}var(--success){% else %}var(--danger){% endif %}">
+                            {{ '%+.1f'|format(r.roi) }}%
+                        </td>
+                        <td style="color: var(--text-muted)">{{ '%.2f'|format(r.avg_odds) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
     <div class="section">
         <h3 class="section-title">🎚️ Точность по уровню уверенности</h3>
         <div class="league-stats">

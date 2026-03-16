@@ -93,6 +93,8 @@ def statistics_page() -> str:
     confidence_stats: dict = {}
     pattern_stats: dict = {}
     chart_data: dict = {'labels': [], 'win_rates': [], 'totals': []}
+    home_away_stats: dict = {}
+    odds_range_stats: list = []
 
     if rt.Prediction and rt.UserDecision and rt.db:
         try:
@@ -281,6 +283,59 @@ def statistics_page() -> str:
                     'trend': trend,
                 })
 
+            # Home vs Away betting stats
+            home_bets = [p for p in completed if p.predicted_outcome and p.home_team and p.predicted_outcome == p.home_team]
+            away_bets = [p for p in completed if p.predicted_outcome and p.away_team and p.predicted_outcome == p.away_team]
+            home_wins = sum(1 for p in home_bets if p.is_win)
+            away_wins = sum(1 for p in away_bets if p.is_win)
+            home_profit = sum(get_prediction_target_odds(p) - 1 for p in home_bets if p.is_win) - (len(home_bets) - home_wins)
+            away_profit = sum(get_prediction_target_odds(p) - 1 for p in away_bets if p.is_win) - (len(away_bets) - away_wins)
+            home_away_stats = {
+                'home': {
+                    'total': len(home_bets),
+                    'wins': home_wins,
+                    'losses': len(home_bets) - home_wins,
+                    'win_rate': home_wins / len(home_bets) * 100 if home_bets else 0,
+                    'roi': (home_profit / len(home_bets)) * 100 if home_bets else 0,
+                },
+                'away': {
+                    'total': len(away_bets),
+                    'wins': away_wins,
+                    'losses': len(away_bets) - away_wins,
+                    'win_rate': away_wins / len(away_bets) * 100 if away_bets else 0,
+                    'roi': (away_profit / len(away_bets)) * 100 if away_bets else 0,
+                },
+            }
+
+            # Odds range stats
+            odds_ranges = [
+                ('< 2.0',  0.0,  2.0),
+                ('2.0–2.5', 2.0, 2.5),
+                ('2.5–3.0', 2.5, 3.0),
+                ('3.0–3.5', 3.0, 3.5),
+                ('> 3.5',  3.5, 99.0),
+            ]
+            odds_range_stats = []
+            for label, lo, hi in odds_ranges:
+                preds = [p for p in completed if p.home_odds is not None or p.away_odds is not None]
+                range_preds = []
+                for p in preds:
+                    odds = get_prediction_target_odds(p)
+                    if lo <= odds < hi:
+                        range_preds.append(p)
+                if range_preds:
+                    wins = sum(1 for p in range_preds if p.is_win)
+                    profit = sum(get_prediction_target_odds(p) - 1 for p in range_preds if p.is_win) - (len(range_preds) - wins)
+                    odds_range_stats.append({
+                        'label': label,
+                        'total': len(range_preds),
+                        'wins': wins,
+                        'losses': len(range_preds) - wins,
+                        'win_rate': wins / len(range_preds) * 100,
+                        'roi': (profit / len(range_preds)) * 100,
+                        'avg_odds': sum(get_prediction_target_odds(p) for p in range_preds) / len(range_preds),
+                    })
+
             # Chart data
             chart_data['labels'] = sorted_months[-12:]
             chart_data['cumulative_roi'] = []
@@ -319,6 +374,8 @@ def statistics_page() -> str:
         confidence_stats=confidence_stats,
         pattern_stats=pattern_stats,
         chart_data=chart_data,
+        home_away_stats=home_away_stats,
+        odds_range_stats=odds_range_stats,
     )
 
 
