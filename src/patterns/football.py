@@ -284,93 +284,91 @@ class BasketballPatternAnalyzer(BasePatternAnalyzer):
                 continue
         logger.info("BasketballPatternAnalyzer: loaded %d matches", self.matches_loaded)
 
+    def _build_team_pattern(self, team: str) -> dict[str, Any]:
+        """Build a pattern dict from recent_form for CPP prediction.
+
+        Returns dict with keys expected by get_cpp_prediction:
+        overall_streak, overall_critical, home_streak, home_critical,
+        away_streak, away_critical, alt_critical, overall_alt.
+        """
+        form = self.recent_form.get(team, [])
+        result_str = "".join(form[-20:])  # last 20 games
+
+        overall_streak = self.current_streak(form[-20:])
+        overall_alt = self.get_alternation_length(result_str)
+
+        streak_threshold = self.thresholds.get("overall_streak", 5)
+        home_threshold = self.thresholds.get("home_streak", 4)
+        away_threshold = self.thresholds.get("away_streak", 3)
+        alt_threshold = self.thresholds.get("alternation", 6)
+
+        return {
+            "overall_streak": overall_streak,
+            "overall_critical": abs(overall_streak) >= streak_threshold,
+            "home_streak": overall_streak,  # approximation from overall
+            "home_critical": abs(overall_streak) >= home_threshold,
+            "away_streak": overall_streak,
+            "away_critical": abs(overall_streak) >= away_threshold,
+            "alt_critical": overall_alt >= alt_threshold,
+            "overall_alt": overall_alt,
+        }
+
     def analyze_match(self, home_team: str, away_team: str, **kwargs: Any) -> dict[str, Any]:
+        """Pattern interruption analysis for basketball.
+
+        Uses streak/alternation/synergy detection from BasePatternAnalyzer
+        and CPP prediction: bet AGAINST the pattern when synergy >= 2.
+        """
+        home_pattern = self._build_team_pattern(home_team)
+        away_pattern = self._build_team_pattern(away_team)
+
+        cpp = self.get_cpp_prediction(home_pattern, away_pattern)
+        cpp_prob = self.estimate_cpp_probability(cpp.patterns, cpp.synergy)
+
+        home_score = self.calc_strong_signal(home_pattern)
+        away_score = self.calc_strong_signal(away_pattern)
+
+        # Build human-readable pattern descriptions
         patterns: list[dict[str, Any]] = []
+        for p in cpp.patterns:
+            patterns.append({
+                "type": p["type"],
+                "description": p["reason"],
+                "length": p.get("length", 0),
+                "confidence": cpp_prob,
+            })
 
-        home_stats = self.team_stats.get(home_team, {})
-        away_stats = self.team_stats.get(away_team, {})
-        home_home = home_stats.get("home", {})
-        away_away = away_stats.get("away", {})
+        # CPP decision: bet recommendation only when synergy >= 2
+        bet_on = cpp.team  # "home", "away", or None
+        confidence = cpp_prob if bet_on else 0.0
 
-        home_win_pct = 0.5
+        # Winrate stats for context (not for decision-making)
+        home_home = self.team_stats.get(home_team, {}).get("home", {})
+        away_away = self.team_stats.get(away_team, {}).get("away", {})
         total_hh = home_home.get("wins", 0) + home_home.get("losses", 0)
-        if total_hh > 0:
-            home_win_pct = home_home["wins"] / total_hh
-
-        away_win_pct = 0.5
         total_aa = away_away.get("wins", 0) + away_away.get("losses", 0)
-        if total_aa > 0:
-            away_win_pct = away_away["wins"] / total_aa
-
-        home_form = self.recent_form.get(home_team, [])[-5:]
-        away_form = self.recent_form.get(away_team, [])[-5:]
-
-        home_streak = self.current_streak(home_form)
-        away_streak = self.current_streak(away_form)
-
-        bet_on = "home"
-        confidence = 0.5
-
-        if home_win_pct >= 0.65 and home_streak >= 3:
-            bet_on = "home"
-            confidence = min(0.85, home_win_pct + 0.1)
-            patterns.append({
-                "type": "HOME_DOMINANT",
-                "description": f"{home_team} wins {home_win_pct*100:.0f}% at home, streak {home_streak}W",
-                "confidence": confidence,
-            })
-        elif away_win_pct >= 0.55 and away_streak >= 4:
-            bet_on = "away"
-            confidence = min(0.80, away_win_pct + 0.1)
-            patterns.append({
-                "type": "AWAY_HOT",
-                "description": f"{away_team} hot, streak {away_streak}W",
-                "confidence": confidence,
-            })
-        elif home_win_pct < 0.35 and away_win_pct > 0.60:
-            bet_on = "away"
-            confidence = 0.65
-            patterns.append({
-                "type": "MISMATCH",
-                "description": f"Clear advantage {away_team}",
-                "confidence": confidence,
-            })
-        else:
-            confidence = max(home_win_pct, 1 - away_win_pct) * 0.8
-            bet_on = "home" if home_win_pct > (1 - away_win_pct) else "away"
+        home_win_pct = home_home["wins"] / total_hh if total_hh > 0 else 0.5
+        away_win_pct = away_away["wins"] / total_aa if total_aa > 0 else 0.5
 
         h2h_key = tuple(sorted([home_team, away_team]))
         h2h_matches = self.h2h.get(h2h_key, [])
-        if len(h2h_matches) >= 3:
-            recent_h2h = h2h_matches[-5:]
-            home_h2h_wins = sum(1 for m in recent_h2h if m["winner"] == home_team)
-            if home_h2h_wins >= 4:
-                bet_on = "home"
-                confidence = min(confidence + 0.1, 0.90)
-                patterns.append({
-                    "type": "H2H_DOMINANT",
-                    "description": f"{home_team} dominates H2H: {home_h2h_wins}/5",
-                    "confidence": confidence,
-                })
-            elif home_h2h_wins <= 1:
-                bet_on = "away"
-                confidence = min(confidence + 0.1, 0.90)
-                patterns.append({
-                    "type": "H2H_UNDERDOG",
-                    "description": f"{away_team} dominates H2H: {5-home_h2h_wins}/5",
-                    "confidence": confidence,
-                })
 
         return {
             "patterns": patterns,
             "bet_on": bet_on,
-            "predicted_team": home_team if bet_on == "home" else away_team,
+            "predicted_team": (home_team if bet_on == "home" else away_team) if bet_on else None,
             "confidence": confidence,
             "home_win_pct": home_win_pct,
             "away_win_pct": away_win_pct,
-            "home_streak": home_streak,
-            "away_streak": away_streak,
+            "home_streak": home_pattern["overall_streak"],
+            "away_streak": away_pattern["overall_streak"],
             "h2h_matches": len(h2h_matches),
+            "cpp_prediction": cpp.to_dict(),
+            "synergy": cpp.synergy,
+            "home_pattern": home_pattern,
+            "away_pattern": away_pattern,
+            "home_signal_score": home_score,
+            "away_signal_score": away_score,
         }
 
 
@@ -435,79 +433,78 @@ class VolleyballPatternAnalyzer(BasePatternAnalyzer):
                 continue
         logger.info("VolleyballPatternAnalyzer: loaded %d matches", self.matches_loaded)
 
-    def analyze_match(self, home_team: str, away_team: str, **kwargs: Any) -> dict[str, Any]:
-        patterns: list[dict[str, Any]] = []
+    def _build_team_pattern(self, team: str) -> dict[str, Any]:
+        """Build pattern dict from recent_form for CPP prediction."""
+        form = self.recent_form.get(team, [])
+        result_str = "".join(form[-20:])
 
+        overall_streak = self.current_streak(form[-20:])
+        overall_alt = self.get_alternation_length(result_str)
+
+        streak_threshold = self.thresholds.get("overall_streak", 5)
+        home_threshold = self.thresholds.get("home_streak", 4)
+        away_threshold = self.thresholds.get("away_streak", 3)
+        alt_threshold = self.thresholds.get("alternation", 6)
+
+        return {
+            "overall_streak": overall_streak,
+            "overall_critical": abs(overall_streak) >= streak_threshold,
+            "home_streak": overall_streak,
+            "home_critical": abs(overall_streak) >= home_threshold,
+            "away_streak": overall_streak,
+            "away_critical": abs(overall_streak) >= away_threshold,
+            "alt_critical": overall_alt >= alt_threshold,
+            "overall_alt": overall_alt,
+        }
+
+    def analyze_match(self, home_team: str, away_team: str, **kwargs: Any) -> dict[str, Any]:
+        """Pattern interruption analysis for volleyball.
+
+        Uses streak/alternation/synergy detection from BasePatternAnalyzer
+        and CPP prediction: bet AGAINST the pattern when synergy >= 2.
+        """
+        home_pattern = self._build_team_pattern(home_team)
+        away_pattern = self._build_team_pattern(away_team)
+
+        cpp = self.get_cpp_prediction(home_pattern, away_pattern)
+        cpp_prob = self.estimate_cpp_probability(cpp.patterns, cpp.synergy)
+
+        home_score = self.calc_strong_signal(home_pattern)
+        away_score = self.calc_strong_signal(away_pattern)
+
+        patterns: list[dict[str, Any]] = []
+        for p in cpp.patterns:
+            patterns.append({
+                "type": p["type"],
+                "description": p["reason"],
+                "length": p.get("length", 0),
+                "confidence": cpp_prob,
+            })
+
+        bet_on = cpp.team
+        confidence = cpp_prob if bet_on else 0.0
+
+        # Winrate stats for context only
         home_stats = self.team_stats.get(home_team, {}).get("home", {})
         away_stats = self.team_stats.get(away_team, {}).get("away", {})
-
-        home_win_pct = 0.5
         total_home = home_stats.get("wins", 0) + home_stats.get("losses", 0)
-        if total_home > 0:
-            home_win_pct = home_stats["wins"] / total_home
-
-        away_win_pct = 0.5
         total_away = away_stats.get("wins", 0) + away_stats.get("losses", 0)
-        if total_away > 0:
-            away_win_pct = away_stats["wins"] / total_away
-
-        home_form = self.recent_form.get(home_team, [])[-5:]
-        away_form = self.recent_form.get(away_team, [])[-5:]
-
-        home_form_pct = (
-            sum(1 for r in home_form if r == "W") / len(home_form) if home_form else 0.5
-        )
-        away_form_pct = (
-            sum(1 for r in away_form if r == "W") / len(away_form) if away_form else 0.5
-        )
-
-        bet_on = "home"
-        confidence = 0.5
-
-        combined_home = home_win_pct * 0.6 + home_form_pct * 0.4
-        combined_away = away_win_pct * 0.6 + away_form_pct * 0.4
-
-        home_tiebreak = self.tiebreak_stats.get(home_team, {})
-
-        if combined_home > combined_away + 0.15:
-            bet_on = "home"
-            confidence = min(0.80, combined_home)
-            patterns.append({
-                "type": "HOME_FAVORITE",
-                "description": f"{home_team} clear home favourite ({home_win_pct*100:.0f}%)",
-                "confidence": confidence,
-            })
-        elif combined_away > combined_home + 0.10:
-            bet_on = "away"
-            confidence = min(0.75, combined_away)
-            patterns.append({
-                "type": "AWAY_STRONG",
-                "description": f"{away_team} strong on the road ({away_win_pct*100:.0f}%)",
-                "confidence": confidence,
-            })
-        else:
-            if (
-                home_tiebreak.get("total", 0) >= 3
-                and home_tiebreak.get("wins", 0) / home_tiebreak.get("total", 1) > 0.6
-            ):
-                bet_on = "home"
-                confidence = 0.60
-                patterns.append({
-                    "type": "TIEBREAK_MASTER",
-                    "description": f"{home_team} wins tiebreaks",
-                    "confidence": confidence,
-                })
-            else:
-                bet_on = "home" if combined_home >= combined_away else "away"
-                confidence = max(combined_home, combined_away) * 0.9
+        home_win_pct = home_stats["wins"] / total_home if total_home > 0 else 0.5
+        away_win_pct = away_stats["wins"] / total_away if total_away > 0 else 0.5
 
         return {
             "patterns": patterns,
             "bet_on": bet_on,
-            "predicted_team": home_team if bet_on == "home" else away_team,
+            "predicted_team": (home_team if bet_on == "home" else away_team) if bet_on else None,
             "confidence": confidence,
             "home_win_pct": home_win_pct,
             "away_win_pct": away_win_pct,
-            "home_form_pct": home_form_pct,
-            "away_form_pct": away_form_pct,
+            "home_streak": home_pattern["overall_streak"],
+            "away_streak": away_pattern["overall_streak"],
+            "cpp_prediction": cpp.to_dict(),
+            "synergy": cpp.synergy,
+            "home_pattern": home_pattern,
+            "away_pattern": away_pattern,
+            "home_signal_score": home_score,
+            "away_signal_score": away_score,
         }

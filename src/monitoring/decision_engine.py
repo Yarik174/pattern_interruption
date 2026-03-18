@@ -378,21 +378,7 @@ class DecisionEngine:
             )
 
         analysis = analyzer.analyze_match(home_team, away_team)
-        confidence = analysis.get("confidence")
-        signal_side = analysis.get("bet_on")
-        pattern_verdict = {
-            "status": "pass" if signal_side and confidence is not None and confidence >= 0.62 else "fail",
-            "reason": "pattern_signal_ready" if signal_side and confidence is not None and confidence >= 0.62 else "no_pattern_signal",
-            "signal_side": signal_side,
-            "confidence": confidence,
-            "details": {
-                "patterns": analysis.get("patterns", []),
-                "home_win_pct": analysis.get("home_win_pct"),
-                "away_win_pct": analysis.get("away_win_pct"),
-            },
-        }
-        model_verdict = self._build_basketball_model_verdict(analysis)
-        return pattern_verdict, model_verdict
+        return self._build_cpp_verdicts(analysis)
 
     # -- volleyball ---------------------------------------------------------
 
@@ -408,21 +394,7 @@ class DecisionEngine:
             )
 
         analysis = analyzer.analyze_match(home_team, away_team)
-        confidence = analysis.get("confidence")
-        signal_side = analysis.get("bet_on")
-        pattern_verdict = {
-            "status": "pass" if signal_side and confidence is not None and confidence >= 0.60 else "fail",
-            "reason": "pattern_signal_ready" if signal_side and confidence is not None and confidence >= 0.60 else "no_pattern_signal",
-            "signal_side": signal_side,
-            "confidence": confidence,
-            "details": {
-                "patterns": analysis.get("patterns", []),
-                "home_win_pct": analysis.get("home_win_pct"),
-                "away_win_pct": analysis.get("away_win_pct"),
-            },
-        }
-        model_verdict = self._build_volleyball_model_verdict(analysis)
-        return pattern_verdict, model_verdict
+        return self._build_cpp_verdicts(analysis)
 
     # -- football -----------------------------------------------------------
 
@@ -457,120 +429,77 @@ class DecisionEngine:
         }
         return pattern_verdict, model_verdict
 
-    # -- model calibration helpers ------------------------------------------
+    # -- CPP-based verdict builder (basketball, volleyball) -------------------
 
     @staticmethod
-    def _build_basketball_model_verdict(analysis: dict) -> dict:
+    def _build_cpp_verdicts(analysis: dict) -> tuple[dict, dict]:
+        """Build pattern + model verdicts from CPP analysis.
+
+        Used by basketball and volleyball evaluators. Requires synergy >= 2
+        for a signal — same logic as hockey CPP.
+        """
+        cpp = analysis.get("cpp_prediction", {})
+        synergy = cpp.get("synergy", 0) if isinstance(cpp, dict) else getattr(cpp, "synergy", 0)
         signal_side = analysis.get("bet_on")
-        confidence = analysis.get("confidence")
-        if not signal_side or confidence is None:
-            return {
+        confidence = analysis.get("confidence", 0)
+        active_patterns = analysis.get("patterns", [])
+
+        # Pattern verdict: pass only when CPP found synergy >= 2
+        if signal_side and synergy >= 2:
+            pattern_confidence = min(0.9, 0.55 + max(0, synergy - 2) * 0.05)
+            pattern_verdict = {
+                "status": "pass",
+                "reason": "pattern_signal_ready",
+                "signal_side": signal_side,
+                "confidence": pattern_confidence,
+                "details": {
+                    "synergy": synergy,
+                    "patterns": active_patterns,
+                    "home_signal_score": analysis.get("home_signal_score", 0),
+                    "away_signal_score": analysis.get("away_signal_score", 0),
+                },
+            }
+        else:
+            pattern_verdict = {
+                "status": "fail",
+                "reason": "no_pattern_signal" if synergy < 2 else "no_cpp_prediction",
+                "signal_side": signal_side,
+                "confidence": confidence,
+                "details": {
+                    "synergy": synergy,
+                    "patterns": active_patterns,
+                },
+            }
+
+        # Model verdict: use CPP probability as model signal
+        # (no separate ML model for basketball/volleyball yet)
+        if signal_side and synergy >= 2 and confidence > 0.5:
+            model_verdict = {
+                "status": "pass",
+                "reason": "model_signal_ready",
+                "signal_side": signal_side,
+                "confidence": confidence,
+                "details": {
+                    "cpp_probability": confidence,
+                    "synergy": synergy,
+                    "pattern_count": len(active_patterns),
+                },
+            }
+        elif signal_side:
+            model_verdict = {
+                "status": "fail",
+                "reason": "insufficient_synergy",
+                "signal_side": signal_side,
+                "confidence": confidence,
+                "details": {"synergy": synergy},
+            }
+        else:
+            model_verdict = {
                 "status": "unavailable",
-                "reason": "model_unavailable",
+                "reason": "no_cpp_prediction",
                 "signal_side": None,
                 "confidence": None,
             }
 
-        home_win_pct = float(analysis.get("home_win_pct") or 0.5)
-        away_win_pct = float(analysis.get("away_win_pct") or 0.5)
-        home_streak = int(analysis.get("home_streak") or 0)
-        away_streak = int(analysis.get("away_streak") or 0)
-        h2h_matches = int(analysis.get("h2h_matches") or 0)
+        return pattern_verdict, model_verdict
 
-        if signal_side == "home":
-            edge = home_win_pct - away_win_pct
-            streak = max(0, home_streak)
-        else:
-            edge = away_win_pct - home_win_pct
-            streak = max(0, away_streak)
-
-        calibrated_confidence = min(
-            0.9,
-            confidence
-            + max(0.0, edge) * 0.30
-            + min(streak, 5) * 0.015
-            + (0.02 if h2h_matches >= 3 else 0.0),
-        )
-        threshold = 0.68
-        if calibrated_confidence >= threshold and edge >= 0.05:
-            return {
-                "status": "pass",
-                "reason": "model_signal_ready",
-                "signal_side": signal_side,
-                "confidence": calibrated_confidence,
-                "details": {
-                    "edge": round(edge, 4),
-                    "h2h_matches": h2h_matches,
-                    "streak": streak,
-                },
-            }
-        return {
-            "status": "fail",
-            "reason": "model_below_threshold",
-            "signal_side": signal_side,
-            "confidence": calibrated_confidence,
-            "details": {
-                "edge": round(edge, 4),
-                "h2h_matches": h2h_matches,
-                "streak": streak,
-            },
-        }
-
-    @staticmethod
-    def _build_volleyball_model_verdict(analysis: dict) -> dict:
-        signal_side = analysis.get("bet_on")
-        confidence = analysis.get("confidence")
-        if not signal_side or confidence is None:
-            return {
-                "status": "unavailable",
-                "reason": "model_unavailable",
-                "signal_side": None,
-                "confidence": None,
-            }
-
-        home_win_pct = float(analysis.get("home_win_pct") or 0.5)
-        away_win_pct = float(analysis.get("away_win_pct") or 0.5)
-        home_form_pct = float(analysis.get("home_form_pct") or 0.5)
-        away_form_pct = float(analysis.get("away_form_pct") or 0.5)
-        patterns = analysis.get("patterns") or []
-
-        home_strength = home_win_pct * 0.6 + home_form_pct * 0.4
-        away_strength = away_win_pct * 0.6 + away_form_pct * 0.4
-
-        if signal_side == "home":
-            edge = home_strength - away_strength
-            target_strength = home_strength
-        else:
-            edge = away_strength - home_strength
-            target_strength = away_strength
-
-        calibrated_confidence = min(
-            0.88,
-            confidence
-            + max(0.0, edge) * 0.35
-            + min(len(patterns), 2) * 0.02,
-        )
-        threshold = 0.66
-        if calibrated_confidence >= threshold and edge >= 0.04 and target_strength >= 0.58:
-            return {
-                "status": "pass",
-                "reason": "model_signal_ready",
-                "signal_side": signal_side,
-                "confidence": calibrated_confidence,
-                "details": {
-                    "edge": round(edge, 4),
-                    "target_strength": round(target_strength, 4),
-                    "pattern_count": len(patterns),
-                },
-            }
-        return {
-            "status": "fail",
-            "reason": "model_below_threshold",
-            "signal_side": signal_side,
-            "confidence": calibrated_confidence,
-            "details": {
-                "edge": round(edge, 4),
-                "target_strength": round(target_strength, 4),
-                "pattern_count": len(patterns),
-            },
-        }

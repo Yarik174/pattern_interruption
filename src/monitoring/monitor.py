@@ -118,10 +118,14 @@ class OddsMonitor:
             result["matches_found"] = len(matches)
             self._stats["matches_found"] += len(matches)
 
+            # Deduplicate matches by event_id within this scan
+            seen_events: set[str] = set()
             for match in matches:
                 event_id = match.get("event_id")
-                if event_id and event_id in self._processed_events:
-                    continue
+                if event_id:
+                    if event_id in self._processed_events or event_id in seen_events:
+                        continue
+                    seen_events.add(event_id)
                 try:
                     prediction = self.prediction_callback(match)
                     if prediction:
