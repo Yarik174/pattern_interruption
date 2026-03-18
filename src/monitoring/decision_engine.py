@@ -301,7 +301,7 @@ class DecisionEngine:
             else:
                 model_confidence = None
 
-            threshold = 0.58
+            threshold = 0.55
             if model_side and model_confidence is not None and model_confidence >= threshold:
                 model_verdict = {
                     "status": "pass",

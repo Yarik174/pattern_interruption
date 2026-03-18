@@ -49,7 +49,7 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-RF_MODEL_PATH = 'artifacts/20260301_235042/model.pkl'
+RF_MODEL_PATH = 'artifacts/20260319_003205/model.pkl'
 MIN_HISTORY = 20  # минимум матчей на команду до начала анализа
 
 

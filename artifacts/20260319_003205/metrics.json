@@ -1,0 +1,23 @@
+{
+  "accuracy": 0.6398485565546617,
+  "cv_mean": 0.6426539710880695,
+  "cv_std": 0.009715469005760003,
+  "n_samples_total": 13615,
+  "n_samples_critical": 10564,
+  "n_train": 8451,
+  "n_test": 2113,
+  "break_rate": 0.4328852707307838,
+  "confusion_matrix": [
+    [
+      577,
+      643
+    ],
+    [
+      118,
+      775
+    ]
+  ],
+  "proba_std": 0.2484801264116242,
+  "model": "CalibratedRF(RF+critical_target)",
+  "data": "12 seasons (2011-2022), full dates, sbro odds"
+}
