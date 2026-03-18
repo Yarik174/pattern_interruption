@@ -391,50 +391,8 @@
         {% endif %}
     </div>
 
-    <!-- ── RL + Decision ── -->
+    <!-- ── Decision ── -->
     <div class="grid-bottom">
-        <div>
-            {% if rl_recommendation %}
-            {% set q_diff = (rl_recommendation.q_bet or 0) - (rl_recommendation.q_skip or 0) %}
-            {% set q_sum = ((rl_recommendation.q_bet or 0)|abs + (rl_recommendation.q_skip or 0)|abs) %}
-            {% set rl_conf = ((q_diff|abs / (q_sum + 0.000001)) * 100)|round(1) %}
-            {% set is_weak = rl_conf < 5 %}
-
-            <div class="section" style="margin-bottom: 0;">
-                <div class="section-header">
-                    <span class="section-title">RL-агент</span>
-                    <span style="font-size: 0.75rem; color: var(--text-muted);">confidence {{ rl_conf }}%</span>
-                </div>
-                <div style="padding: 16px 20px;">
-                    {% if is_weak %}
-                    <div class="rl-card weak">
-                        <div class="rl-action weak">
-                            {% if rl_recommendation.action == 'BET' %}СТАВИТЬ{% else %}ПРОПУСТИТЬ{% endif %}
-                        </div>
-                        <div class="rl-subtitle">Слабый сигнал — модель не уверена</div>
-                    {% elif rl_recommendation.action == 'BET' %}
-                    <div class="rl-card bet">
-                        <div class="rl-action bet">СТАВИТЬ</div>
-                        <div class="rl-subtitle">{{ rl_recommendation.recommendation }}</div>
-                    {% else %}
-                    <div class="rl-card skip">
-                        <div class="rl-action skip">ПРОПУСТИТЬ</div>
-                        <div class="rl-subtitle">{{ rl_recommendation.recommendation }}</div>
-                    {% endif %}
-                        <div class="rl-confidence-bar">
-                            <div class="rl-confidence-fill" style="width: {{ [rl_conf, 100]|min }}%;
-                                background: {% if is_weak %}var(--warning){% elif rl_recommendation.action == 'BET' %}var(--success){% else %}var(--danger){% endif %};"></div>
-                        </div>
-                        <div class="rl-q-values">
-                            <span>Q(bet) {{ '%.3f'|format(rl_recommendation.q_bet or 0) }}</span>
-                            <span>Q(skip) {{ '%.3f'|format(rl_recommendation.q_skip or 0) }}</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-        </div>
-
         <div class="decision-form">
             <div class="decision-title">Ваше решение</div>
             {% if prediction.user_decision %}

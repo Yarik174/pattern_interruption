@@ -117,20 +117,9 @@ def prediction_detail(prediction_id: int) -> str:
             logger.error(f"Error in prediction_detail (id={prediction_id}): {e}", exc_info=True)
             return "Прогноз не найден", 404  # type: ignore[return-value]
 
-    # RL agent recommendation
+    # RL agent disabled — trained on synthetic data, produces meaningless recommendations
+    # TODO: re-enable after proper training with real model confidence + Kelly criterion
     rl_recommendation = None
-    if prediction:
-        try:
-            from src.prediction_service import get_rl_recommendation_for_prediction
-            prediction_data = {
-                'confidence': prediction.confidence or 0.5,
-                'home_odds': prediction.home_odds,
-                'away_odds': prediction.away_odds,
-                'patterns_data': prediction.patterns_data or {},
-            }
-            rl_recommendation = get_rl_recommendation_for_prediction(prediction_data)
-        except Exception as e:
-            logger.error(f"Error in prediction_detail (RL recommendation, id={prediction_id}): {e}", exc_info=True)
 
     return rt.render_template(
         'prediction_detail.html',
