@@ -51,7 +51,12 @@ _routes_initialized = False
 
 
 def get_flashlive_loader(sport=None):
-    """Получить кэшированный FlashLive loader для нужного вида спорта."""
+    """FlashLive API disabled — saving API quota. Returns None for all sports.
+    TODO: re-enable when ready to use RapidAPI again."""
+    return None
+
+def _get_flashlive_loader_real(sport=None):
+    """Original loader factory — kept for re-enabling later."""
     global flashlive_loader, flashlive_loaders
 
     sport_type = resolve_sport_type(sport)
@@ -255,9 +260,11 @@ def startup_initialization():
     import threading
     threading.Thread(target=warmup_multi_league, daemon=True).start()
 
+    # OddsMonitor disabled — AutoMonitor (12h) handles everything with smart
+    # pre-filtering.  The old 5-min OddsMonitor fetched odds for ALL ~500
+    # matches every cycle, causing 40-50K API calls/day ($200+/month).
     if flashlive_loader and flashlive_loader.is_configured():
-        threading.Thread(target=init_odds_monitor, daemon=True).start()
-        print("✅ Odds monitor initialized with FlashLive API (RapidAPI)")
+        print("✅ FlashLive API configured (odds via AutoMonitor smart filter)")
     else:
         print("⚠️ No odds API configured (need RAPIDAPI_KEY)")
 
